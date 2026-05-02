@@ -679,6 +679,58 @@ h1, h2, h3, p { margin-top: 0; }
   padding: 18px;
 }
 
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.station-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.station-card h3 {
+  margin-bottom: 8px;
+}
+
+.station-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.station-card > div > strong {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--bv-yellow);
+}
+
+.station-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.station-metrics span {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.station-metrics strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 22px;
+}
+
 .print-card {
   text-align: center;
 }
@@ -858,6 +910,7 @@ h1, h2, h3, p { margin-top: 0; }
   .form-grid,
   .admin-grid,
   .admin-dashboard,
+  .station-grid,
   .summary-metrics,
   .file-row {
     grid-template-columns: 1fr;

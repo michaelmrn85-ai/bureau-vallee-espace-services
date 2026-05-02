@@ -4,6 +4,7 @@ const STATS_KEY = "bv-espace-services-stats";
 const SESSION_KEY = "bv-espace-services-current-session";
 const COMMAND_KEY = "bv-espace-services-admin-command";
 const stationConfig = window.BV_APP_CONFIG || {};
+const apiBaseUrl = stationConfig.apiBaseUrl || "";
 const STATIONS = [
   { id: "poste-copieur-1", name: "POSTE COPIEUR 1", printer: "COPIEUR 1" },
   { id: "poste-copieur-2", name: "POSTE COPIEUR 2", printer: "COPIEUR 2" },
@@ -98,6 +99,18 @@ function loadStationSession(stationId) {
   }
 }
 
+async function fetchRemoteStations() {
+  if (!apiBaseUrl) return null;
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/stations`);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload.stations || [];
+  } catch (error) {
+    return null;
+  }
+}
+
 function formatDateTime(value) {
   return new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",
@@ -122,11 +135,12 @@ function renderSettings() {
   remoteCleanupInput.checked = settings.remoteCleanup;
 }
 
-function renderDashboard() {
+async function renderDashboard() {
   const stats = loadStats();
+  const remoteStations = await fetchRemoteStations();
   const stationSessions = STATIONS.map((station) => ({
     ...station,
-    session: loadStationSession(station.id),
+    session: remoteStations?.find((item) => item.stationId === station.id) || loadStationSession(station.id),
   }));
   const activeStation = stationSessions.find((station) => station.session.active) || stationSessions[0];
   selectedStationId = activeStation?.id || STATIONS[0].id;
@@ -262,6 +276,13 @@ saveBtn.addEventListener("click", () => {
 });
 
 function sendCloseCommand(stationId = null) {
+  if (apiBaseUrl && stationId) {
+    fetch(`${apiBaseUrl}/api/stations/${stationId}/command`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "close-session" }),
+    }).catch(() => {});
+  }
   const key = stationId ? `${COMMAND_KEY}:${stationId}` : COMMAND_KEY;
   localStorage.setItem(key, JSON.stringify({
     id: crypto.randomUUID(),

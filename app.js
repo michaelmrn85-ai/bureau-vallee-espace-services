@@ -10,6 +10,7 @@ const stationName = stationConfig.stationName || "POSTE DEMO";
 const stationStorageId = stationName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "poste-demo";
 const stationSessionKey = `${SESSION_KEY}:${stationStorageId}`;
 const stationCommandKey = `${COMMAND_KEY}:${stationStorageId}`;
+const apiBaseUrl = stationConfig.apiBaseUrl || "";
 
 const acceptedExtensions = [".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"];
 const conversionLabels = {
@@ -212,6 +213,20 @@ function saveCurrentSessionSnapshot() {
   };
   localStorage.setItem(stationSessionKey, JSON.stringify(snapshot));
   localStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
+  reportStationSnapshot(snapshot);
+}
+
+async function reportStationSnapshot(snapshot) {
+  if (!apiBaseUrl) return;
+  try {
+    await fetch(`${apiBaseUrl}/api/stations/${stationStorageId}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(snapshot),
+    });
+  } catch (error) {
+    console.warn("Etat poste non transmis", error);
+  }
 }
 
 function getExtension(name) {
@@ -1034,6 +1049,19 @@ setInterval(() => {
   handleAdminCommand(localStorage.getItem(stationCommandKey));
   handleAdminCommand(localStorage.getItem(COMMAND_KEY));
 }, 1000);
+
+async function pollRemoteCommand() {
+  if (!apiBaseUrl) return;
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/stations/${stationStorageId}/command`);
+    if (!response.ok) return;
+    handleAdminCommand(JSON.stringify(await response.json()));
+  } catch (error) {
+    console.warn("Commande distante indisponible", error);
+  }
+}
+
+setInterval(pollRemoteCommand, 1500);
 
 applyAdminSettings();
 renderFileList();

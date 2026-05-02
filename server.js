@@ -7,6 +7,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3100;
 const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
+const STATIONS_FILE = path.join(DATA_DIR, "stations.json");
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const JOB_TTL_MS = 60 * 60 * 1000;
 
@@ -31,7 +32,32 @@ const upload = multer({
 });
 
 app.use(express.json());
+app.use((request, response, next) => {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (request.method === "OPTIONS") {
+    response.sendStatus(204);
+    return;
+  }
+  next();
+});
 app.use(express.static(__dirname));
+
+function readStations() {
+  if (!fs.existsSync(STATIONS_FILE)) {
+    return { stations: {}, commands: {} };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(STATIONS_FILE, "utf8"));
+  } catch (error) {
+    return { stations: {}, commands: {} };
+  }
+}
+
+function writeStations(data) {
+  fs.writeFileSync(STATIONS_FILE, JSON.stringify(data, null, 2));
+}
 
 function generateCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -98,6 +124,43 @@ function reserveCode() {
 
 app.get("/health", (request, response) => {
   response.json({ ok: true });
+});
+
+app.get("/api/stations", (request, response) => {
+  const data = readStations();
+  response.json({
+    stations: Object.values(data.stations || {}),
+  });
+});
+
+app.post("/api/stations/:stationId/session", (request, response) => {
+  const data = readStations();
+  data.stations = data.stations || {};
+  data.stations[request.params.stationId] = {
+    ...request.body,
+    stationId: request.params.stationId,
+    updatedAt: new Date().toISOString(),
+  };
+  writeStations(data);
+  response.json({ ok: true });
+});
+
+app.get("/api/stations/:stationId/command", (request, response) => {
+  const data = readStations();
+  response.json((data.commands || {})[request.params.stationId] || null);
+});
+
+app.post("/api/stations/:stationId/command", (request, response) => {
+  const data = readStations();
+  data.commands = data.commands || {};
+  data.commands[request.params.stationId] = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: request.body.type,
+    stationId: request.params.stationId,
+    createdAt: new Date().toISOString(),
+  };
+  writeStations(data);
+  response.json(data.commands[request.params.stationId]);
 });
 
 app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
