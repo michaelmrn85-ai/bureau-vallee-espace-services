@@ -1,5 +1,5 @@
 Bureau Vallee - Espace Services
-Base locale Windows 11
+Site Render + logiciel Windows 11
 
 Projet dedie a l'Espace Services Bureau Vallee Montaigu-Vendee.
 
@@ -19,13 +19,9 @@ Pour le branchement reel Windows :
 4. envoi du PDF a l'imprimante Windows nommee COPIEUR 1 ou COPIEUR 2
 5. suppression des fichiers temporaires
 
-Prochaine etape recommande :
-- transformer cette interface en application Windows locale
-- brancher la conversion locale Word/images vers PDF
-- lancer l'impression reelle sur les copieurs Canon imageFORCE C5140
-
-Lancement local de test :
-1. npm install
-2. npm start
-3. ouvrir http://localhost:3100 pour la borne
-4. ouvrir http://localhost:3100/upload.html pour le depot client
+Installation finale :
+1. publier le site permanent sur Render depuis GitHub
+2. copier le dossier POSTE-COPIEUR-1 ou POSTE-COPIEUR-2 sur le PC Windows
+3. lancer CONFIGURER-SITE-RENDER.bat
+4. coller l'adresse Render permanente
+5. lancer LANCER-BUREAU-VALLEE.bat

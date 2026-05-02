@@ -25,7 +25,7 @@ const conversionLabels = {
 const defaultAdminSettings = {
   printer1: stationConfig.printer1 || "COPIEUR 1",
   printer2: stationConfig.printer2 || "COPIEUR 2",
-  uploadUrl: stationConfig.uploadUrl || "/upload.html",
+  uploadUrl: stationConfig.uploadUrl || "/upload",
   cleanupDelay: 3,
   deleteAfterPrint: true,
   remoteCleanup: true,
@@ -382,7 +382,7 @@ function resolveUploadUrl() {
   try {
     return new URL(state.admin.uploadUrl, window.location.href).href;
   } catch (error) {
-    return state.admin.uploadUrl || "/upload.html";
+    return state.admin.uploadUrl || "/upload";
   }
 }
 
@@ -1025,7 +1025,7 @@ if (adminSaveBtn) adminSaveBtn.addEventListener("click", () => {
     printer2: stationConfig.lockPrinter
       ? (stationConfig.secondaryPrinter || adminPrinter2.value.trim() || "COPIEUR 2")
       : (adminPrinter2.value.trim() || "COPIEUR 2"),
-    uploadUrl: adminUploadUrl.value.trim() || "/upload.html",
+    uploadUrl: adminUploadUrl.value.trim() || "/upload",
     cleanupDelay: Number(adminCleanupDelay.value) || 3,
     deleteAfterPrint: adminDeletePrint.checked,
     remoteCleanup: adminRemoteCleanup.checked,

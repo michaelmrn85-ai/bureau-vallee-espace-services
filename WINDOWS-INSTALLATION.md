@@ -4,12 +4,12 @@ Projet dedie a l'Espace Services Bureau Vallee Montaigu-Vendee.
 
 ## Structure
 
-- `station-config.js` : configuration locale du poste
+- `station-config.js` : configuration du poste Windows
 - `index.html` : interface de la borne
 - `styles.css` : habillage Bureau Vallee
-- `app.js` : logique locale de la borne
-- `windows-builds/POSTE-COPIEUR-1` : package local pour le poste COPIEUR 1
-- `windows-builds/POSTE-COPIEUR-2` : package local pour le poste COPIEUR 2
+- `app.js` : logique de la session d'impression
+- `windows-builds/POSTE-COPIEUR-1` : logiciel du poste COPIEUR 1
+- `windows-builds/POSTE-COPIEUR-2` : logiciel du poste COPIEUR 2
 
 ## Logique des deux postes
 
@@ -18,7 +18,7 @@ Projet dedie a l'Espace Services Bureau Vallee Montaigu-Vendee.
 
 Chaque poste a :
 
-- sa propre configuration locale
+- sa propre configuration Windows
 - son propre cache temporaire
 - son propre lancement Windows
 - sa propre impression cible
@@ -37,22 +37,16 @@ Chaque poste a :
 - envoi reel au pilote Windows Canon imageFORCE C5140
 - suppression physique des fichiers temporaires apres impression
 
-## Installation de test sur Windows
+## Installation sur Windows
 
 1. Copier le dossier `windows-builds/POSTE-COPIEUR-1` ou `windows-builds/POSTE-COPIEUR-2` sur le PC cible
-2. Verifier que Microsoft Edge est installe
-3. Verifier que l'imprimante Windows porte bien le nom attendu
-4. Lancer `LANCER-BUREAU-VALLEE.bat`
-
-## Test du depot client
-
-1. Lancer `npm install`
-2. Lancer `npm start`
-3. Ouvrir la borne sur `http://localhost:3100`
-4. Ouvrir le depot client sur `http://localhost:3100/upload.html`
-5. Envoyer un fichier, noter le code, puis le saisir sur la borne
+2. Verifier que Google Chrome est installe
+3. Double-cliquer sur `CONFIGURER-SITE-RENDER.bat`
+4. Coller l'adresse Render du site, exemple `https://bureau-vallee-espace-services.onrender.com`
+5. Verifier que l'imprimante Windows porte bien le nom attendu
+6. Lancer `LANCER-BUREAU-VALLEE.bat`
 
 ## Important
 
-Cette version ouvre une interface locale HTML en mode application Edge.  
-Ce n'est pas encore l'integration impression Windows finale, mais la structure de deploiement est deja prete.
+Le site officiel est l'adresse Render permanente.  
+Le poste Windows se lance en mode application Chrome et se connecte a cette adresse Render.

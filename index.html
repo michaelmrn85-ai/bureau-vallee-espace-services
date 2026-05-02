@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bureau Vallee - Espace Services</title>
+  <title>Sessions d'impression - Bureau Vallee Espace Services</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -12,12 +12,12 @@
       <div class="brand-lockup">
         <img class="brand-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
         <div>
-          <p class="eyebrow">Montaigu-Vendee</p>
+          <p class="eyebrow">Sessions d'impression</p>
           <h1>Espace Services</h1>
         </div>
       </div>
       <div class="topbar-actions">
-        <a class="ghost-btn" href="./admin.html">Admin</a>
+        <a class="ghost-btn" href="/upload">Upload mobile</a>
         <div class="status-pill" id="status-pill">Pret</div>
       </div>
     </header>
@@ -26,7 +26,7 @@
       <section class="screen screen-active" id="screen-session-open">
         <div class="session-gate">
           <img class="session-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-          <p class="eyebrow">Espace Services Montaigu-Vendee</p>
+          <p class="eyebrow">Session d'impression client</p>
           <h2>Ouverture de session</h2>
           <p>Demarrez une nouvelle impression libre-service.</p>
           <button class="primary-btn session-start-btn" id="start-session">Ouvrir une session</button>
@@ -46,21 +46,21 @@
       <section class="screen" id="screen-home">
         <div class="home-stage">
           <div class="welcome-copy">
-            <p class="eyebrow">Impression libre-service</p>
-            <h2>Deposez vos fichiers depuis votre telephone, puis imprimez avec votre code.</h2>
+            <p class="eyebrow">Sessions d'impression</p>
+            <h2>Choisissez vos fichiers, reglez l'impression, puis lancez le travail sur le copieur du poste.</h2>
           </div>
 
           <div class="qr-band">
             <div>
               <span>Envoyer depuis un telephone</span>
-              <strong id="upload-link-label">/upload.html</strong>
+              <strong id="upload-link-label">/upload</strong>
             </div>
             <div class="qr-code-card">
               <div id="qr-code-image" class="qr-code-image" aria-label="QR code depot client"></div>
               <span>Flashez ici</span>
               <small id="qr-code-warning" class="qr-code-warning"></small>
             </div>
-            <a class="ghost-btn ghost-btn-light" href="./upload.html" target="_blank" rel="noreferrer">Ouvrir le depot</a>
+            <a class="ghost-btn ghost-btn-light" href="/upload" target="_blank" rel="noreferrer">Ouvrir l'upload mobile</a>
           </div>
 
           <div class="home-grid">

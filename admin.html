@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Bureau Vallee Espace Services</title>
+  <title>Admin base - Bureau Vallee Espace Services</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -12,11 +12,13 @@
       <div class="brand-lockup">
         <img class="brand-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
         <div>
-          <p class="eyebrow">Administration</p>
+          <p class="eyebrow">Admin base</p>
           <h1>Espace Services</h1>
         </div>
       </div>
       <div class="topbar-actions">
+        <a class="ghost-btn" href="/sessions">Sessions</a>
+        <a class="ghost-btn" href="/upload">Upload mobile</a>
         <div class="status-pill" id="admin-page-status">Verrouille</div>
       </div>
     </header>
@@ -26,10 +28,10 @@
         <div class="panel-heading">
           <div>
             <p class="eyebrow">Acces protege</p>
-            <h2>Connexion admin</h2>
+            <h2>Connexion admin base</h2>
           </div>
         </div>
-        <p class="helper-text">Entrez le mot de passe administrateur pour gerer la borne.</p>
+        <p class="helper-text">Entrez le mot de passe administrateur pour gerer la base Espace Services.</p>
         <div class="admin-login-row">
           <input id="admin-page-password" type="password" placeholder="Mot de passe admin">
           <button class="primary-btn primary-btn-small" id="admin-page-login">Se connecter</button>
@@ -38,6 +40,24 @@
       </section>
 
       <section class="admin-panel hidden" id="admin-page-panel">
+        <div class="module-grid">
+          <a class="module-card module-card-admin" href="/admin">
+            <span>01</span>
+            <strong>Admin base</strong>
+            <small>Parametres, postes, compteurs et detail caisse.</small>
+          </a>
+          <a class="module-card" href="/sessions">
+            <span>02</span>
+            <strong>Sessions d'impression</strong>
+            <small>Interface client des postes copieurs.</small>
+          </a>
+          <a class="module-card module-card-upload" href="/upload">
+            <span>03</span>
+            <strong>Upload mobile</strong>
+            <small>Depot des fichiers depuis telephone avec code de retrait.</small>
+          </a>
+        </div>
+
         <div class="admin-dashboard">
           <div class="admin-stat-card">
             <span>Pages N&B</span>
@@ -123,7 +143,7 @@
             </div>
             <div class="field-group">
               <label for="admin-page-upload-url">Adresse depot client</label>
-              <input id="admin-page-upload-url" type="url" value="/upload.html">
+              <input id="admin-page-upload-url" type="url" value="/upload">
             </div>
             <div class="field-group">
               <label for="admin-page-cleanup-delay">Retour accueil apres impression</label>

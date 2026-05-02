@@ -5,6 +5,6 @@ window.BV_APP_CONFIG = {
   secondaryPrinter: "COPIEUR 2",
   printer1: "COPIEUR 1",
   printer2: "COPIEUR 2",
-  uploadUrl: "/upload.html",
+  uploadUrl: "/upload",
   apiBaseUrl: "",
 };

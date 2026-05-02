@@ -42,10 +42,16 @@ app.use((request, response, next) => {
   }
   next();
 });
-app.use(express.static(__dirname));
+app.get("/", (request, response) => {
+  response.sendFile(path.join(__dirname, "portal.html"));
+});
 
 app.get("/admin", (request, response) => {
   response.sendFile(path.join(__dirname, "admin.html"));
+});
+
+app.get("/sessions", (request, response) => {
+  response.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.get("/upload", (request, response) => {
@@ -59,6 +65,8 @@ app.get("/poste-1", (request, response) => {
 app.get("/poste-2", (request, response) => {
   response.sendFile(path.join(__dirname, "windows-builds", "POSTE-COPIEUR-2", "index.html"));
 });
+
+app.use(express.static(__dirname));
 
 function readStations() {
   if (!fs.existsSync(STATIONS_FILE)) {
@@ -269,5 +277,5 @@ cleanupExpiredJobs();
 setInterval(cleanupExpiredJobs, 5 * 60 * 1000);
 
 app.listen(PORT, () => {
-  console.log(`Bureau Vallee Espace Services pret sur http://localhost:${PORT}`);
+  console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
