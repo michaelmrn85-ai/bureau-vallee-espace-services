@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bureau Vallee - Espace Services</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <img class="brand-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+        <div>
+          <p class="eyebrow">Montaigu-Vendee</p>
+          <h1>Espace Services</h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <a class="ghost-btn" href="./admin.html">Admin</a>
+        <div class="status-pill" id="status-pill">Pret</div>
+      </div>
+    </header>
+
+    <main class="screen-stack">
+      <section class="screen screen-active" id="screen-session-open">
+        <div class="session-gate">
+          <img class="session-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+          <p class="eyebrow">Espace Services Montaigu-Vendee</p>
+          <h2>Ouverture de session</h2>
+          <p>Demarrez une nouvelle impression libre-service.</p>
+          <button class="primary-btn session-start-btn" id="start-session">Ouvrir une session</button>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-session-closed">
+        <div class="session-gate session-gate-closed">
+          <img class="session-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+          <p class="eyebrow">Session fermee</p>
+          <h2>Merci</h2>
+          <p>Les fichiers temporaires ont ete nettoyes. La borne est prete pour le prochain client.</p>
+          <button class="primary-btn session-start-btn" id="restart-session">Nouvelle session</button>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-home">
+        <div class="home-stage">
+          <div class="welcome-copy">
+            <p class="eyebrow">Impression libre-service</p>
+            <h2>Deposez vos fichiers depuis votre telephone, puis imprimez avec votre code.</h2>
+          </div>
+
+          <div class="qr-band">
+            <div>
+              <span>Envoyer depuis un telephone</span>
+              <strong id="upload-link-label">/upload.html</strong>
+            </div>
+            <div class="qr-code-card">
+              <img id="qr-code-image" src="" alt="QR code depot client">
+              <span>Flashez ici</span>
+            </div>
+            <a class="ghost-btn ghost-btn-light" href="./upload.html" target="_blank" rel="noreferrer">Ouvrir le depot</a>
+          </div>
+
+          <div class="home-grid">
+            <button class="source-card source-card-home" data-source="code">
+              <span class="source-icon">1234</span>
+              <strong>J'ai un code</strong>
+              <small>Recuperez les fichiers envoyes depuis votre telephone ou ordinateur.</small>
+            </button>
+
+            <button class="source-card source-card-home source-card-usb" data-source="usb">
+              <span class="source-icon">USB</span>
+              <strong>J'ai une cle USB</strong>
+              <small>Selectionnez vos PDF, Word, PNG ou JPEG directement depuis la cle.</small>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-source">
+        <div class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow" id="selected-source-label">Source</p>
+              <h2 id="source-title">Chargement des fichiers</h2>
+            </div>
+            <button class="ghost-btn" id="back-to-home">Accueil</button>
+          </div>
+
+          <div id="code-zone" class="source-pane source-pane-hidden">
+            <div class="code-entry">
+              <label for="pickup-code">Code de retrait</label>
+              <div class="code-row">
+                <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000">
+                <button class="primary-btn primary-btn-small" id="load-code">Charger</button>
+              </div>
+              <p class="helper-text">Le code est donne apres l'envoi des fichiers depuis le telephone.</p>
+            </div>
+          </div>
+
+          <div id="usb-zone" class="source-pane source-pane-hidden">
+            <label class="upload-zone" for="file-input">
+              <input id="file-input" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg">
+              <span class="upload-title">Touchez ici pour selectionner vos fichiers</span>
+              <span class="upload-subtitle">PDF, Word, PNG et JPEG acceptes</span>
+            </label>
+          </div>
+
+          <div class="file-toolbar">
+            <p id="file-counter">Aucun fichier selectionne</p>
+            <div class="toolbar-actions">
+              <button class="ghost-btn" id="clear-files" disabled>Vider la selection</button>
+            </div>
+          </div>
+
+          <div class="file-list" id="file-list">
+            <div class="empty-state">
+              <strong>La liste des fichiers apparaitra ici.</strong>
+              <p>Les formats courants sont acceptes et prepares en PDF avant impression.</p>
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <button class="primary-btn" id="go-to-options" disabled>Configurer l'impression</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-options">
+        <div class="layout-grid">
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Parametrage</p>
+                <h2>Choix d'impression</h2>
+              </div>
+              <button class="ghost-btn" id="back-to-source">Retour fichiers</button>
+            </div>
+
+            <div class="form-grid">
+              <div class="field-group">
+                <label>Copieur cible</label>
+                <div class="segmented">
+                  <button class="seg-btn is-active" data-setting="printer" data-value="COPIEUR 1">COPIEUR 1</button>
+                  <button class="seg-btn" data-setting="printer" data-value="COPIEUR 2">COPIEUR 2</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>Couleur</label>
+                <div class="segmented">
+                  <button class="seg-btn is-active" data-setting="color" data-value="noir-blanc">N&B</button>
+                  <button class="seg-btn" data-setting="color" data-value="couleur">Couleur</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>Impression</label>
+                <div class="segmented">
+                  <button class="seg-btn is-active" data-setting="sides" data-value="recto">Recto</button>
+                  <button class="seg-btn" data-setting="sides" data-value="recto-verso">Recto verso</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>Reliure recto verso</label>
+                <div class="segmented">
+                  <button class="seg-btn is-active" data-setting="duplexBinding" data-value="bord-long">Bord long</button>
+                  <button class="seg-btn" data-setting="duplexBinding" data-value="bord-court">Bord court</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>Orientation</label>
+                <div class="segmented segmented-3">
+                  <button class="seg-btn is-active" data-setting="orientation" data-value="auto">Auto</button>
+                  <button class="seg-btn" data-setting="orientation" data-value="portrait">Portrait</button>
+                  <button class="seg-btn" data-setting="orientation" data-value="paysage">Paysage</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label for="paper-size">Taille papier</label>
+                <select id="paper-size">
+                  <option value="A4">A4</option>
+                  <option value="A3">A3</option>
+                  <option value="A5">A5</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="copies">Nombre d'exemplaires</label>
+                <input id="copies" type="number" min="1" max="999" value="1">
+              </div>
+
+              <div class="field-group field-group-wide">
+                <label for="page-range">Plage de pages</label>
+                <input id="page-range" type="text" inputmode="numeric" placeholder="Toutes les pages ou ex : 1-3,5">
+                <small class="field-hint">Laissez vide pour imprimer tout le document.</small>
+              </div>
+            </div>
+
+            <div class="live-summary" id="live-summary"></div>
+
+            <div class="panel-actions">
+              <button class="primary-btn" id="start-print">Imprimer maintenant</button>
+            </div>
+          </div>
+
+          <aside class="summary-panel">
+            <div class="summary-card">
+              <p class="eyebrow">Session</p>
+              <h3>Compteur temps reel</h3>
+              <div class="summary-metrics" id="summary-metrics"></div>
+            </div>
+
+            <div class="summary-card">
+              <p class="eyebrow">Fichiers</p>
+              <h3>Preparation</h3>
+              <div id="job-files-preview"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-printing">
+        <div class="print-card">
+          <p class="eyebrow">Impression en cours</p>
+          <h2 id="print-title">Preparation du travail</h2>
+          <div class="progress-track">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+          <p class="print-detail" id="print-detail">Initialisation...</p>
+          <div class="summary-metrics" id="print-metrics"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop modal-hidden" id="idle-warning-modal">
+    <div class="idle-warning-card">
+      <p class="eyebrow">Session inactive</p>
+      <h2>Attention fermeture de session dans</h2>
+      <strong id="idle-countdown">15</strong>
+      <p>Votre session sera fermee automatiquement sans activite.</p>
+      <div class="idle-warning-actions">
+        <button class="ghost-btn" id="idle-close-now">Fermer maintenant</button>
+        <button class="primary-btn primary-btn-small" id="idle-continue">Continuer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./station-config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
