@@ -1,6 +1,6 @@
 window.BV_APP_CONFIG = {
-  stationName: "POSTE DEMO",
-  lockPrinter: false,
+  stationName: "DEMO ADMIN / TEST",
+  lockPrinter: true,
   defaultPrinter: "COPIEUR 1",
   secondaryPrinter: "COPIEUR 2",
   printer1: "COPIEUR 1",

@@ -106,12 +106,20 @@
 
           <div class="admin-grid">
             <div class="field-group">
-              <label for="admin-page-printer-1">Nom imprimante 1</label>
+              <label for="admin-page-printer-1">Nom imprimante Windows - Poste 1</label>
               <input id="admin-page-printer-1" type="text" value="COPIEUR 1">
             </div>
             <div class="field-group">
-              <label for="admin-page-printer-2">Nom imprimante 2</label>
+              <label for="admin-page-printer-2">Nom imprimante Windows - Poste 2</label>
               <input id="admin-page-printer-2" type="text" value="COPIEUR 2">
+            </div>
+            <div class="field-group">
+              <label for="admin-page-printer-1-ip">IP copieur poste 1</label>
+              <input id="admin-page-printer-1-ip" type="text" placeholder="Ex : 192.168.1.51">
+            </div>
+            <div class="field-group">
+              <label for="admin-page-printer-2-ip">IP copieur poste 2</label>
+              <input id="admin-page-printer-2-ip" type="text" placeholder="Ex : 192.168.1.52">
             </div>
             <div class="field-group">
               <label for="admin-page-upload-url">Adresse depot client</label>
@@ -128,6 +136,10 @@
           </div>
 
           <div class="admin-checks">
+            <div class="setup-note">
+              <strong>Installation postes</strong>
+              <p>Le PC du copieur 1 doit lancer le dossier <code>windows-builds/POSTE-COPIEUR-1</code>. Le PC du copieur 2 doit lancer <code>windows-builds/POSTE-COPIEUR-2</code>. Le site racine est seulement une demo/test.</p>
+            </div>
             <label><input type="checkbox" id="admin-page-delete-print"> Supprimer les fichiers apres impression</label>
             <label><input type="checkbox" id="admin-page-remote-cleanup"> Supprimer le depot distant apres impression</label>
           </div>

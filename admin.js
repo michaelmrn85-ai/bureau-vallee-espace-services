@@ -13,6 +13,8 @@ const STATIONS = [
 const defaultAdminSettings = {
   printer1: stationConfig.printer1 || "COPIEUR 1",
   printer2: stationConfig.printer2 || "COPIEUR 2",
+  printer1Ip: "",
+  printer2Ip: "",
   uploadUrl: stationConfig.uploadUrl || "/upload.html",
   cleanupDelay: 3,
   deleteAfterPrint: true,
@@ -28,6 +30,8 @@ const statusPill = document.getElementById("admin-page-status");
 
 const printer1Input = document.getElementById("admin-page-printer-1");
 const printer2Input = document.getElementById("admin-page-printer-2");
+const printer1IpInput = document.getElementById("admin-page-printer-1-ip");
+const printer2IpInput = document.getElementById("admin-page-printer-2-ip");
 const uploadUrlInput = document.getElementById("admin-page-upload-url");
 const cleanupDelaySelect = document.getElementById("admin-page-cleanup-delay");
 const deletePrintInput = document.getElementById("admin-page-delete-print");
@@ -129,6 +133,8 @@ function renderSettings() {
   const settings = loadSettings();
   printer1Input.value = settings.printer1;
   printer2Input.value = settings.printer2;
+  printer1IpInput.value = settings.printer1Ip || "";
+  printer2IpInput.value = settings.printer2Ip || "";
   uploadUrlInput.value = settings.uploadUrl;
   cleanupDelaySelect.value = String(settings.cleanupDelay);
   deletePrintInput.checked = settings.deleteAfterPrint;
@@ -266,6 +272,8 @@ saveBtn.addEventListener("click", () => {
   const settings = {
     printer1: printer1Input.value.trim() || "COPIEUR 1",
     printer2: printer2Input.value.trim() || "COPIEUR 2",
+    printer1Ip: printer1IpInput.value.trim(),
+    printer2Ip: printer2IpInput.value.trim(),
     uploadUrl: uploadUrlInput.value.trim() || "/upload.html",
     cleanupDelay: Number(cleanupDelaySelect.value) || 3,
     deleteAfterPrint: deletePrintInput.checked,
