@@ -56,8 +56,9 @@
               <strong id="upload-link-label">/upload.html</strong>
             </div>
             <div class="qr-code-card">
-              <img id="qr-code-image" src="" alt="QR code depot client">
+              <div id="qr-code-image" class="qr-code-image" aria-label="QR code depot client"></div>
               <span>Flashez ici</span>
+              <small id="qr-code-warning" class="qr-code-warning"></small>
             </div>
             <a class="ghost-btn ghost-btn-light" href="./upload.html" target="_blank" rel="noreferrer">Ouvrir le depot</a>
           </div>
@@ -251,6 +252,7 @@
     </div>
   </div>
 
+  <script src="./qrcode.js"></script>
   <script src="./station-config.js"></script>
   <script src="./app.js"></script>
 </body>

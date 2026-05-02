@@ -87,6 +87,7 @@ const startPrintBtn = document.getElementById("start-print");
 const statusPill = document.getElementById("status-pill");
 const uploadLinkLabel = document.getElementById("upload-link-label");
 const qrCodeImage = document.getElementById("qr-code-image");
+const qrCodeWarning = document.getElementById("qr-code-warning");
 const copiesInput = document.getElementById("copies");
 const pageRangeInput = document.getElementById("page-range");
 const paperSizeSelect = document.getElementById("paper-size");
@@ -389,7 +390,35 @@ function applyAdminSettings() {
   const printerButtons = [...document.querySelectorAll('.seg-btn[data-setting="printer"]')];
   const uploadUrl = resolveUploadUrl();
   uploadLinkLabel.textContent = uploadUrl;
-  qrCodeImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=12&data=${encodeURIComponent(uploadUrl)}`;
+
+  const isWebUrl = /^https?:\/\//i.test(uploadUrl);
+  if (!isWebUrl) {
+    qrCodeImage.textContent = "URL web requise";
+    qrCodeImage.title = "";
+    qrCodeWarning.textContent = "Configurez l'adresse Render dans l'admin.";
+  } else {
+    qrCodeWarning.textContent = "";
+  }
+
+  const qrFactory = window.qrcode || (typeof qrcode === "function" ? qrcode : null);
+  if (isWebUrl && qrFactory) {
+    try {
+      const qr = qrFactory(0, "M");
+      qr.addData(uploadUrl);
+      qr.make();
+      qrCodeImage.innerHTML = qr.createSvgTag({
+        cellSize: 7,
+        margin: 5,
+        alt: "QR code depot client",
+      });
+    } catch (error) {
+      qrCodeImage.textContent = "QR indisponible";
+      qrCodeImage.title = "";
+    }
+  } else if (isWebUrl) {
+    qrCodeImage.textContent = "QR indisponible";
+    qrCodeImage.title = "";
+  }
 
   printerButtons[0].dataset.value = state.admin.printer1;
   printerButtons[0].textContent = state.admin.printer1;

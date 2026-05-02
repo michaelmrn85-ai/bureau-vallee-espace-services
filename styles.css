@@ -301,11 +301,24 @@ h1, h2, h3, p { margin-top: 0; }
   background: rgba(255, 255, 255, 0.08);
 }
 
-.qr-code-card img {
-  width: 132px;
-  height: 132px;
+.qr-code-image {
+  width: 184px;
+  height: 184px;
   border-radius: 8px;
   background: white;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--bv-blue-deep);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.qr-code-image svg {
+  display: block;
+  width: 184px;
+  height: 184px;
 }
 
 .qr-code-card span {
@@ -314,6 +327,15 @@ h1, h2, h3, p { margin-top: 0; }
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 11px;
+}
+
+.qr-code-warning {
+  max-width: 190px;
+  color: var(--bv-yellow);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .qr-band span {

@@ -44,6 +44,22 @@ app.use((request, response, next) => {
 });
 app.use(express.static(__dirname));
 
+app.get("/admin", (request, response) => {
+  response.sendFile(path.join(__dirname, "admin.html"));
+});
+
+app.get("/upload", (request, response) => {
+  response.sendFile(path.join(__dirname, "upload.html"));
+});
+
+app.get("/poste-1", (request, response) => {
+  response.sendFile(path.join(__dirname, "windows-builds", "POSTE-COPIEUR-1", "index.html"));
+});
+
+app.get("/poste-2", (request, response) => {
+  response.sendFile(path.join(__dirname, "windows-builds", "POSTE-COPIEUR-2", "index.html"));
+});
+
 function readStations() {
   if (!fs.existsSync(STATIONS_FILE)) {
     return { stations: {}, commands: {} };
