@@ -41,6 +41,7 @@ const bwPages = document.getElementById("admin-page-bw-pages");
 const colorPages = document.getElementById("admin-page-color-pages");
 const sessionCount = document.getElementById("admin-page-session-count");
 const fileCount = document.getElementById("admin-page-file-count");
+const copierCounters = document.getElementById("admin-page-copier-counters");
 const currentSession = document.getElementById("admin-page-current-session");
 const currentDetail = document.getElementById("admin-page-current-detail");
 const stationsContainer = document.getElementById("admin-page-stations");
@@ -63,8 +64,46 @@ function createEmptyStats() {
     sessions: 0,
     files: 0,
     sheets: 0,
+    byPrinter: {},
     history: [],
   };
+}
+
+function createEmptyPrinterStats() {
+  return {
+    bwPages: 0,
+    colorPages: 0,
+    sessions: 0,
+    files: 0,
+    sheets: 0,
+  };
+}
+
+function normalizeStats(stats) {
+  const normalized = { ...createEmptyStats(), ...stats };
+  normalized.history = Array.isArray(normalized.history) ? normalized.history : [];
+  normalized.byPrinter = normalized.byPrinter && typeof normalized.byPrinter === "object"
+    ? normalized.byPrinter
+    : {};
+
+  if (!Object.keys(normalized.byPrinter).length && normalized.history.length) {
+    normalized.history.forEach((item) => {
+      if (!item.printer) return;
+      const printerStats = normalized.byPrinter[item.printer] || createEmptyPrinterStats();
+      const pages = Number(item.pages) || 0;
+      if (item.color === "couleur") {
+        printerStats.colorPages += pages;
+      } else {
+        printerStats.bwPages += pages;
+      }
+      printerStats.sessions += 1;
+      printerStats.files += Number(item.files) || 0;
+      printerStats.sheets += Number(item.sheets) || 0;
+      normalized.byPrinter[item.printer] = printerStats;
+    });
+  }
+
+  return normalized;
 }
 
 function loadSettings() {
@@ -79,7 +118,7 @@ function loadSettings() {
 function loadStats() {
   try {
     const raw = localStorage.getItem(STATS_KEY);
-    return raw ? { ...createEmptyStats(), ...JSON.parse(raw) } : createEmptyStats();
+    return raw ? normalizeStats(JSON.parse(raw)) : createEmptyStats();
   } catch (error) {
     return createEmptyStats();
   }
@@ -156,6 +195,31 @@ async function renderDashboard() {
   colorPages.textContent = String(stats.colorPages);
   sessionCount.textContent = String(stats.sessions);
   fileCount.textContent = String(stats.files);
+
+  const settings = loadSettings();
+  const printers = [
+    { label: "Copieur 1", name: settings.printer1 || "COPIEUR 1" },
+    { label: "Copieur 2", name: settings.printer2 || "COPIEUR 2" },
+  ];
+  copierCounters.innerHTML = printers
+    .map((printer) => {
+      const item = stats.byPrinter[printer.name] || createEmptyPrinterStats();
+      return `
+        <div class="copier-counter-card">
+          <div>
+            <p class="eyebrow">${printer.label}</p>
+            <h3>${printer.name}</h3>
+          </div>
+          <div class="copier-counter-grid">
+            <span>N&B <strong>${item.bwPages}</strong></span>
+            <span>Couleur <strong>${item.colorPages}</strong></span>
+            <span>Feuilles <strong>${item.sheets}</strong></span>
+            <span>Travaux <strong>${item.sessions}</strong></span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 
   if (session.active) {
     currentSession.textContent = `${session.pages || 0} page(s) a encaisser`;

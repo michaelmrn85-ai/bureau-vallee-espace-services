@@ -150,8 +150,46 @@ function createEmptyStats() {
     sessions: 0,
     files: 0,
     sheets: 0,
+    byPrinter: {},
     history: [],
   };
+}
+
+function createEmptyPrinterStats() {
+  return {
+    bwPages: 0,
+    colorPages: 0,
+    sessions: 0,
+    files: 0,
+    sheets: 0,
+  };
+}
+
+function normalizeStats(stats) {
+  const normalized = { ...createEmptyStats(), ...stats };
+  normalized.history = Array.isArray(normalized.history) ? normalized.history : [];
+  normalized.byPrinter = normalized.byPrinter && typeof normalized.byPrinter === "object"
+    ? normalized.byPrinter
+    : {};
+
+  if (!Object.keys(normalized.byPrinter).length && normalized.history.length) {
+    normalized.history.forEach((item) => {
+      if (!item.printer) return;
+      const printerStats = normalized.byPrinter[item.printer] || createEmptyPrinterStats();
+      const pages = Number(item.pages) || 0;
+      if (item.color === "couleur") {
+        printerStats.colorPages += pages;
+      } else {
+        printerStats.bwPages += pages;
+      }
+      printerStats.sessions += 1;
+      printerStats.files += Number(item.files) || 0;
+      printerStats.sheets += Number(item.sheets) || 0;
+      normalized.byPrinter[item.printer] = printerStats;
+    });
+  }
+
+  return normalized;
 }
 
 function createEmptySessionSale() {
@@ -172,7 +210,7 @@ function loadStats() {
   try {
     const raw = localStorage.getItem(STATS_KEY);
     if (!raw) return createEmptyStats();
-    return { ...createEmptyStats(), ...JSON.parse(raw) };
+    return normalizeStats(JSON.parse(raw));
   } catch (error) {
     return createEmptyStats();
   }
@@ -820,6 +858,17 @@ function registerCompletedPrint(totals) {
   state.stats.files += totals.files;
   state.stats.sheets += totals.totalSheets;
   state.stats.history = [entry, ...state.stats.history].slice(0, 30);
+
+  const printerStats = state.stats.byPrinter[state.settings.printer] || createEmptyPrinterStats();
+  if (state.settings.color === "couleur") {
+    printerStats.colorPages += printedPages;
+  } else {
+    printerStats.bwPages += printedPages;
+  }
+  printerStats.sessions += 1;
+  printerStats.files += totals.files;
+  printerStats.sheets += totals.totalSheets;
+  state.stats.byPrinter[state.settings.printer] = printerStats;
 
   state.sessionSale.files += totals.files;
   state.sessionSale.sheets += totals.totalSheets;

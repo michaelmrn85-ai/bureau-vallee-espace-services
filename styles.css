@@ -560,6 +560,7 @@ h1, h2, h3, p { margin-top: 0; }
 .admin-checks,
 .phone-form,
 .phone-file-list,
+.copier-counter-list,
 .admin-history-list {
   display: grid;
   gap: 16px;
@@ -570,6 +571,7 @@ h1, h2, h3, p { margin-top: 0; }
 .metric,
 .phone-file-row,
 .admin-stat-card,
+.copier-counter-card,
 .admin-session-card,
 .admin-history-row {
   background: rgba(255, 255, 255, 0.045);
@@ -597,6 +599,41 @@ h1, h2, h3, p { margin-top: 0; }
   display: block;
   color: var(--bv-yellow);
   font-size: 32px;
+  line-height: 1;
+}
+
+.copier-counter-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.copier-counter-card {
+  padding: 18px;
+}
+
+.copier-counter-card h3 {
+  margin: 0;
+}
+
+.copier-counter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.copier-counter-grid span {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.copier-counter-grid strong {
+  color: var(--bv-yellow);
+  font-size: 28px;
   line-height: 1;
 }
 
@@ -1032,6 +1069,7 @@ h1, h2, h3, p { margin-top: 0; }
   .admin-grid,
   .admin-dashboard,
   .module-grid,
+  .copier-counter-list,
   .station-grid,
   .summary-metrics,
   .file-row {
