@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/upload.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/upload.js && node --check public/codes.js"
   },
   "dependencies": {
     "express": "^4.19.2",

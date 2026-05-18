@@ -35,6 +35,14 @@ button, input { font: inherit; }
   margin-bottom: 18px;
 }
 
+.brand-header-row,
+.panel-heading-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
 .brand-header img,
 .mobile-logo {
   display: block;
@@ -162,7 +170,8 @@ input {
 }
 
 button,
-.file-actions a {
+.file-actions a,
+.text-link {
   border: 0;
   border-radius: 10px;
   padding: 15px 18px;
@@ -171,6 +180,11 @@ button,
   font-weight: 900;
   text-decoration: none;
   cursor: pointer;
+}
+
+.text-link {
+  display: inline-flex;
+  align-items: center;
 }
 
 .message {
@@ -250,6 +264,32 @@ label {
   margin-bottom: 18px;
   color: var(--muted);
   font-weight: 800;
+}
+
+.choice-field {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.choice-field legend {
+  padding: 0 6px;
+  color: var(--yellow);
+  font-weight: 900;
+}
+
+.choice-field label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.choice-field input {
+  width: auto;
 }
 
 .drop-zone {
@@ -355,12 +395,97 @@ label {
   margin-top: 20px;
 }
 
+.page-title {
+  margin-bottom: 10px;
+  font-size: clamp(38px, 7vw, 68px);
+}
+
+.codes-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.code-card,
+.empty-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.code-card {
+  display: grid;
+  grid-template-columns: 150px 1fr 300px;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+}
+
+.empty-card {
+  padding: 28px;
+  text-align: center;
+}
+
+.code-main {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(255, 210, 0, 0.1);
+  text-align: center;
+}
+
+.code-main span,
+.code-metrics span,
+.code-files span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.code-main strong {
+  color: var(--yellow);
+  font-size: 42px;
+  letter-spacing: 0.1em;
+}
+
+.code-files {
+  display: grid;
+  gap: 6px;
+}
+
+.code-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.code-metrics div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.065);
+  text-align: center;
+}
+
+.code-metrics strong {
+  color: var(--yellow);
+  font-size: 32px;
+}
+
 @media (max-width: 760px) {
   .hero,
   .job-head,
-  .file-card {
+  .file-card,
+  .code-card {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .brand-header-row,
+  .panel-heading-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .code-form {
@@ -371,8 +496,10 @@ label {
     justify-content: stretch;
   }
 
-  .file-actions a {
+  .file-actions a,
+  .text-link {
     text-align: center;
+    justify-content: center;
   }
 
   .modal-actions button {

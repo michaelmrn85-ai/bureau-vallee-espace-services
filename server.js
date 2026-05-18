@@ -78,6 +78,29 @@ function cleanupExpiredJobs() {
   }
 }
 
+function listActiveJobs() {
+  cleanupExpiredJobs();
+  return fs.readdirSync(JOBS_DIR)
+    .map((code) => readJob(code))
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+function estimatePdfPages(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, "latin1");
+    const matches = content.match(/\/Type\s*\/Page\b/g);
+    return Math.max(1, matches ? matches.length : 1);
+  } catch (error) {
+    return 1;
+  }
+}
+
+function estimatePages(filePath, extension) {
+  if (extension === ".pdf") return estimatePdfPages(filePath);
+  return 1;
+}
+
 function reserveCode() {
   for (let attempt = 0; attempt < 80; attempt += 1) {
     const code = generateCode();
@@ -90,19 +113,27 @@ function reserveCode() {
 }
 
 function publicJob(job) {
+  const files = job.files.map((file) => ({
+    id: file.id,
+    originalName: file.originalName,
+    extension: file.extension.replace(".", ""),
+    size: file.size,
+    pages: file.pages || 1,
+    viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
+    downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
+  }));
+  const totalPages = files.reduce((sum, file) => sum + file.pages, 0);
+  const printMode = job.printMode === "couleur" ? "couleur" : "noir-blanc";
   return {
     code: job.code,
     customerName: job.customerName,
+    printMode,
+    totalPages,
+    bwPages: printMode === "couleur" ? 0 : totalPages,
+    colorPages: printMode === "couleur" ? totalPages : 0,
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
-    files: job.files.map((file) => ({
-      id: file.id,
-      originalName: file.originalName,
-      extension: file.extension.replace(".", ""),
-      size: file.size,
-      viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
-      downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
-    })),
+    files,
   };
 }
 
@@ -118,6 +149,10 @@ app.get("/upload", (request, response) => {
   response.sendFile(path.join(__dirname, "public", "upload.html"));
 });
 
+app.get("/codes", (request, response) => {
+  response.sendFile(path.join(__dirname, "public", "codes.html"));
+});
+
 app.get("/qr.svg", (request, response) => {
   const qr = qrcode(0, "M");
   qr.addData(uploadUrl(request));
@@ -127,6 +162,12 @@ app.get("/qr.svg", (request, response) => {
 
 app.get("/api/config", (request, response) => {
   response.json({ uploadUrl: uploadUrl(request) });
+});
+
+app.get("/api/jobs", (request, response) => {
+  response.json({
+    jobs: listActiveJobs().map(publicJob),
+  });
 });
 
 app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
@@ -140,23 +181,27 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + JOB_TTL_MS);
     const directory = jobDir(code);
+    const printMode = request.body.printMode === "couleur" ? "couleur" : "noir-blanc";
     const files = request.files.map((file, index) => {
       const extension = path.extname(file.originalname).toLowerCase();
       const id = `${Date.now()}-${index}`;
       const storedName = `${id}${extension}`;
-      fs.renameSync(file.path, path.join(directory, storedName));
+      const storedPath = path.join(directory, storedName);
+      fs.renameSync(file.path, storedPath);
       return {
         id,
         originalName: file.originalname,
         storedName,
         extension,
         size: file.size,
+        pages: estimatePages(storedPath, extension),
       };
     });
 
     const job = {
       code,
       customerName: String(request.body.customerName || "").trim(),
+      printMode,
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
       files,
