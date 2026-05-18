@@ -6,11 +6,15 @@ const uploadUrlLabel = document.getElementById("upload-url");
 const timeoutModal = document.getElementById("timeout-modal");
 const continueSessionBtn = document.getElementById("continue-session");
 const finishSessionBtn = document.getElementById("finish-session");
+const printInstructionsModal = document.getElementById("print-instructions-modal");
+const confirmPrintInstructionsBtn = document.getElementById("confirm-print-instructions");
+const cancelPrintInstructionsBtn = document.getElementById("cancel-print-instructions");
 let currentCode = "";
 let activeJob = null;
 let countdownSeconds = 0;
 let countdownInterval = null;
 let warningShown = false;
+let pendingFileUrl = "";
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
@@ -107,8 +111,8 @@ function renderJob(job) {
           <small>${file.extension.toUpperCase()} - ${formatSize(file.size)}</small>
         </div>
         <div class="file-actions">
-          <a href="${file.viewUrl}" target="_blank" rel="noreferrer">Ouvrir / imprimer</a>
-          <a href="${file.downloadUrl}">Telecharger</a>
+          <a href="${file.viewUrl}" target="_blank" rel="noreferrer" data-print-url="${file.viewUrl}">Ouvrir / imprimer</a>
+          <a href="${file.downloadUrl}" data-print-url="${file.downloadUrl}">Telecharger</a>
         </div>
       </article>
     `).join("")}
@@ -120,6 +124,14 @@ function renderJob(job) {
 
   startCountdown();
 }
+
+filesContainer.addEventListener("click", (event) => {
+  const link = event.target.closest("[data-print-url]");
+  if (!link) return;
+  event.preventDefault();
+  pendingFileUrl = link.href;
+  printInstructionsModal.classList.remove("hidden");
+});
 
 codeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -155,6 +167,19 @@ continueSessionBtn.addEventListener("click", () => {
 
 finishSessionBtn.addEventListener("click", () => {
   deleteCurrentJob("Merci de vos impressions, veuillez vous approcher de la caisse.");
+});
+
+confirmPrintInstructionsBtn.addEventListener("click", () => {
+  if (pendingFileUrl) {
+    window.open(pendingFileUrl, "_blank", "noopener,noreferrer");
+  }
+  pendingFileUrl = "";
+  printInstructionsModal.classList.add("hidden");
+});
+
+cancelPrintInstructionsBtn.addEventListener("click", () => {
+  pendingFileUrl = "";
+  printInstructionsModal.classList.add("hidden");
 });
 
 window.addEventListener("beforeunload", (event) => {
