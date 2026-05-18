@@ -1,38 +1,32 @@
 # Bureau Vallee - Espace Services
 
-Application Espace Services pour Bureau Vallee Montaigu-Vendee.
+Site simple pour l'impression client :
 
-Le projet est separe en trois espaces :
+1. le client flashe le QR code ;
+2. il envoie ses fichiers depuis son telephone ;
+3. il obtient un code a 4 chiffres ;
+4. le code est saisi sur le site principal ;
+5. les fichiers reviennent sur le site pour etre ouverts et imprimes.
 
-- Admin base : `/admin`
-- Sessions d'impression : `/sessions`
-- Upload mobile : `/upload`
+## Adresses
 
-## Deploiement
+- Site principal : `https://bureau-vallee-espace-services.onrender.com`
+- Upload mobile : `https://bureau-vallee-espace-services.onrender.com/upload`
 
-Le site officiel doit etre publie sur Render depuis GitHub.
+## Formats acceptes
 
-Render utilise :
+PDF, Word, PNG, JPEG.
 
-- build : `npm ci`
-- start : `npm start`
-- health check : `/health`
+## Important
 
-## Postes Windows
-
-Les postes sont prepares dans :
-
-- `windows-builds/POSTE-COPIEUR-1`
-- `windows-builds/POSTE-COPIEUR-2`
-
-Sur chaque poste Windows :
-
-1. lancer `CONFIGURER-SITE-RENDER.bat` ;
-2. coller l'adresse Render du site ;
-3. lancer `LANCER-BUREAU-VALLEE.bat`.
-
-## Mot de passe admin
+Le site officiel est uniquement l'adresse Render :
 
 ```text
-BV558
+https://bureau-vallee-espace-services.onrender.com
+```
+
+Le QR code pointe toujours vers :
+
+```text
+https://bureau-vallee-espace-services.onrender.com/upload
 ```

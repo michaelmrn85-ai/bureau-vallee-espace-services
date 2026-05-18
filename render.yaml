@@ -3,7 +3,10 @@ services:
     name: bureau-vallee-espace-services
     env: node
     plan: starter
-    buildCommand: npm ci
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: false
+    envVars:
+      - key: PUBLIC_BASE_URL
+        value: https://bureau-vallee-espace-services.onrender.com

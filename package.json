@@ -2,11 +2,11 @@
   "name": "bureau-vallee-espace-services",
   "version": "1.0.0",
   "private": true,
-  "description": "Espace Services Bureau Vallee Montaigu-Vendee",
+  "description": "Depot mobile et recuperation fichiers pour Bureau Vallee Espace Services",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check app.js && node --check upload.js && node --check admin.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/upload.js"
   },
   "dependencies": {
     "express": "^4.19.2",

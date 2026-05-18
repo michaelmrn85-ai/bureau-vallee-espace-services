@@ -2,29 +2,29 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
+const qrcode = require("qrcode-generator");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3100;
+const RENDER_BASE_URL = "https://bureau-vallee-espace-services.onrender.com";
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || RENDER_BASE_URL).replace(/\/$/, "");
 const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
-const STATIONS_FILE = path.join(DATA_DIR, "stations.json");
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
-const JOB_TTL_MS = 60 * 60 * 1000;
-
+const TMP_DIR = path.join(DATA_DIR, "tmp");
+const JOB_TTL_MS = 2 * 60 * 60 * 1000;
+const MAX_FILE_SIZE = 80 * 1024 * 1024;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"]);
 
 fs.mkdirSync(JOBS_DIR, { recursive: true });
+fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const upload = multer({
-  dest: path.join(DATA_DIR, "tmp"),
-  limits: {
-    fileSize: MAX_FILE_SIZE,
-    files: 10,
-  },
-  fileFilter: (request, file, callback) => {
+  dest: TMP_DIR,
+  limits: { fileSize: MAX_FILE_SIZE, files: 10 },
+  fileFilter(request, file, callback) {
     const extension = path.extname(file.originalname).toLowerCase();
     if (!allowedExtensions.has(extension)) {
-      callback(new Error("Format de fichier non accepte."));
+      callback(new Error("Format non accepte. PDF, Word, PNG et JPEG uniquement."));
       return;
     }
     callback(null, true);
@@ -32,96 +32,36 @@ const upload = multer({
 });
 
 app.use(express.json());
-app.use((request, response, next) => {
-  response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (request.method === "OPTIONS") {
-    response.sendStatus(204);
-    return;
-  }
-  next();
-});
-app.get("/", (request, response) => {
-  response.sendFile(path.join(__dirname, "portal.html"));
-});
-
-app.get("/admin", (request, response) => {
-  response.sendFile(path.join(__dirname, "admin.html"));
-});
-
-app.get("/sessions", (request, response) => {
-  response.sendFile(path.join(__dirname, "index.html"));
-});
-
-app.get("/upload", (request, response) => {
-  response.sendFile(path.join(__dirname, "upload.html"));
-});
-
-app.get("/poste-1", (request, response) => {
-  response.sendFile(path.join(__dirname, "windows-builds", "POSTE-COPIEUR-1", "index.html"));
-});
-
-app.get("/poste-2", (request, response) => {
-  response.sendFile(path.join(__dirname, "windows-builds", "POSTE-COPIEUR-2", "index.html"));
-});
-
-app.use(express.static(__dirname));
-
-function readStations() {
-  if (!fs.existsSync(STATIONS_FILE)) {
-    return { stations: {}, commands: {} };
-  }
-  try {
-    return JSON.parse(fs.readFileSync(STATIONS_FILE, "utf8"));
-  } catch (error) {
-    return { stations: {}, commands: {} };
-  }
-}
-
-function writeStations(data) {
-  fs.writeFileSync(STATIONS_FILE, JSON.stringify(data, null, 2));
-}
+app.use(express.static(path.join(__dirname, "public")));
 
 function generateCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-function metadataPath(code) {
-  return path.join(JOBS_DIR, code, "job.json");
+function jobDir(code) {
+  return path.join(JOBS_DIR, code);
+}
+
+function jobPath(code) {
+  return path.join(jobDir(code), "job.json");
 }
 
 function readJob(code) {
-  const filePath = metadataPath(code);
+  const filePath = jobPath(code);
   if (!fs.existsSync(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function writeJob(job) {
-  fs.writeFileSync(metadataPath(job.code), JSON.stringify(job, null, 2));
-}
-
-function deleteJob(code) {
-  const directory = path.join(JOBS_DIR, code);
-  if (fs.existsSync(directory)) {
-    fs.rmSync(directory, { recursive: true, force: true });
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    return null;
   }
 }
 
-function publicJob(job) {
-  return {
-    code: job.code,
-    customerName: job.customerName,
-    createdAt: job.createdAt,
-    expiresAt: job.expiresAt,
-    files: job.files.map((file) => ({
-      id: file.id,
-      originalName: file.originalName,
-      extension: file.extension.replace(".", ""),
-      size: file.size,
-      downloadUrl: `/api/jobs/${job.code}/files/${file.id}`,
-    })),
-  };
+function writeJob(job) {
+  fs.writeFileSync(jobPath(job.code), JSON.stringify(job, null, 2));
+}
+
+function deleteJob(code) {
+  fs.rmSync(jobDir(code), { recursive: true, force: true });
 }
 
 function cleanupExpiredJobs() {
@@ -135,56 +75,54 @@ function cleanupExpiredJobs() {
 }
 
 function reserveCode() {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     const code = generateCode();
-    const directory = path.join(JOBS_DIR, code);
-    if (!fs.existsSync(directory)) {
-      fs.mkdirSync(directory, { recursive: true });
+    if (!fs.existsSync(jobDir(code))) {
+      fs.mkdirSync(jobDir(code), { recursive: true });
       return code;
     }
   }
   throw new Error("Impossible de creer un code disponible.");
 }
 
+function publicJob(job) {
+  return {
+    code: job.code,
+    customerName: job.customerName,
+    createdAt: job.createdAt,
+    expiresAt: job.expiresAt,
+    files: job.files.map((file) => ({
+      id: file.id,
+      originalName: file.originalName,
+      extension: file.extension.replace(".", ""),
+      size: file.size,
+      viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
+      downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
+    })),
+  };
+}
+
+function uploadUrl() {
+  return `${PUBLIC_BASE_URL}/upload`;
+}
+
 app.get("/health", (request, response) => {
   response.json({ ok: true });
 });
 
-app.get("/api/stations", (request, response) => {
-  const data = readStations();
-  response.json({
-    stations: Object.values(data.stations || {}),
-  });
+app.get("/upload", (request, response) => {
+  response.sendFile(path.join(__dirname, "public", "upload.html"));
 });
 
-app.post("/api/stations/:stationId/session", (request, response) => {
-  const data = readStations();
-  data.stations = data.stations || {};
-  data.stations[request.params.stationId] = {
-    ...request.body,
-    stationId: request.params.stationId,
-    updatedAt: new Date().toISOString(),
-  };
-  writeStations(data);
-  response.json({ ok: true });
+app.get("/qr.svg", (request, response) => {
+  const qr = qrcode(0, "M");
+  qr.addData(uploadUrl(request));
+  qr.make();
+  response.type("image/svg+xml").send(qr.createSvgTag({ cellSize: 8, margin: 4 }));
 });
 
-app.get("/api/stations/:stationId/command", (request, response) => {
-  const data = readStations();
-  response.json((data.commands || {})[request.params.stationId] || null);
-});
-
-app.post("/api/stations/:stationId/command", (request, response) => {
-  const data = readStations();
-  data.commands = data.commands || {};
-  data.commands[request.params.stationId] = {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    type: request.body.type,
-    stationId: request.params.stationId,
-    createdAt: new Date().toISOString(),
-  };
-  writeStations(data);
-  response.json(data.commands[request.params.stationId]);
+app.get("/api/config", (request, response) => {
+  response.json({ uploadUrl: uploadUrl(request) });
 });
 
 app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
@@ -195,10 +133,9 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
     }
 
     const code = reserveCode();
-    const directory = path.join(JOBS_DIR, code);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + JOB_TTL_MS);
-
+    const directory = jobDir(code);
     const files = request.files.map((file, index) => {
       const extension = path.extname(file.originalname).toLowerCase();
       const id = `${Date.now()}-${index}`;
@@ -229,36 +166,40 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
 });
 
 app.get("/api/jobs/:code", (request, response) => {
-  const code = request.params.code;
-  const job = readJob(code);
+  const job = readJob(request.params.code);
   if (!job) {
-    response.status(404).json({ error: "Code introuvable ou expire." });
+    response.status(404).json({ error: "Code introuvable." });
     return;
   }
-
   if (new Date(job.expiresAt).getTime() <= Date.now()) {
-    deleteJob(code);
+    deleteJob(job.code);
     response.status(404).json({ error: "Code expire." });
     return;
   }
-
   response.json(publicJob(job));
 });
 
 app.get("/api/jobs/:code/files/:fileId", (request, response) => {
   const job = readJob(request.params.code);
   if (!job) {
-    response.status(404).json({ error: "Code introuvable." });
+    response.status(404).send("Code introuvable.");
     return;
   }
 
   const file = job.files.find((item) => item.id === request.params.fileId);
   if (!file) {
-    response.status(404).json({ error: "Fichier introuvable." });
+    response.status(404).send("Fichier introuvable.");
     return;
   }
 
-  response.download(path.join(JOBS_DIR, job.code, file.storedName), file.originalName);
+  const filePath = path.join(jobDir(job.code), file.storedName);
+  if (request.query.download) {
+    response.download(filePath, file.originalName);
+    return;
+  }
+
+  response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.originalName)}"`);
+  response.sendFile(filePath);
 });
 
 app.delete("/api/jobs/:code", (request, response) => {
