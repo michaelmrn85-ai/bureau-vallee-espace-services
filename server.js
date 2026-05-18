@@ -11,6 +11,7 @@ const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || RENDER_BASE_URL).replace
 const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
 const TMP_DIR = path.join(DATA_DIR, "tmp");
+const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 80 * 1024 * 1024;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"]);
@@ -141,6 +142,21 @@ function uploadUrl() {
   return `${PUBLIC_BASE_URL}/upload`;
 }
 
+function readNotice() {
+  if (!fs.existsSync(NOTICE_FILE)) {
+    return { active: false, message: "" };
+  }
+  try {
+    return { active: false, message: "", ...JSON.parse(fs.readFileSync(NOTICE_FILE, "utf8")) };
+  } catch (error) {
+    return { active: false, message: "" };
+  }
+}
+
+function writeNotice(notice) {
+  fs.writeFileSync(NOTICE_FILE, JSON.stringify(notice, null, 2));
+}
+
 app.get("/health", (request, response) => {
   response.json({ ok: true });
 });
@@ -153,6 +169,10 @@ app.get("/codes", (request, response) => {
   response.sendFile(path.join(__dirname, "public", "codes.html"));
 });
 
+app.get("/message", (request, response) => {
+  response.sendFile(path.join(__dirname, "public", "message.html"));
+});
+
 app.get("/qr.svg", (request, response) => {
   const qr = qrcode(0, "M");
   qr.addData(uploadUrl(request));
@@ -162,6 +182,21 @@ app.get("/qr.svg", (request, response) => {
 
 app.get("/api/config", (request, response) => {
   response.json({ uploadUrl: uploadUrl(request) });
+});
+
+app.get("/api/notice", (request, response) => {
+  response.json(readNotice());
+});
+
+app.post("/api/notice", (request, response) => {
+  const message = String(request.body.message || "").trim().slice(0, 160);
+  const notice = {
+    active: Boolean(request.body.active) && Boolean(message),
+    message,
+    updatedAt: new Date().toISOString(),
+  };
+  writeNotice(notice);
+  response.json(notice);
 });
 
 app.get("/api/jobs", (request, response) => {
