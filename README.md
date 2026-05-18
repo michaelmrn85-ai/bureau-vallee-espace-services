@@ -17,6 +17,11 @@ Site simple pour l'impression client :
 
 PDF, Word, PNG, JPEG.
 
+## Logo
+
+Logo Bureau Vallee 2021 utilise depuis Wikimedia Commons :
+`https://commons.wikimedia.org/wiki/File:Logo-bureau-vallee-2021.png`
+
 ## Important
 
 Le site officiel est uniquement l'adresse Render :
