@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload mobile - Bureau Vallee</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="mobile-body">
+  <main class="mobile-shell">
+    <section class="mobile-card">
+      <p class="eyebrow">Bureau Vallee</p>
+      <h1>Envoyer mes fichiers</h1>
+      <p class="lead">Ajoutez vos PDF, Word, PNG ou JPEG. Un code vous sera donne pour l'impression.</p>
+
+      <form id="upload-form">
+        <label>
+          Nom ou repere client
+          <input id="customer-name" name="customerName" type="text" maxlength="80" placeholder="Ex : Martin">
+        </label>
+
+        <label class="drop-zone">
+          <input id="files-input" name="files" type="file" multiple required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg">
+          <span>Choisir mes fichiers</span>
+          <small>PDF, Word, PNG, JPEG</small>
+        </label>
+
+        <div class="selected-files" id="selected-files"></div>
+        <button class="wide-btn" type="submit">Envoyer et obtenir mon code</button>
+      </form>
+
+      <div class="result hidden" id="result">
+        <span>Votre code</span>
+        <strong id="result-code">0000</strong>
+        <p>Donnez ce code au comptoir pour imprimer vos fichiers.</p>
+      </div>
+      <p class="message" id="upload-message"></p>
+    </section>
+  </main>
+  <script src="/upload.js"></script>
+</body>
+</html>

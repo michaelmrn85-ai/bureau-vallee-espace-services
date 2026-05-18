@@ -34,6 +34,10 @@ const upload = multer({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/", (request, response) => {
+  response.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 function generateCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }

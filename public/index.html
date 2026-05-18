@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bureau Vallee - Impression client</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Bureau Vallee Montaigu-Vendee</p>
+        <h1>Espace impression</h1>
+        <p class="lead">Le client envoie ses fichiers avec le QR code, puis vous saisissez son code pour ouvrir et imprimer les fichiers.</p>
+      </div>
+      <div class="qr-card">
+        <img src="/qr.svg" alt="QR code upload mobile">
+        <span>Upload mobile</span>
+        <strong id="upload-url">Chargement...</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Code client</p>
+          <h2>Recuperer les fichiers</h2>
+        </div>
+      </div>
+      <form class="code-form" id="code-form">
+        <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+        <button type="submit">Charger</button>
+      </form>
+      <p class="message" id="message"></p>
+      <div class="files" id="files"></div>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
