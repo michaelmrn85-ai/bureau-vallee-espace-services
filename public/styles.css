@@ -221,6 +221,47 @@ button,
   text-align: center;
 }
 
+.notice-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: clamp(28px, 5vw, 64px);
+  background:
+    linear-gradient(155deg, rgba(255, 210, 0, 0.14), transparent 34%),
+    linear-gradient(215deg, rgba(0, 155, 78, 0.18), transparent 36%),
+    #08131f;
+  text-align: center;
+}
+
+.notice-screen.hidden {
+  display: none;
+}
+
+.notice-screen img {
+  width: min(360px, 78vw);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.notice-screen strong {
+  width: min(1100px, 100%);
+  color: var(--ink);
+  font-size: clamp(46px, 8.8vw, 118px);
+  font-weight: 900;
+  line-height: 1.02;
+}
+
+body.notice-active .shell,
+body.notice-active .mobile-shell {
+  display: none;
+}
+
 .files {
   display: grid;
   gap: 12px;
