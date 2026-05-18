@@ -166,11 +166,15 @@ app.get("/upload", (request, response) => {
 });
 
 app.get("/codes", (request, response) => {
-  response.sendFile(path.join(__dirname, "public", "codes.html"));
+  response.redirect("/admin");
 });
 
 app.get("/message", (request, response) => {
-  response.sendFile(path.join(__dirname, "public", "message.html"));
+  response.redirect("/admin");
+});
+
+app.get("/admin", (request, response) => {
+  response.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
 app.get("/qr.svg", (request, response) => {

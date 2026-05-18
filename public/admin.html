@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Bureau Vallee Espace Services</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="brand-header brand-header-row">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+      <a class="text-link" href="/">Retour impression</a>
+    </header>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <p class="eyebrow">Administration</p>
+        <h1 class="page-title">Espace admin</h1>
+        <p class="lead">Suivi des codes clients et message d'information affiché sur les pages clients.</p>
+      </div>
+
+      <div class="admin-grid">
+        <section class="admin-section">
+          <div class="panel-heading panel-heading-row">
+            <div>
+              <p class="eyebrow">Suivi caisse</p>
+              <h2>Codes clients</h2>
+            </div>
+            <button id="refresh-codes" type="button">Actualiser</button>
+          </div>
+          <p class="message" id="codes-message"></p>
+          <div class="codes-list" id="codes-list"></div>
+        </section>
+
+        <section class="admin-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Affichage client</p>
+            <h2>Message en grand</h2>
+          </div>
+
+          <div class="preset-grid">
+            <button type="button" data-preset="Nous vous retrouvons demain des 9h">Nous vous retrouvons demain des 9h</button>
+            <button type="button" data-preset="Nous vous retrouvons des lundi 9h">Nous vous retrouvons des lundi 9h</button>
+            <button type="button" data-preset="Impression HS">Impression HS</button>
+            <button type="button" data-preset="Grande serie d'impression en cours">Grande serie d'impression en cours</button>
+          </div>
+
+          <label>
+            Message personnalise
+            <textarea id="notice-message" maxlength="160" rows="4" placeholder="Votre message..."></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button id="activate-notice" type="button">Afficher le message</button>
+            <button class="danger" id="disable-notice" type="button">Desactiver</button>
+          </div>
+          <p class="message" id="notice-admin-message"></p>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="/admin.js"></script>
+</body>
+</html>
