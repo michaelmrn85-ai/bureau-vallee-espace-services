@@ -3,7 +3,14 @@ const pickupCode = document.getElementById("pickup-code");
 const message = document.getElementById("message");
 const filesContainer = document.getElementById("files");
 const uploadUrlLabel = document.getElementById("upload-url");
+const timeoutModal = document.getElementById("timeout-modal");
+const continueSessionBtn = document.getElementById("continue-session");
+const finishSessionBtn = document.getElementById("finish-session");
 let currentCode = "";
+let activeJob = null;
+let countdownSeconds = 0;
+let countdownInterval = null;
+let warningShown = false;
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
@@ -13,6 +20,56 @@ function formatSize(bytes) {
 function setMessage(text, tone = "") {
   message.textContent = text;
   message.dataset.tone = tone;
+}
+
+function stopCountdown() {
+  window.clearInterval(countdownInterval);
+  countdownInterval = null;
+  warningShown = false;
+  timeoutModal.classList.add("hidden");
+}
+
+async function deleteCurrentJob(finalMessage) {
+  if (!activeJob?.code) return;
+  const code = activeJob.code;
+  stopCountdown();
+  try {
+    await fetch(`/api/jobs/${code}`, { method: "DELETE" });
+  } catch (error) {
+    // The visual flow still resets even if the file was already removed.
+  }
+  activeJob = null;
+  currentCode = "";
+  filesContainer.innerHTML = "";
+  pickupCode.value = "";
+  setMessage(finalMessage, "success");
+}
+
+function updateCountdownLabel() {
+  const countdownLabel = document.getElementById("countdown");
+  if (countdownLabel) {
+    countdownLabel.textContent = `${countdownSeconds}s restantes avant suppression`;
+  }
+}
+
+function startCountdown() {
+  stopCountdown();
+  countdownSeconds = 60;
+  warningShown = false;
+  updateCountdownLabel();
+  countdownInterval = window.setInterval(() => {
+    countdownSeconds -= 1;
+    updateCountdownLabel();
+
+    if (countdownSeconds <= 15 && !warningShown) {
+      warningShown = true;
+      timeoutModal.classList.remove("hidden");
+    }
+
+    if (countdownSeconds <= 0) {
+      deleteCurrentJob("Temps termine. Les fichiers ont ete effaces. Merci de vos impressions, veuillez vous approcher de la caisse.");
+    }
+  }, 1000);
 }
 
 async function loadConfig() {
@@ -26,6 +83,7 @@ async function loadConfig() {
 }
 
 function renderJob(job) {
+  activeJob = job;
   if (!job.files.length) {
     filesContainer.innerHTML = "";
     setMessage("Aucun fichier dans ce depot.", "error");
@@ -38,6 +96,7 @@ function renderJob(job) {
       <div>
         <span>Code ${job.code}</span>
         <strong>${job.customerName || "Client"}</strong>
+        <small id="countdown">60s restantes avant suppression</small>
       </div>
       <button class="danger" id="delete-job">Supprimer apres impression</button>
     </div>
@@ -56,11 +115,10 @@ function renderJob(job) {
   `;
 
   document.getElementById("delete-job").addEventListener("click", async () => {
-    await fetch(`/api/jobs/${job.code}`, { method: "DELETE" });
-    filesContainer.innerHTML = "";
-    pickupCode.value = "";
-    setMessage("Depot supprime. Les fichiers ne sont plus accessibles.", "success");
+    await deleteCurrentJob("Merci de vos impressions, veuillez vous approcher de la caisse.");
   });
+
+  startCountdown();
 }
 
 codeForm.addEventListener("submit", async (event) => {
@@ -81,8 +139,28 @@ codeForm.addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(payload.error || "Code introuvable.");
     renderJob(payload);
   } catch (error) {
+    activeJob = null;
+    stopCountdown();
     setMessage(error.message, "error");
   }
+});
+
+continueSessionBtn.addEventListener("click", () => {
+  timeoutModal.classList.add("hidden");
+  countdownSeconds = 60;
+  warningShown = false;
+  updateCountdownLabel();
+  setMessage("Session prolongee de 60 secondes.", "success");
+});
+
+finishSessionBtn.addEventListener("click", () => {
+  deleteCurrentJob("Merci de vos impressions, veuillez vous approcher de la caisse.");
+});
+
+window.addEventListener("beforeunload", (event) => {
+  if (!activeJob?.code) return;
+  event.preventDefault();
+  event.returnValue = "Une impression est en cours. Les fichiers risquent d'etre perdus.";
 });
 
 loadConfig();

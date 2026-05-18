@@ -31,6 +31,23 @@ button, input { font: inherit; }
   padding: 32px 0;
 }
 
+.brand-header {
+  margin-bottom: 18px;
+}
+
+.brand-header img,
+.mobile-logo {
+  display: block;
+  width: min(260px, 76vw);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.mobile-logo {
+  margin-bottom: 22px;
+}
+
 .hero,
 .panel,
 .mobile-card {
@@ -189,6 +206,13 @@ button,
   margin-bottom: 5px;
 }
 
+.job-head small#countdown {
+  display: block;
+  margin-top: 7px;
+  color: var(--yellow);
+  font-weight: 900;
+}
+
 .file-actions {
   display: flex;
   gap: 10px;
@@ -291,6 +315,45 @@ label {
   display: none;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(255, 210, 0, 0.34);
+  border-radius: 14px;
+  background: #0b1724;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.52);
+}
+
+.modal-card h2 {
+  margin-bottom: 12px;
+}
+
+.modal-card p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
 @media (max-width: 760px) {
   .hero,
   .job-head,
@@ -309,5 +372,9 @@ label {
 
   .file-actions a {
     text-align: center;
+  }
+
+  .modal-actions button {
+    width: 100%;
   }
 }

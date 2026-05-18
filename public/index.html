@@ -8,6 +8,10 @@
 </head>
 <body>
   <main class="shell">
+    <header class="brand-header">
+      <img src="/logo-bureau-vallee.svg" alt="Bureau Vallee">
+    </header>
+
     <section class="hero">
       <div>
         <p class="eyebrow">Bureau Vallee Montaigu-Vendee</p>
@@ -36,6 +40,18 @@
       <div class="files" id="files"></div>
     </section>
   </main>
+
+  <div class="modal hidden" id="timeout-modal" role="dialog" aria-modal="true" aria-labelledby="timeout-title">
+    <div class="modal-card">
+      <p class="eyebrow">Attention</p>
+      <h2 id="timeout-title">Vos fichiers s'effacent dans 15 secondes</h2>
+      <p>Voulez-vous continuer la session pour garder les fichiers disponibles ?</p>
+      <div class="modal-actions">
+        <button id="continue-session" type="button">Continuer</button>
+        <button class="danger" id="finish-session" type="button">Terminer</button>
+      </div>
+    </div>
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>

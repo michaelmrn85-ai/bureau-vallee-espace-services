@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 590" role="img" aria-labelledby="title">
+  <title id="title">Bureau Vallee</title>
+  <rect width="1200" height="590" rx="38" fill="#ffd200"/>
+  <path d="M0 402c190-16 330-2 505 30 69 13 118 30 147 53-23-35-55-49-87-64 205-36 444-29 635-15v145c0 22-18 39-40 39H40c-22 0-40-17-40-39z" fill="#008d3f"/>
+  <path d="M596 56l101 20 101-20-101 49zm-195 33l76 17 76-17-76 38zm139 43l60 14 60-14-60 29z" fill="#fff"/>
+  <text x="37" y="340" fill="#003b78" font-family="Arial Black, Impact, Arial, sans-serif" font-size="170" font-weight="900" letter-spacing="-10">Bureau</text>
+  <text x="660" y="340" fill="#003b78" font-family="Arial Black, Impact, Arial, sans-serif" font-size="170" font-weight="900" letter-spacing="-12">Vallee</text>
+</svg>
