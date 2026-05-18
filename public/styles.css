@@ -38,13 +38,14 @@ button, input { font: inherit; }
 .brand-header img,
 .mobile-logo {
   display: block;
-  width: min(260px, 76vw);
+  width: min(230px, 70vw);
   border-radius: 10px;
   background: white;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
 }
 
 .mobile-logo {
+  width: min(210px, 72vw);
   margin-bottom: 22px;
 }
 

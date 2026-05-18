@@ -1,8 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 590" role="img" aria-labelledby="title">
-  <title id="title">Bureau Vallee</title>
-  <rect width="1200" height="590" rx="38" fill="#ffd200"/>
-  <path d="M0 402c190-16 330-2 505 30 69 13 118 30 147 53-23-35-55-49-87-64 205-36 444-29 635-15v145c0 22-18 39-40 39H40c-22 0-40-17-40-39z" fill="#008d3f"/>
-  <path d="M596 56l101 20 101-20-101 49zm-195 33l76 17 76-17-76 38zm139 43l60 14 60-14-60 29z" fill="#fff"/>
-  <text x="37" y="340" fill="#003b78" font-family="Arial Black, Impact, Arial, sans-serif" font-size="170" font-weight="900" letter-spacing="-10">Bureau</text>
-  <text x="660" y="340" fill="#003b78" font-family="Arial Black, Impact, Arial, sans-serif" font-size="170" font-weight="900" letter-spacing="-12">Vallee</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 372" role="img" aria-labelledby="title">
+  <title id="title">Bureau Vallée</title>
+  <defs>
+    <clipPath id="round">
+      <rect width="760" height="372" rx="32"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="760" height="372" fill="#ffd200"/>
+    <path d="M0 253c94-9 179-8 263 4 66 9 122 23 166 43-14-19-32-34-58-47 131-26 262-30 389-17v136H0z" fill="#008d43"/>
+    <path d="M375 37l65 14 65-14-65 32zm-124 22l48 11 48-11-48 24zm88 26l40 9 40-9-40 20z" fill="#fff"/>
+    <text x="37" y="214" fill="#003b78" font-family="Arial, Helvetica, sans-serif" font-size="108" font-weight="900" letter-spacing="-7">Bureau</text>
+    <text x="414" y="214" fill="#003b78" font-family="Arial, Helvetica, sans-serif" font-size="108" font-weight="900" letter-spacing="-7">Vallée</text>
+  </g>
 </svg>
