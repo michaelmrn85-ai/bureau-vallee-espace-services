@@ -35,14 +35,15 @@ function renderJobs(jobs) {
   }
 
   codesList.innerHTML = jobs.map((job) => `
-    <article class="code-card">
+    <article class="code-card ${job.status === "termine" ? "is-complete" : ""}">
       <div class="code-main">
         <span>Code</span>
         <strong>${job.code}</strong>
+        <em>${job.status === "termine" ? "Termine" : "Actif"}</em>
       </div>
       <div>
         <h2>${job.customerName || "Client"}</h2>
-        <p>${job.files.length} fichier(s) - depot ${formatDate(job.createdAt)} - ${job.printMode === "couleur" ? "Couleur" : "Noir et blanc"}</p>
+        <p>${job.files.length} fichier(s) - depot ${formatDate(job.createdAt)} - ${job.printMode === "couleur" ? "Couleur" : "Noir et blanc"}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
         <div class="code-files">
           ${job.files.map((file) => `<span>${file.originalName} - ${file.pages} page(s)</span>`).join("")}
         </div>
@@ -63,7 +64,7 @@ async function loadCodes() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
     renderJobs(payload.jobs || []);
-    setCodesMessage(`${payload.jobs?.length || 0} code(s) actif(s).`, "success");
+    setCodesMessage(`${payload.jobs?.length || 0} suivi(s) client conserve(s).`, "success");
   } catch (error) {
     setCodesMessage(error.message, "error");
   }

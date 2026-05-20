@@ -287,7 +287,7 @@ body.notice-active .mobile-shell {
   margin-bottom: 5px;
 }
 
-.job-head small#countdown {
+.job-head small {
   display: block;
   margin-top: 7px;
   color: var(--yellow);
@@ -304,6 +304,15 @@ body.notice-active .mobile-shell {
 .danger {
   color: white;
   background: var(--danger);
+}
+
+.delete-session-button {
+  width: 100%;
+  margin-top: 8px;
+  padding: clamp(22px, 4vw, 34px);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  font-size: clamp(24px, 4vw, 44px);
+  line-height: 1.05;
 }
 
 .mobile-body {
@@ -502,16 +511,33 @@ label {
 }
 
 .code-main span,
+.code-main em,
 .code-metrics span,
 .code-files span {
   color: var(--muted);
   font-weight: 800;
 }
 
+.code-main em {
+  color: #76e8a6;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
 .code-main strong {
   color: var(--yellow);
   font-size: 42px;
   letter-spacing: 0.1em;
+}
+
+.code-card.is-complete {
+  opacity: 0.82;
+}
+
+.code-card.is-complete .code-main em {
+  color: var(--muted);
 }
 
 .code-files {

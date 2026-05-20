@@ -12,7 +12,9 @@ const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
 const TMP_DIR = path.join(DATA_DIR, "tmp");
 const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
+const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
+const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 80 * 1024 * 1024;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"]);
 
@@ -65,7 +67,41 @@ function writeJob(job) {
   fs.writeFileSync(jobPath(job.code), JSON.stringify(job, null, 2));
 }
 
-function deleteJob(code) {
+function readHistory() {
+  if (!fs.existsSync(HISTORY_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeHistory(history) {
+  const cutoff = Date.now() - HISTORY_TTL_MS;
+  const cleanedHistory = history.filter((job) => new Date(job.deletedAt || job.createdAt).getTime() >= cutoff);
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(cleanedHistory, null, 2));
+}
+
+function archiveJob(job, reason) {
+  if (!job) return;
+  const history = readHistory().filter((item) => item.code !== job.code);
+  history.unshift({
+    ...publicJob(job, "termine"),
+    deletedAt: new Date().toISOString(),
+    deleteReason: reason,
+    files: job.files.map((file) => ({
+      id: file.id,
+      originalName: file.originalName,
+      extension: file.extension.replace(".", ""),
+      size: file.size,
+      pages: file.pages || 1,
+    })),
+  });
+  writeHistory(history);
+}
+
+function deleteJob(code, reason = "suppression") {
+  archiveJob(readJob(code), reason);
   fs.rmSync(jobDir(code), { recursive: true, force: true });
 }
 
@@ -74,7 +110,7 @@ function cleanupExpiredJobs() {
   for (const code of fs.readdirSync(JOBS_DIR)) {
     const job = readJob(code);
     if (!job || new Date(job.expiresAt).getTime() <= now) {
-      deleteJob(code);
+      deleteJob(code, "expiration");
     }
   }
 }
@@ -113,7 +149,18 @@ function reserveCode() {
   throw new Error("Impossible de creer un code disponible.");
 }
 
-function publicJob(job) {
+function listTrackedJobs() {
+  const activeJobs = listActiveJobs().map((job) => publicJob(job, "actif"));
+  const activeCodes = new Set(activeJobs.map((job) => job.code));
+  const history = readHistory()
+    .filter((job) => !activeCodes.has(job.code))
+    .map((job) => ({ ...job }));
+  writeHistory(history);
+  return [...activeJobs, ...history]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+function publicJob(job, status = "actif") {
   const files = job.files.map((file) => ({
     id: file.id,
     originalName: file.originalName,
@@ -121,7 +168,6 @@ function publicJob(job) {
     size: file.size,
     pages: file.pages || 1,
     viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
-    downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
   }));
   const totalPages = files.reduce((sum, file) => sum + file.pages, 0);
   const printMode = job.printMode === "couleur" ? "couleur" : "noir-blanc";
@@ -134,6 +180,7 @@ function publicJob(job) {
     colorPages: printMode === "couleur" ? totalPages : 0,
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
+    status,
     files,
   };
 }
@@ -205,7 +252,7 @@ app.post("/api/notice", (request, response) => {
 
 app.get("/api/jobs", (request, response) => {
   response.json({
-    jobs: listActiveJobs().map(publicJob),
+    jobs: listTrackedJobs(),
   });
 });
 
@@ -260,7 +307,7 @@ app.get("/api/jobs/:code", (request, response) => {
     return;
   }
   if (new Date(job.expiresAt).getTime() <= Date.now()) {
-    deleteJob(job.code);
+    deleteJob(job.code, "expiration");
     response.status(404).json({ error: "Code expire." });
     return;
   }
@@ -281,17 +328,12 @@ app.get("/api/jobs/:code/files/:fileId", (request, response) => {
   }
 
   const filePath = path.join(jobDir(job.code), file.storedName);
-  if (request.query.download) {
-    response.download(filePath, file.originalName);
-    return;
-  }
-
   response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.originalName)}"`);
   response.sendFile(filePath);
 });
 
 app.delete("/api/jobs/:code", (request, response) => {
-  deleteJob(request.params.code);
+  deleteJob(request.params.code, "fin-session");
   response.json({ ok: true });
 });
 
