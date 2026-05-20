@@ -3,12 +3,22 @@ const pickupCode = document.getElementById("pickup-code");
 const message = document.getElementById("message");
 const filesContainer = document.getElementById("files");
 const uploadUrlLabel = document.getElementById("upload-url");
+const uploadQr = document.getElementById("upload-qr");
 const printInstructionsModal = document.getElementById("print-instructions-modal");
 const confirmPrintInstructionsBtn = document.getElementById("confirm-print-instructions");
 const cancelPrintInstructionsBtn = document.getElementById("cancel-print-instructions");
+const stationTitle = document.getElementById("station-title");
 let currentCode = "";
 let activeJob = null;
 let pendingFileUrl = "";
+
+function currentStation() {
+  return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
+}
+
+function stationLabel() {
+  return currentStation() === "poste-2" ? "Poste 2" : "Poste 1";
+}
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
@@ -36,12 +46,15 @@ async function deleteCurrentJob(finalMessage) {
 }
 
 async function loadConfig() {
+  stationTitle.textContent = stationLabel();
   try {
-    const response = await fetch("/api/config");
+    const response = await fetch(`/api/config?station=${currentStation()}`);
     const config = await response.json();
     uploadUrlLabel.textContent = config.uploadUrl;
+    uploadQr.src = config.qrUrl;
   } catch (error) {
-    uploadUrlLabel.textContent = "https://bureau-vallee-espace-services.onrender.com/upload";
+    uploadUrlLabel.textContent = `https://bureau-vallee-espace-services.onrender.com/upload?station=${currentStation()}`;
+    uploadQr.src = `/qr.svg?station=${currentStation()}`;
   }
 }
 
@@ -69,7 +82,9 @@ function renderJob(job) {
           <small>${file.extension.toUpperCase()} - ${formatSize(file.size)}</small>
         </div>
         <div class="file-actions">
-          <a href="${file.viewUrl}" target="_blank" rel="noreferrer" data-print-url="${file.viewUrl}">Ouvrir / imprimer</a>
+          ${file.downloadUrl
+            ? `<a href="${file.downloadUrl}">Telecharger</a>`
+            : `<a href="${file.viewUrl}" target="_blank" rel="noreferrer" data-print-url="${file.viewUrl}">Ouvrir / imprimer</a>`}
         </div>
       </article>
     `).join("")}
@@ -102,7 +117,7 @@ codeForm.addEventListener("submit", async (event) => {
   filesContainer.innerHTML = "";
 
   try {
-    const response = await fetch(`/api/jobs/${code}`);
+    const response = await fetch(`/api/jobs/${code}?station=${currentStation()}`);
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Code introuvable.");
     renderJob(payload);

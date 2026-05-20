@@ -5,6 +5,11 @@ const result = document.getElementById("result");
 const resultCode = document.getElementById("result-code");
 const uploadMessage = document.getElementById("upload-message");
 
+function currentStation() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("station") === "poste-2" ? "poste-2" : "poste-1";
+}
+
 function renderSelectedFiles() {
   const files = [...filesInput.files];
   selectedFiles.innerHTML = files.map((file) => `<div>${file.name}</div>`).join("");
@@ -25,6 +30,7 @@ uploadForm.addEventListener("submit", async (event) => {
   }
 
   const formData = new FormData(uploadForm);
+  formData.set("station", currentStation());
   setUploadMessage("Envoi en cours...");
   result.classList.add("hidden");
 

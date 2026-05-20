@@ -6,8 +6,6 @@ const activateBtn = document.getElementById("activate-notice");
 const disableBtn = document.getElementById("disable-notice");
 const adminMessage = document.getElementById("notice-admin-message");
 const sessionInput = document.getElementById("session-message");
-const openSessionBtn = document.getElementById("open-session");
-const closeSessionBtn = document.getElementById("close-session");
 const sessionAdminMessage = document.getElementById("session-admin-message");
 
 function formatDate(value) {
@@ -32,6 +30,15 @@ function setSessionAdminMessage(text, tone = "") {
   sessionAdminMessage.dataset.tone = tone;
 }
 
+function renderSessionStatuses(stations) {
+  Object.entries(stations || {}).forEach(([station, state]) => {
+    const label = document.getElementById(`${station}-status`);
+    if (!label) return;
+    label.textContent = state.active ? "Ouvert" : "Ferme";
+    label.dataset.tone = state.active ? "success" : "";
+  });
+}
+
 function renderJobs(jobs) {
   if (!jobs.length) {
     codesList.innerHTML = `
@@ -43,7 +50,33 @@ function renderJobs(jobs) {
     return;
   }
 
-  codesList.innerHTML = jobs.map((job) => `
+  const stations = [
+    { id: "poste-1", label: "Poste 1" },
+    { id: "poste-2", label: "Poste 2" },
+  ];
+
+  codesList.innerHTML = stations.map((station) => {
+    const stationJobs = jobs.filter((job) => (job.station || "poste-1") === station.id);
+    const totals = stationJobs.reduce((sum, job) => ({
+      bwPages: sum.bwPages + Number(job.bwPages || 0),
+      colorPages: sum.colorPages + Number(job.colorPages || 0),
+      totalPages: sum.totalPages + Number(job.totalPages || 0),
+    }), { bwPages: 0, colorPages: 0, totalPages: 0 });
+
+    return `
+      <section class="station-history">
+        <div class="station-history-heading">
+          <div>
+            <p class="eyebrow">Historique impression</p>
+            <h3>${station.label}</h3>
+          </div>
+          <div class="station-history-totals">
+            <span>N&B <strong>${totals.bwPages}</strong></span>
+            <span>Couleur <strong>${totals.colorPages}</strong></span>
+            <span>Total <strong>${totals.totalPages}</strong></span>
+          </div>
+        </div>
+        ${stationJobs.length ? stationJobs.map((job) => `
     <article class="code-card ${job.status === "termine" ? "is-complete" : ""}">
       <div class="code-main">
         <span>Code</span>
@@ -52,7 +85,7 @@ function renderJobs(jobs) {
       </div>
       <div>
         <h2>${job.customerName || "Client"}</h2>
-        <p>${job.files.length} fichier(s) - depot ${formatDate(job.createdAt)} - ${job.printMode === "couleur" ? "Couleur" : "Noir et blanc"}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
+        <p>${job.files.length} fichier(s) - ${job.stationLabel || station.label} - depot ${formatDate(job.createdAt)} - ${job.printMode === "couleur" ? "Couleur" : "Noir et blanc"}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
         <div class="code-files">
           ${job.files.map((file) => `<span>${file.originalName} - ${file.pages} page(s)</span>`).join("")}
         </div>
@@ -63,7 +96,14 @@ function renderJobs(jobs) {
         <div><span>Total</span><strong>${job.totalPages}</strong></div>
       </div>
     </article>
-  `).join("");
+        `).join("") : `
+          <div class="empty-card">
+            <strong>Aucun suivi sur ${station.label}.</strong>
+          </div>
+        `}
+      </section>
+    `;
+  }).join("");
 }
 
 async function loadCodes() {
@@ -95,23 +135,25 @@ async function loadSession() {
     const response = await fetch("/api/session");
     const session = await response.json();
     sessionInput.value = session.message || "";
-    setSessionAdminMessage(session.active ? "Session client ouverte." : "Session client fermee.", session.active ? "success" : "");
+    renderSessionStatuses(session.stations);
+    setSessionAdminMessage("Etat des postes charge.", "success");
   } catch (error) {
     setSessionAdminMessage("Etat de session indisponible.", "error");
   }
 }
 
-async function saveSession(active) {
+async function saveSession(station, active) {
   const message = sessionInput.value.trim() || "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.";
   try {
     const response = await fetch("/api/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ active, message }),
+      body: JSON.stringify({ station, active, message }),
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Enregistrement impossible.");
-    setSessionAdminMessage(payload.active ? "Session client ouverte." : "Session client fermee avec message d'accueil.", payload.active ? "success" : "");
+    renderSessionStatuses(payload.stations);
+    setSessionAdminMessage(`${payload.stationLabel} ${payload.active ? "ouvert" : "ferme avec message d'accueil"}.`, payload.active ? "success" : "");
   } catch (error) {
     setSessionAdminMessage(error.message, "error");
   }
@@ -153,12 +195,10 @@ disableBtn.addEventListener("click", () => {
   saveNotice(false);
 });
 
-openSessionBtn.addEventListener("click", () => {
-  saveSession(true);
-});
-
-closeSessionBtn.addEventListener("click", () => {
-  saveSession(false);
+document.querySelectorAll("[data-session-action][data-station]").forEach((button) => {
+  button.addEventListener("click", () => {
+    saveSession(button.dataset.station, button.dataset.sessionAction === "open");
+  });
 });
 
 loadCodes();

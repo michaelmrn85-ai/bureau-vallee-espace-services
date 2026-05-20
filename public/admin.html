@@ -10,7 +10,10 @@
   <main class="shell">
     <header class="brand-header brand-header-row">
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-      <a class="text-link" href="/">Retour impression</a>
+      <div class="station-links">
+        <a class="text-link" href="/poste-1">Poste 1</a>
+        <a class="text-link" href="/poste-2">Poste 2</a>
+      </div>
     </header>
 
     <section class="panel">
@@ -32,9 +35,28 @@
             <textarea id="session-message" maxlength="180" rows="3" placeholder="Bienvenue en Espace Services..."></textarea>
           </label>
 
-          <div class="modal-actions">
-            <button id="open-session" type="button">Ouvrir la session client</button>
-            <button class="danger" id="close-session" type="button">Fermer la session client</button>
+          <div class="station-admin-grid">
+            <article class="station-admin-card">
+              <div>
+                <strong>Poste 1</strong>
+                <span id="poste-1-status">Chargement...</span>
+              </div>
+              <div class="modal-actions">
+                <button type="button" data-session-action="open" data-station="poste-1">Ouvrir</button>
+                <button class="danger" type="button" data-session-action="close" data-station="poste-1">Fermer</button>
+              </div>
+            </article>
+
+            <article class="station-admin-card">
+              <div>
+                <strong>Poste 2</strong>
+                <span id="poste-2-status">Chargement...</span>
+              </div>
+              <div class="modal-actions">
+                <button type="button" data-session-action="open" data-station="poste-2">Ouvrir</button>
+                <button class="danger" type="button" data-session-action="close" data-station="poste-2">Fermer</button>
+              </div>
+            </article>
           </div>
           <p class="message" id="session-admin-message"></p>
         </section>

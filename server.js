@@ -18,6 +18,10 @@ const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 80 * 1024 * 1024;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"]);
+const stations = {
+  "poste-1": "Poste 1",
+  "poste-2": "Poste 2",
+};
 
 fs.mkdirSync(JOBS_DIR, { recursive: true });
 fs.mkdirSync(TMP_DIR, { recursive: true });
@@ -39,6 +43,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (request, response) => {
+  response.redirect("/poste-1");
+});
+
+app.get(["/poste-1", "/poste-2"], (request, response) => {
   response.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
@@ -162,19 +170,26 @@ function listTrackedJobs() {
 }
 
 function publicJob(job, status = "actif") {
-  const files = job.files.map((file) => ({
-    id: file.id,
-    originalName: file.originalName,
-    extension: file.extension.replace(".", ""),
-    size: file.size,
-    pages: file.pages || 1,
-    viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
-  }));
+  const station = stationFrom(job.station);
+  const files = job.files.map((file) => {
+    const isPdf = file.extension.toLowerCase() === ".pdf";
+    return {
+      id: file.id,
+      originalName: file.originalName,
+      extension: file.extension.replace(".", ""),
+      size: file.size,
+      pages: file.pages || 1,
+      viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
+      downloadUrl: isPdf ? "" : `/api/jobs/${job.code}/files/${file.id}?download=1`,
+    };
+  });
   const totalPages = files.reduce((sum, file) => sum + file.pages, 0);
   const printMode = job.printMode === "couleur" ? "couleur" : "noir-blanc";
   return {
     code: job.code,
     customerName: job.customerName,
+    station,
+    stationLabel: stations[station],
     printMode,
     totalPages,
     bwPages: printMode === "couleur" ? 0 : totalPages,
@@ -186,8 +201,8 @@ function publicJob(job, status = "actif") {
   };
 }
 
-function uploadUrl() {
-  return `${PUBLIC_BASE_URL}/upload`;
+function uploadUrl(station = "poste-1") {
+  return `${PUBLIC_BASE_URL}/upload?station=${stationFrom(station)}`;
 }
 
 function readNotice() {
@@ -207,15 +222,32 @@ function writeNotice(notice) {
 
 function defaultSession() {
   return {
-    active: false,
     message: "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.",
+    stations: {
+      "poste-1": { active: false },
+      "poste-2": { active: false },
+    },
   };
+}
+
+function stationFrom(value) {
+  return Object.prototype.hasOwnProperty.call(stations, value) ? value : "poste-1";
 }
 
 function readSession() {
   if (!fs.existsSync(SESSION_FILE)) return defaultSession();
   try {
-    return { ...defaultSession(), ...JSON.parse(fs.readFileSync(SESSION_FILE, "utf8")) };
+    const saved = JSON.parse(fs.readFileSync(SESSION_FILE, "utf8"));
+    const defaults = defaultSession();
+    const legacyActive = typeof saved.active === "boolean" ? saved.active : undefined;
+    return {
+      ...defaults,
+      ...saved,
+      stations: {
+        "poste-1": { ...defaults.stations["poste-1"], ...saved.stations?.["poste-1"], ...(legacyActive === undefined ? {} : { active: legacyActive }) },
+        "poste-2": { ...defaults.stations["poste-2"], ...saved.stations?.["poste-2"], ...(legacyActive === undefined ? {} : { active: legacyActive }) },
+      },
+    };
   } catch (error) {
     return defaultSession();
   }
@@ -247,13 +279,21 @@ app.get("/admin", (request, response) => {
 
 app.get("/qr.svg", (request, response) => {
   const qr = qrcode(0, "M");
-  qr.addData(uploadUrl(request));
+  qr.addData(uploadUrl(request.query.station));
   qr.make();
   response.type("image/svg+xml").send(qr.createSvgTag({ cellSize: 8, margin: 4 }));
 });
 
 app.get("/api/config", (request, response) => {
-  response.json({ uploadUrl: uploadUrl(request) });
+  const station = stationFrom(request.query.station);
+  response.json({
+    uploadUrl: uploadUrl(station),
+    qrUrl: `/qr.svg?station=${station}`,
+    stationLinks: {
+      "poste-1": `${PUBLIC_BASE_URL}/poste-1`,
+      "poste-2": `${PUBLIC_BASE_URL}/poste-2`,
+    },
+  });
 });
 
 app.get("/api/notice", (request, response) => {
@@ -272,18 +312,45 @@ app.post("/api/notice", (request, response) => {
 });
 
 app.get("/api/session", (request, response) => {
-  response.json(readSession());
+  const session = readSession();
+  const station = stationFrom(request.query.station);
+  response.json({
+    station,
+    stationLabel: stations[station],
+    active: Boolean(session.stations[station].active),
+    message: session.message,
+    stations: Object.fromEntries(Object.entries(stations).map(([id, label]) => [
+      id,
+      { label, active: Boolean(session.stations[id].active) },
+    ])),
+    updatedAt: session.updatedAt,
+  });
 });
 
 app.post("/api/session", (request, response) => {
   const message = String(request.body.message || "").trim().slice(0, 180) || defaultSession().message;
+  const station = stationFrom(request.body.station);
+  const current = readSession();
   const session = {
-    active: Boolean(request.body.active),
     message,
+    stations: {
+      ...current.stations,
+      [station]: { active: Boolean(request.body.active) },
+    },
     updatedAt: new Date().toISOString(),
   };
   writeSession(session);
-  response.json(session);
+  response.json({
+    station,
+    stationLabel: stations[station],
+    active: Boolean(session.stations[station].active),
+    message: session.message,
+    stations: Object.fromEntries(Object.entries(stations).map(([id, label]) => [
+      id,
+      { label, active: Boolean(session.stations[id].active) },
+    ])),
+    updatedAt: session.updatedAt,
+  });
 });
 
 app.get("/api/jobs", (request, response) => {
@@ -323,6 +390,7 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
     const job = {
       code,
       customerName: String(request.body.customerName || "").trim(),
+      station: stationFrom(request.body.station),
       printMode,
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
@@ -347,6 +415,10 @@ app.get("/api/jobs/:code", (request, response) => {
     response.status(404).json({ error: "Code expire." });
     return;
   }
+  if (request.query.station) {
+    job.station = stationFrom(request.query.station);
+    writeJob(job);
+  }
   response.json(publicJob(job));
 });
 
@@ -364,6 +436,11 @@ app.get("/api/jobs/:code/files/:fileId", (request, response) => {
   }
 
   const filePath = path.join(jobDir(job.code), file.storedName);
+  if (request.query.download && file.extension.toLowerCase() !== ".pdf") {
+    response.download(filePath, file.originalName);
+    return;
+  }
+
   response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.originalName)}"`);
   response.sendFile(filePath);
 });

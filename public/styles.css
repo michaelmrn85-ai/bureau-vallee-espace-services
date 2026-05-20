@@ -43,6 +43,13 @@ button, input { font: inherit; }
   align-items: center;
 }
 
+.station-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .brand-header img,
 .mobile-logo {
   display: block;
@@ -500,6 +507,46 @@ label {
   margin-top: 18px;
 }
 
+.station-history {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.station-history-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.station-history-heading h3 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.station-history-totals {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.station-history-totals span {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.065);
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.station-history-totals strong {
+  color: var(--yellow);
+}
+
 .code-card,
 .empty-card {
   border: 1px solid var(--line);
@@ -608,6 +655,38 @@ label {
   background: rgba(255, 255, 255, 0.035);
 }
 
+.station-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.station-admin-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.station-admin-card strong,
+.station-admin-card span {
+  display: block;
+}
+
+.station-admin-card strong {
+  font-size: 24px;
+}
+
+.station-admin-card span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.station-admin-card span[data-tone="success"] {
+  color: #76e8a6;
+}
+
 @media (max-width: 760px) {
   .hero,
   .job-head,
@@ -618,7 +697,8 @@ label {
   }
 
   .brand-header-row,
-  .panel-heading-row {
+  .panel-heading-row,
+  .station-history-heading {
     align-items: stretch;
     flex-direction: column;
   }
@@ -628,6 +708,7 @@ label {
   }
 
   .preset-grid,
+  .station-admin-grid,
   .code-metrics {
     grid-template-columns: 1fr;
   }
