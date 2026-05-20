@@ -5,6 +5,10 @@ const noticeInput = document.getElementById("notice-message");
 const activateBtn = document.getElementById("activate-notice");
 const disableBtn = document.getElementById("disable-notice");
 const adminMessage = document.getElementById("notice-admin-message");
+const sessionInput = document.getElementById("session-message");
+const openSessionBtn = document.getElementById("open-session");
+const closeSessionBtn = document.getElementById("close-session");
+const sessionAdminMessage = document.getElementById("session-admin-message");
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -21,6 +25,11 @@ function setCodesMessage(text, tone = "") {
 function setAdminMessage(text, tone = "") {
   adminMessage.textContent = text;
   adminMessage.dataset.tone = tone;
+}
+
+function setSessionAdminMessage(text, tone = "") {
+  sessionAdminMessage.textContent = text;
+  sessionAdminMessage.dataset.tone = tone;
 }
 
 function renderJobs(jobs) {
@@ -81,6 +90,33 @@ async function loadNotice() {
   }
 }
 
+async function loadSession() {
+  try {
+    const response = await fetch("/api/session");
+    const session = await response.json();
+    sessionInput.value = session.message || "";
+    setSessionAdminMessage(session.active ? "Session client ouverte." : "Session client fermee.", session.active ? "success" : "");
+  } catch (error) {
+    setSessionAdminMessage("Etat de session indisponible.", "error");
+  }
+}
+
+async function saveSession(active) {
+  const message = sessionInput.value.trim() || "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.";
+  try {
+    const response = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active, message }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Enregistrement impossible.");
+    setSessionAdminMessage(payload.active ? "Session client ouverte." : "Session client fermee avec message d'accueil.", payload.active ? "success" : "");
+  } catch (error) {
+    setSessionAdminMessage(error.message, "error");
+  }
+}
+
 async function saveNotice(active) {
   const message = noticeInput.value.trim();
   try {
@@ -117,5 +153,14 @@ disableBtn.addEventListener("click", () => {
   saveNotice(false);
 });
 
+openSessionBtn.addEventListener("click", () => {
+  saveSession(true);
+});
+
+closeSessionBtn.addEventListener("click", () => {
+  saveSession(false);
+});
+
 loadCodes();
 loadNotice();
+loadSession();

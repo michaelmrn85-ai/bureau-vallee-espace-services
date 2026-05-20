@@ -22,6 +22,24 @@
 
       <div class="admin-grid">
         <section class="admin-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Session client</p>
+            <h2>Ouverture de session</h2>
+          </div>
+
+          <label>
+            Message d'accueil
+            <textarea id="session-message" maxlength="180" rows="3" placeholder="Bienvenue en Espace Services..."></textarea>
+          </label>
+
+          <div class="modal-actions">
+            <button id="open-session" type="button">Ouvrir la session client</button>
+            <button class="danger" id="close-session" type="button">Fermer la session client</button>
+          </div>
+          <p class="message" id="session-admin-message"></p>
+        </section>
+
+        <section class="admin-section">
           <div class="panel-heading panel-heading-row">
             <div>
               <p class="eyebrow">Suivi caisse</p>

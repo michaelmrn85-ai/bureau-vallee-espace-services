@@ -12,6 +12,7 @@ const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
 const TMP_DIR = path.join(DATA_DIR, "tmp");
 const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
+const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -204,6 +205,26 @@ function writeNotice(notice) {
   fs.writeFileSync(NOTICE_FILE, JSON.stringify(notice, null, 2));
 }
 
+function defaultSession() {
+  return {
+    active: false,
+    message: "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.",
+  };
+}
+
+function readSession() {
+  if (!fs.existsSync(SESSION_FILE)) return defaultSession();
+  try {
+    return { ...defaultSession(), ...JSON.parse(fs.readFileSync(SESSION_FILE, "utf8")) };
+  } catch (error) {
+    return defaultSession();
+  }
+}
+
+function writeSession(session) {
+  fs.writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2));
+}
+
 app.get("/health", (request, response) => {
   response.json({ ok: true });
 });
@@ -248,6 +269,21 @@ app.post("/api/notice", (request, response) => {
   };
   writeNotice(notice);
   response.json(notice);
+});
+
+app.get("/api/session", (request, response) => {
+  response.json(readSession());
+});
+
+app.post("/api/session", (request, response) => {
+  const message = String(request.body.message || "").trim().slice(0, 180) || defaultSession().message;
+  const session = {
+    active: Boolean(request.body.active),
+    message,
+    updatedAt: new Date().toISOString(),
+  };
+  writeSession(session);
+  response.json(session);
 });
 
 app.get("/api/jobs", (request, response) => {
