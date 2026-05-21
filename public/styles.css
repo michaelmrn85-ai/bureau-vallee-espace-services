@@ -149,11 +149,25 @@ h2 {
   padding: 28px;
 }
 
+.welcome-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.steps-panel,
+.print-options-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.26);
+}
+
 .steps-panel {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 24px;
+  padding: 18px;
 }
 
 .steps-panel div {
@@ -182,6 +196,50 @@ h2 {
 
 .steps-panel strong {
   line-height: 1.25;
+}
+
+.print-options-panel {
+  padding: clamp(22px, 4vw, 34px);
+}
+
+.print-options-panel h2 {
+  margin-bottom: 18px;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.08;
+}
+
+.print-options-panel p:not(.eyebrow) {
+  margin: 18px 0 10px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.source-list,
+.accepted-files {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.source-list span,
+.accepted-files strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 900;
+}
+
+.source-list span {
+  color: #06111c;
+  background: var(--yellow);
+}
+
+.accepted-files strong {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .panel-heading {
@@ -731,7 +789,7 @@ label {
 
 @media (max-width: 760px) {
   .hero,
-  .steps-panel,
+  .welcome-grid,
   .job-head,
   .file-card,
   .code-card {
@@ -752,7 +810,7 @@ label {
 
   .preset-grid,
   .station-admin-grid,
-  .steps-panel,
+  .welcome-grid,
   .code-metrics {
     grid-template-columns: 1fr;
   }

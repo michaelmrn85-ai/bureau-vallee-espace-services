@@ -117,7 +117,7 @@ function renderJob(job) {
         <strong>${job.customerName || "Client"}</strong>
         <small id="deletion-countdown">Suppression automatique dans 3 minutes</small>
       </div>
-      ${job.downloadAllUrl ? `<a class="download-all-button" href="${job.downloadAllUrl}">Telecharger tout</a>` : ""}
+      ${job.downloadAllUrl ? `<a class="download-all-button" href="${job.downloadAllUrl}" download>Telecharger tout</a>` : ""}
     </div>
     ${job.files.map((file) => `
       <article class="file-card">
@@ -126,7 +126,7 @@ function renderJob(job) {
           <small>${file.extension.toUpperCase()} - ${formatSize(file.size)}</small>
         </div>
         <div class="file-actions">
-          <a href="${file.downloadUrl}">Telecharger</a>
+          <a href="${file.downloadUrl}" download>Telecharger</a>
         </div>
       </article>
     `).join("")}

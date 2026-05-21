@@ -194,7 +194,7 @@ function publicJob(job, status = "actif") {
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
     status,
-    downloadAllUrl: files.length > 1 ? `/api/jobs/${job.code}/download-all` : "",
+    downloadAllUrl: files.length ? `/api/jobs/${job.code}/download-all` : "",
     files,
   };
 }
