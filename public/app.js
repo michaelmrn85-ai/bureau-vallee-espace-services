@@ -5,8 +5,14 @@ const filesContainer = document.getElementById("files");
 const uploadUrlLabel = document.getElementById("upload-url");
 const uploadQr = document.getElementById("upload-qr");
 const stationTitle = document.getElementById("station-title");
+const expirationModal = document.getElementById("expiration-modal");
+const expirationCountdown = document.getElementById("expiration-countdown");
+const closeExpirationModalBtn = document.getElementById("close-expiration-modal");
 let currentCode = "";
 let activeJob = null;
+let deletionSeconds = 0;
+let deletionInterval = null;
+let expirationWarningShown = false;
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -26,9 +32,18 @@ function setMessage(text, tone = "") {
   message.dataset.tone = tone;
 }
 
+function stopDeletionTimer() {
+  window.clearInterval(deletionInterval);
+  deletionInterval = null;
+  deletionSeconds = 0;
+  expirationWarningShown = false;
+  expirationModal.classList.add("hidden");
+}
+
 async function deleteCurrentJob(finalMessage) {
   if (!activeJob?.code) return;
   const code = activeJob.code;
+  stopDeletionTimer();
   try {
     await fetch(`/api/jobs/${code}`, { method: "DELETE" });
   } catch (error) {
@@ -39,6 +54,38 @@ async function deleteCurrentJob(finalMessage) {
   filesContainer.innerHTML = "";
   pickupCode.value = "";
   setMessage(finalMessage, "success");
+}
+
+function updateDeletionCountdown() {
+  const countdownLabel = document.getElementById("deletion-countdown");
+  if (countdownLabel) {
+    countdownLabel.textContent = deletionSeconds <= 30
+      ? `Suppression automatique dans ${deletionSeconds}s`
+      : "Suppression automatique dans 3 minutes";
+  }
+  if (expirationCountdown) {
+    expirationCountdown.textContent = String(Math.max(0, deletionSeconds));
+  }
+}
+
+function startDeletionTimer() {
+  stopDeletionTimer();
+  deletionSeconds = 180;
+  updateDeletionCountdown();
+
+  deletionInterval = window.setInterval(() => {
+    deletionSeconds -= 1;
+    updateDeletionCountdown();
+
+    if (deletionSeconds <= 30 && !expirationWarningShown) {
+      expirationWarningShown = true;
+      expirationModal.classList.remove("hidden");
+    }
+
+    if (deletionSeconds <= 0) {
+      deleteCurrentJob("Temps termine. Les fichiers ont ete supprimes automatiquement. Merci de vos impressions, veuillez vous approcher de la caisse.");
+    }
+  }, 1000);
 }
 
 async function loadConfig() {
@@ -68,7 +115,7 @@ function renderJob(job) {
       <div>
         <span>Code ${job.code}</span>
         <strong>${job.customerName || "Client"}</strong>
-        <small>Vos fichiers restent disponibles pendant cette session.</small>
+        <small id="deletion-countdown">Suppression automatique dans 3 minutes</small>
       </div>
       ${job.downloadAllUrl ? `<a class="download-all-button" href="${job.downloadAllUrl}">Telecharger tout</a>` : ""}
     </div>
@@ -89,6 +136,8 @@ function renderJob(job) {
   document.getElementById("delete-job").addEventListener("click", async () => {
     await deleteCurrentJob("Merci de vos impressions, veuillez vous approcher de la caisse.");
   });
+
+  startDeletionTimer();
 }
 
 codeForm.addEventListener("submit", async (event) => {
@@ -110,8 +159,13 @@ codeForm.addEventListener("submit", async (event) => {
     renderJob(payload);
   } catch (error) {
     activeJob = null;
+    stopDeletionTimer();
     setMessage(error.message, "error");
   }
+});
+
+closeExpirationModalBtn.addEventListener("click", () => {
+  expirationModal.classList.add("hidden");
 });
 
 loadConfig();

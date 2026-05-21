@@ -60,6 +60,17 @@
     </section>
   </main>
 
+  <div class="modal hidden" id="expiration-modal" role="dialog" aria-modal="true" aria-labelledby="expiration-title">
+    <div class="modal-card">
+      <p class="eyebrow">Attention</p>
+      <h2 id="expiration-title">Suppression automatique dans <span id="expiration-countdown">30</span> secondes</h2>
+      <p>Vos fichiers vont etre supprimes automatiquement. Terminez vos impressions ou telechargez vos fichiers maintenant.</p>
+      <div class="modal-actions">
+        <button id="close-expiration-modal" type="button">J'ai compris</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/notice.js"></script>
   <script src="/session.js"></script>
   <script src="/app.js"></script>
