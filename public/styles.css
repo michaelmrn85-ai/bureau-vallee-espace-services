@@ -149,6 +149,41 @@ h2 {
   padding: 28px;
 }
 
+.steps-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.steps-panel div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 108px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.steps-panel span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: #06111c;
+  background: var(--yellow);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.steps-panel strong {
+  line-height: 1.25;
+}
+
 .panel-heading {
   margin-bottom: 18px;
 }
@@ -189,6 +224,7 @@ textarea {
 
 button,
 .file-actions a,
+.download-all-button,
 .text-link {
   border: 0;
   border-radius: 10px;
@@ -325,6 +361,12 @@ body.session-closed .mobile-shell {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.download-all-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .danger {
@@ -689,6 +731,7 @@ label {
 
 @media (max-width: 760px) {
   .hero,
+  .steps-panel,
   .job-head,
   .file-card,
   .code-card {
@@ -709,6 +752,7 @@ label {
 
   .preset-grid,
   .station-admin-grid,
+  .steps-panel,
   .code-metrics {
     grid-template-columns: 1fr;
   }
@@ -718,6 +762,7 @@ label {
   }
 
   .file-actions a,
+  .download-all-button,
   .text-link {
     text-align: center;
     justify-content: center;

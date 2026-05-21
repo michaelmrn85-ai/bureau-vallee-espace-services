@@ -171,18 +171,15 @@ function listTrackedJobs() {
 
 function publicJob(job, status = "actif") {
   const station = stationFrom(job.station);
-  const files = job.files.map((file) => {
-    const isPdf = file.extension.toLowerCase() === ".pdf";
-    return {
-      id: file.id,
-      originalName: file.originalName,
-      extension: file.extension.replace(".", ""),
-      size: file.size,
-      pages: file.pages || 1,
-      viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
-      downloadUrl: isPdf ? "" : `/api/jobs/${job.code}/files/${file.id}?download=1`,
-    };
-  });
+  const files = job.files.map((file) => ({
+    id: file.id,
+    originalName: file.originalName,
+    extension: file.extension.replace(".", ""),
+    size: file.size,
+    pages: file.pages || 1,
+    viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
+    downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
+  }));
   const totalPages = files.reduce((sum, file) => sum + file.pages, 0);
   const printMode = job.printMode === "couleur" ? "couleur" : "noir-blanc";
   return {
@@ -197,8 +194,93 @@ function publicJob(job, status = "actif") {
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
     status,
+    downloadAllUrl: files.length > 1 ? `/api/jobs/${job.code}/download-all` : "",
     files,
   };
+}
+
+const crcTable = Array.from({ length: 256 }, (_, index) => {
+  let crc = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  }
+  return crc >>> 0;
+});
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function dosDateTime(date = new Date()) {
+  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const dosDate = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  return { dosDate, dosTime };
+}
+
+function uniqueZipName(name, usedNames) {
+  const parsed = path.parse(name.replace(/[\\/:*?"<>|]/g, "-"));
+  let candidate = `${parsed.name}${parsed.ext}`;
+  let index = 2;
+  while (usedNames.has(candidate.toLowerCase())) {
+    candidate = `${parsed.name}-${index}${parsed.ext}`;
+    index += 1;
+  }
+  usedNames.add(candidate.toLowerCase());
+  return candidate;
+}
+
+function createZipBuffer(entries) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const { dosDate, dosTime } = dosDateTime();
+
+  for (const entry of entries) {
+    const nameBuffer = Buffer.from(entry.name, "utf8");
+    const crc = crc32(entry.data);
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(dosTime, 10);
+    localHeader.writeUInt16LE(dosDate, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(entry.data.length, 18);
+    localHeader.writeUInt32LE(entry.data.length, 22);
+    localHeader.writeUInt16LE(nameBuffer.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    localParts.push(localHeader, nameBuffer, entry.data);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(dosTime, 12);
+    centralHeader.writeUInt16LE(dosDate, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(entry.data.length, 20);
+    centralHeader.writeUInt32LE(entry.data.length, 24);
+    centralHeader.writeUInt16LE(nameBuffer.length, 28);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralParts.push(centralHeader, nameBuffer);
+    offset += localHeader.length + nameBuffer.length + entry.data.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const endRecord = Buffer.alloc(22);
+  endRecord.writeUInt32LE(0x06054b50, 0);
+  endRecord.writeUInt16LE(entries.length, 8);
+  endRecord.writeUInt16LE(entries.length, 10);
+  endRecord.writeUInt32LE(centralDirectory.length, 12);
+  endRecord.writeUInt32LE(offset, 16);
+  return Buffer.concat([...localParts, centralDirectory, endRecord]);
 }
 
 function uploadUrl(station = "poste-1") {
@@ -422,6 +504,24 @@ app.get("/api/jobs/:code", (request, response) => {
   response.json(publicJob(job));
 });
 
+app.get("/api/jobs/:code/download-all", (request, response) => {
+  const job = readJob(request.params.code);
+  if (!job) {
+    response.status(404).send("Code introuvable.");
+    return;
+  }
+
+  const usedNames = new Set();
+  const entries = job.files.map((file) => ({
+    name: uniqueZipName(file.originalName, usedNames),
+    data: fs.readFileSync(path.join(jobDir(job.code), file.storedName)),
+  }));
+  const zip = createZipBuffer(entries);
+  response.setHeader("Content-Type", "application/zip");
+  response.setHeader("Content-Disposition", `attachment; filename="bureau-vallee-${job.code}.zip"`);
+  response.send(zip);
+});
+
 app.get("/api/jobs/:code/files/:fileId", (request, response) => {
   const job = readJob(request.params.code);
   if (!job) {
@@ -436,7 +536,7 @@ app.get("/api/jobs/:code/files/:fileId", (request, response) => {
   }
 
   const filePath = path.join(jobDir(job.code), file.storedName);
-  if (request.query.download && file.extension.toLowerCase() !== ".pdf") {
+  if (request.query.download) {
     response.download(filePath, file.originalName);
     return;
   }

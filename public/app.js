@@ -4,13 +4,9 @@ const message = document.getElementById("message");
 const filesContainer = document.getElementById("files");
 const uploadUrlLabel = document.getElementById("upload-url");
 const uploadQr = document.getElementById("upload-qr");
-const printInstructionsModal = document.getElementById("print-instructions-modal");
-const confirmPrintInstructionsBtn = document.getElementById("confirm-print-instructions");
-const cancelPrintInstructionsBtn = document.getElementById("cancel-print-instructions");
 const stationTitle = document.getElementById("station-title");
 let currentCode = "";
 let activeJob = null;
-let pendingFileUrl = "";
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -74,6 +70,7 @@ function renderJob(job) {
         <strong>${job.customerName || "Client"}</strong>
         <small>Vos fichiers restent disponibles pendant cette session.</small>
       </div>
+      ${job.downloadAllUrl ? `<a class="download-all-button" href="${job.downloadAllUrl}">Telecharger tout</a>` : ""}
     </div>
     ${job.files.map((file) => `
       <article class="file-card">
@@ -82,9 +79,7 @@ function renderJob(job) {
           <small>${file.extension.toUpperCase()} - ${formatSize(file.size)}</small>
         </div>
         <div class="file-actions">
-          ${file.downloadUrl
-            ? `<a href="${file.downloadUrl}">Telecharger</a>`
-            : `<a href="${file.viewUrl}" target="_blank" rel="noreferrer" data-print-url="${file.viewUrl}">Ouvrir / imprimer</a>`}
+          <a href="${file.downloadUrl}">Telecharger</a>
         </div>
       </article>
     `).join("")}
@@ -95,14 +90,6 @@ function renderJob(job) {
     await deleteCurrentJob("Merci de vos impressions, veuillez vous approcher de la caisse.");
   });
 }
-
-filesContainer.addEventListener("click", (event) => {
-  const link = event.target.closest("[data-print-url]");
-  if (!link) return;
-  event.preventDefault();
-  pendingFileUrl = link.href;
-  printInstructionsModal.classList.remove("hidden");
-});
 
 codeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -125,25 +112,6 @@ codeForm.addEventListener("submit", async (event) => {
     activeJob = null;
     setMessage(error.message, "error");
   }
-});
-
-confirmPrintInstructionsBtn.addEventListener("click", () => {
-  if (pendingFileUrl) {
-    window.open(pendingFileUrl, "_blank", "noopener,noreferrer");
-  }
-  pendingFileUrl = "";
-  printInstructionsModal.classList.add("hidden");
-});
-
-cancelPrintInstructionsBtn.addEventListener("click", () => {
-  pendingFileUrl = "";
-  printInstructionsModal.classList.add("hidden");
-});
-
-window.addEventListener("beforeunload", (event) => {
-  if (!activeJob?.code) return;
-  event.preventDefault();
-  event.returnValue = "Une impression est en cours. Les fichiers risquent d'etre perdus.";
 });
 
 loadConfig();

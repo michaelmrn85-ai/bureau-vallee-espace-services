@@ -28,13 +28,20 @@
       <div>
         <p class="eyebrow">Bureau Vallee Montaigu-Vendee</p>
         <h1><span id="station-title">Poste</span> - Espace impression</h1>
-        <p class="lead">Scannez le QR code, envoyez vos fichiers depuis votre telephone, puis saisissez votre code pour les ouvrir et les imprimer.</p>
+        <p class="lead">Suivez les etapes a l'ecran, puis telechargez vos fichiers sur ce poste pour les imprimer.</p>
       </div>
       <div class="qr-card">
         <img id="upload-qr" src="/qr.svg?station=poste-1" alt="QR code upload mobile">
         <span>Upload mobile</span>
         <strong id="upload-url">Chargement...</strong>
       </div>
+    </section>
+
+    <section class="steps-panel" aria-label="Etapes impression">
+      <div><span>1</span><strong>Flashez le QR code.</strong></div>
+      <div><span>2</span><strong>Sur votre mobile, choisissez votre ou vos fichiers.</strong></div>
+      <div><span>3</span><strong>Saisissez le code obtenu sur le poste ou vous etes.</strong></div>
+      <div><span>4</span><strong>Telechargez puis imprimez votre ou vos fichiers.</strong></div>
     </section>
 
     <section class="panel">
@@ -53,18 +60,6 @@
     </section>
   </main>
 
-  <div class="modal hidden" id="print-instructions-modal" role="dialog" aria-modal="true" aria-labelledby="print-instructions-title">
-    <div class="modal-card">
-      <p class="eyebrow">Avant impression</p>
-      <h2 id="print-instructions-title">Verifiez les parametres d'impression</h2>
-      <p>Veuillez verifier le recto ou recto/verso, noir et blanc ou couleur, ainsi que le format A5, A4 ou A3.</p>
-      <p>Merci de ne pas toucher aux autres parametres du poste.</p>
-      <div class="modal-actions">
-        <button id="confirm-print-instructions" type="button">J'ai compris</button>
-        <button class="danger" id="cancel-print-instructions" type="button">Annuler</button>
-      </div>
-    </div>
-  </div>
   <script src="/notice.js"></script>
   <script src="/session.js"></script>
   <script src="/app.js"></script>
