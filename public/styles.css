@@ -35,6 +35,36 @@ button, input { font: inherit; }
   margin-bottom: 18px;
 }
 
+.station-welcome {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.station-welcome img {
+  display: block;
+  width: min(260px, 72vw);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.station-welcome h1 {
+  width: min(980px, 100%);
+  margin-bottom: 0;
+  font-size: clamp(38px, 6vw, 72px);
+  line-height: 1;
+}
+
+.station-welcome p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 22px;
+  font-weight: 800;
+}
+
 .brand-header-row,
 .panel-heading-row {
   display: flex;
@@ -169,6 +199,16 @@ h2 {
   gap: 18px;
   min-height: 100%;
   padding: clamp(22px, 4vw, 34px);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+button.print-choice-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.26);
 }
 
 .print-choice-card h2 {
@@ -178,6 +218,12 @@ h2 {
 
 .print-choice-card.is-mobile {
   border-color: rgba(255, 210, 0, 0.36);
+}
+
+.print-choice-card:hover,
+.print-choice-card:focus-visible {
+  border-color: rgba(255, 210, 0, 0.62);
+  transform: translateY(-2px);
 }
 
 .choice-steps {
@@ -245,6 +291,25 @@ h2 {
 
 .panel-heading {
   margin-bottom: 18px;
+}
+
+.flow-panel .panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.usb-form {
+  display: grid;
+  gap: 16px;
+}
+
+.mobile-flow-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: center;
 }
 
 .code-form {
@@ -891,6 +956,7 @@ label {
   .hero,
   .choice-grid,
   .format-panel,
+  .mobile-flow-grid,
   .job-workspace,
   .job-head,
   .file-card,
@@ -914,6 +980,7 @@ label {
   .station-admin-grid,
   .choice-grid,
   .format-panel,
+  .mobile-flow-grid,
   .print-settings-grid,
   .code-metrics {
     grid-template-columns: 1fr;

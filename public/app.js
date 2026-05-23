@@ -8,6 +8,13 @@ const stationTitle = document.getElementById("station-title");
 const expirationModal = document.getElementById("expiration-modal");
 const expirationCountdown = document.getElementById("expiration-countdown");
 const closeExpirationModalBtn = document.getElementById("close-expiration-modal");
+const choiceGrid = document.querySelector(".choice-grid");
+const formatPanel = document.querySelector(".format-panel");
+const usbPanel = document.getElementById("usb-panel");
+const mobilePanel = document.getElementById("mobile-panel");
+const usbForm = document.getElementById("usb-form");
+const usbFileInput = document.getElementById("usb-file-input");
+const usbMessage = document.getElementById("usb-message");
 let currentCode = "";
 let activeJob = null;
 let deletionSeconds = 0;
@@ -30,6 +37,43 @@ function formatSize(bytes) {
 function setMessage(text, tone = "") {
   message.textContent = text;
   message.dataset.tone = tone;
+}
+
+function setUsbMessage(text, tone = "") {
+  usbMessage.textContent = text;
+  usbMessage.dataset.tone = tone;
+}
+
+function showHome() {
+  stopDeletionTimer();
+  activeJob = null;
+  currentCode = "";
+  pickupCode.value = "";
+  filesContainer.innerHTML = "";
+  filesContainer.classList.add("hidden");
+  usbPanel.classList.add("hidden");
+  mobilePanel.classList.add("hidden");
+  choiceGrid.classList.remove("hidden");
+  formatPanel.classList.remove("hidden");
+  setMessage("");
+  setUsbMessage("");
+}
+
+function showFlow(flow) {
+  choiceGrid.classList.add("hidden");
+  formatPanel.classList.add("hidden");
+  filesContainer.classList.add("hidden");
+  filesContainer.innerHTML = "";
+  if (flow === "usb") {
+    usbPanel.classList.remove("hidden");
+    mobilePanel.classList.add("hidden");
+    usbFileInput.value = "";
+    setUsbMessage("");
+    return;
+  }
+  mobilePanel.classList.remove("hidden");
+  usbPanel.classList.add("hidden");
+  pickupCode.focus();
 }
 
 function isPdf(file) {
@@ -241,6 +285,7 @@ async function deleteCurrentJob(finalMessage) {
   activeJob = null;
   currentCode = "";
   filesContainer.innerHTML = "";
+  filesContainer.classList.add("hidden");
   pickupCode.value = "";
   setMessage(finalMessage, "success");
 }
@@ -294,10 +339,14 @@ function renderJob(job) {
   activeJob = job;
   if (!job.files.length) {
     filesContainer.innerHTML = "";
+    filesContainer.classList.add("hidden");
     setMessage("Aucun fichier dans ce depot.", "error");
     return;
   }
 
+  usbPanel.classList.add("hidden");
+  mobilePanel.classList.add("hidden");
+  filesContainer.classList.remove("hidden");
   setMessage(`${job.files.length} fichier(s) disponible(s) pour le code ${job.code}.`, "success");
   const hasPdf = job.files.some(isPdf);
   const previewFile = firstPdfFile(job);
@@ -378,6 +427,47 @@ codeForm.addEventListener("submit", async (event) => {
 
 closeExpirationModalBtn.addEventListener("click", () => {
   expirationModal.classList.add("hidden");
+});
+
+document.querySelectorAll("[data-flow]").forEach((button) => {
+  button.addEventListener("click", () => showFlow(button.dataset.flow));
+});
+
+document.querySelectorAll("[data-back-home]").forEach((button) => {
+  button.addEventListener("click", showHome);
+});
+
+usbForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const file = usbFileInput.files[0];
+  if (!file) {
+    setUsbMessage("Choisissez un fichier PDF.", "error");
+    return;
+  }
+  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    setUsbMessage("Seuls les fichiers PDF sont acceptes en impression autonome.", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.set("station", currentStation());
+  formData.set("printMode", "noir-blanc");
+  formData.set("customerName", "Cle USB");
+  formData.append("files", file);
+  setUsbMessage("Chargement du PDF...");
+
+  try {
+    const response = await fetch("/api/jobs", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
+    setUsbMessage("PDF charge.", "success");
+    renderJob(payload);
+  } catch (error) {
+    setUsbMessage(error.message, "error");
+  }
 });
 
 loadConfig();

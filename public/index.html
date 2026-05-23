@@ -18,38 +18,27 @@
   </section>
 
   <main class="shell">
-    <header class="brand-header">
+    <header class="station-welcome">
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+      <h1>Bienvenue en Espace Services - <span id="station-title">Poste</span></h1>
+      <p>Choisissez votre mode d'impression.</p>
     </header>
 
     <div class="notice-banner hidden" id="notice-banner"></div>
 
-    <section class="hero">
-      <div>
-        <p class="eyebrow">Bureau Vallee Montaigu-Vendee</p>
-        <h1><span id="station-title">Poste</span> - Espace impression</h1>
-        <p class="lead">Choisissez votre mode d'impression, puis suivez les etapes indiquees sur ce poste.</p>
-      </div>
-      <div class="qr-card">
-        <img id="upload-qr" src="/qr.svg?station=poste-1" alt="QR code upload mobile">
-        <span>Upload mobile</span>
-        <strong id="upload-url">Chargement...</strong>
-      </div>
-    </section>
-
     <section class="choice-grid" aria-label="Choix du mode d'impression">
-      <article class="print-choice-card">
+      <button class="print-choice-card" type="button" data-flow="usb">
         <p class="eyebrow">Possibilite 1</p>
         <h2>Impression via cle USB</h2>
         <div class="choice-steps">
           <div><span>1</span><strong>Inserez votre cle USB sur ce poste.</strong></div>
-          <div><span>2</span><strong>Ouvrez votre fichier PDF depuis la cle.</strong></div>
+          <div><span>2</span><strong>Choisissez votre PDF depuis cette page.</strong></div>
           <div><span>3</span><strong>Verifiez les reglages d'impression.</strong></div>
           <div><span>4</span><strong>Lancez l'impression puis retirez votre cle.</strong></div>
         </div>
-      </article>
+      </button>
 
-      <article class="print-choice-card is-mobile">
+      <button class="print-choice-card is-mobile" type="button" data-flow="mobile">
         <p class="eyebrow">Possibilite 2</p>
         <h2>Impression via mobile</h2>
         <div class="choice-steps">
@@ -58,7 +47,7 @@
           <div><span>3</span><strong>Saisissez ici le code obtenu sur votre mobile.</strong></div>
           <div><span>4</span><strong>Reglez puis imprimez votre PDF depuis ce poste.</strong></div>
         </div>
-      </article>
+      </button>
     </section>
 
     <section class="format-panel">
@@ -83,20 +72,51 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel flow-panel hidden" id="usb-panel">
       <div class="panel-heading">
         <div>
-          <p class="eyebrow">Code client</p>
-          <h2>Retrouver vos fichiers</h2>
+          <p class="eyebrow">Cle USB</p>
+          <h2>Choisir votre PDF</h2>
+        </div>
+        <button class="text-link" type="button" data-back-home>Changer de mode</button>
+      </div>
+      <form class="usb-form" id="usb-form">
+        <label class="drop-zone">
+          <input id="usb-file-input" type="file" accept=".pdf,application/pdf" required>
+          <span>Choisir un PDF sur votre cle USB</span>
+          <small>Le fichier sera charge sur ce poste pour affichage, reglages et impression.</small>
+        </label>
+        <button class="wide-btn" type="submit">Charger mon PDF</button>
+      </form>
+      <p class="message" id="usb-message"></p>
+    </section>
+
+    <section class="panel flow-panel hidden" id="mobile-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Mobile</p>
+          <h2>Envoyer depuis votre telephone</h2>
+        </div>
+        <button class="text-link" type="button" data-back-home>Changer de mode</button>
+      </div>
+      <div class="mobile-flow-grid">
+        <div class="qr-card">
+          <img id="upload-qr" src="/qr.svg?station=poste-1" alt="QR code upload mobile">
+          <span>Flashez ici</span>
+          <strong id="upload-url">Chargement...</strong>
+        </div>
+        <div>
+          <p class="lead">Apres l'envoi sur votre telephone, saisissez le code obtenu ici.</p>
+          <form class="code-form" id="code-form">
+            <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+            <button type="submit">Charger</button>
+          </form>
+          <p class="message" id="message"></p>
         </div>
       </div>
-      <form class="code-form" id="code-form">
-        <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
-        <button type="submit">Charger</button>
-      </form>
-      <p class="message" id="message"></p>
-      <div class="files" id="files"></div>
     </section>
+
+    <section class="files hidden" id="files"></section>
   </main>
 
   <div class="modal hidden" id="expiration-modal" role="dialog" aria-modal="true" aria-labelledby="expiration-title">
