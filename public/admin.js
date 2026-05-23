@@ -41,10 +41,16 @@ function renderSessionStatuses(stations) {
 
 function renderPrintRequests(job) {
   if (!job.printRequests?.length) return "";
+  const labels = {
+    queued: "En attente",
+    printing: "En impression",
+    done: "Imprime",
+    failed: "Erreur",
+  };
   return `
     <div class="print-request-list">
       ${job.printRequests.map((request) => `
-        <span>${request.fileName || "PDF"} - ${request.status} - ${request.settingsLabel || job.printSettingsLabel || ""}${request.error ? ` - ${request.error}` : ""}</span>
+        <span>${request.fileName || "PDF"} - ${labels[request.status] || request.status} - ${request.settingsLabel || job.printSettingsLabel || ""}${request.error ? ` - ${request.error}` : ""}</span>
       `).join("")}
     </div>
   `;
@@ -97,6 +103,7 @@ function renderJobs(jobs) {
       <div>
         <h2>${job.customerName || "Client"}</h2>
         <p>${job.files.length} fichier(s) - ${job.stationLabel || station.label} - depot ${formatDate(job.createdAt)}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
+        <p>Compteur session : ${job.bwPages || 0} page(s) N&B, ${job.colorPages || 0} page(s) couleur.</p>
         <p>${job.printSettingsLabel || (job.printMode === "couleur" ? "Couleur" : "Noir et blanc")}</p>
         <div class="code-files">
           ${job.files.map((file) => `<span>${file.originalName} - ${file.pages} page(s)</span>`).join("")}

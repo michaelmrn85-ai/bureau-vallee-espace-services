@@ -23,6 +23,7 @@ let activeJob = null;
 let deletionSeconds = 0;
 let deletionInterval = null;
 let expirationWarningShown = false;
+let printStatusInterval = null;
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -55,6 +56,7 @@ function startClientSession(label) {
 
 function showHome() {
   stopDeletionTimer();
+  stopPrintStatusPolling();
   activeJob = null;
   currentCode = "";
   pickupCode.value = "";
@@ -109,7 +111,7 @@ function renderPrintSettings(settings = {}) {
       <div class="panel-heading">
         <div>
           <p class="eyebrow">Reglages PDF</p>
-          <h2>Choisissez vos options avant d'imprimer</h2>
+          <h2>Options d'impression</h2>
         </div>
       </div>
       <div class="print-settings-grid">
@@ -221,14 +223,51 @@ function latestPrintStatus(fileId) {
   return request ? printStatusLabel(request.status) : "";
 }
 
+function hasPendingPrintRequest(job = activeJob) {
+  return (job?.printRequests || []).some((request) => ["queued", "printing"].includes(request.status));
+}
+
+function stopPrintStatusPolling() {
+  window.clearInterval(printStatusInterval);
+  printStatusInterval = null;
+}
+
+function startPrintStatusPolling() {
+  stopPrintStatusPolling();
+  if (!activeJob?.code || !hasPendingPrintRequest(activeJob)) return;
+  printStatusInterval = window.setInterval(async () => {
+    try {
+      const response = await fetch(`/api/jobs/${activeJob.code}?station=${currentStation()}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Suivi indisponible.");
+      activeJob = payload;
+      renderJob(payload, false);
+      if (!hasPendingPrintRequest(payload)) stopPrintStatusPolling();
+    } catch (error) {
+      stopPrintStatusPolling();
+      setMessage(error.message, "error");
+    }
+  }, 2200);
+}
+
 function firstPdfFile(job) {
   return job.files.find(isPdf);
 }
 
 function renderPdfPreview(file) {
-  if (!file) return "";
+  if (!file) {
+    return `
+      <section class="pdf-preview-panel empty-preview">
+        <div>
+          <p class="eyebrow">Apercu</p>
+          <h2>Fichier non PDF</h2>
+          <p>Les fichiers Word, PNG et JPEG sont disponibles en telechargement et doivent etre traites au comptoir.</p>
+        </div>
+      </section>
+    `;
+  }
   return `
-    <aside class="pdf-preview-panel">
+    <section class="pdf-preview-panel">
       <div class="panel-heading">
         <div>
           <p class="eyebrow">Apercu PDF</p>
@@ -236,7 +275,7 @@ function renderPdfPreview(file) {
         </div>
       </div>
       <iframe src="${file.viewUrl}#toolbar=0&navpanes=0" title="Apercu du fichier PDF ${file.originalName}"></iframe>
-    </aside>
+    </section>
   `;
 }
 
@@ -321,6 +360,7 @@ async function deleteCurrentJob(finalMessage) {
   if (!activeJob?.code) return;
   const code = activeJob.code;
   stopDeletionTimer();
+  stopPrintStatusPolling();
   try {
     await fetch(`/api/jobs/${code}`, { method: "DELETE" });
   } catch (error) {
@@ -386,7 +426,7 @@ async function loadConfig() {
   }
 }
 
-function renderJob(job) {
+function renderJob(job, resetTimer = true) {
   activeJob = job;
   if (!job.files.length) {
     filesContainer.innerHTML = "";
@@ -411,40 +451,46 @@ function renderJob(job) {
       ${job.downloadAllUrl ? `<a class="download-all-button" href="${job.downloadAllUrl}" download>Telecharger tout</a>` : ""}
     </div>
     <div class="job-workspace">
-      <div class="job-controls">
+      <main class="document-stage">
+        ${renderPdfPreview(previewFile)}
+        <div class="file-strip">
+          ${job.files.map((file) => `
+            <article class="file-card">
+              <div>
+                <strong>${file.originalName}</strong>
+                <small>${file.extension.toUpperCase()} - ${formatSize(file.size)} - ${file.pages || 1} page(s)</small>
+              </div>
+              <div class="file-actions">
+                ${isPdf(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
+                <a href="${file.downloadUrl}" download>Telecharger</a>
+                ${latestPrintStatus(file.id) ? `<span class="counter-pill">${latestPrintStatus(file.id)}</span>` : ""}
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      </main>
+      <aside class="job-controls">
         ${hasPdf ? renderPrintSettings(job.printSettings) : `
           <div class="counter-notice">
             <strong>Impression au comptoir</strong>
             <span>Les fichiers non PDF doivent etre presentes a l'equipe Bureau Vallee.</span>
           </div>
         `}
-        ${job.files.map((file) => `
-          <article class="file-card">
-            <div>
-              <strong>${file.originalName}</strong>
-              <small>${file.extension.toUpperCase()} - ${formatSize(file.size)}</small>
-            </div>
-            <div class="file-actions">
-              ${isPdf(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
-              <a href="${file.downloadUrl}" download>Telecharger</a>
-              ${latestPrintStatus(file.id) ? `<span class="counter-pill">${latestPrintStatus(file.id)}</span>` : ""}
-            </div>
-          </article>
-        `).join("")}
         ${hasPdf && job.files.filter(isPdf).length > 1 ? `
           <div class="counter-notice">
             <strong>Apercu</strong>
             <span>L'apercu affiche le premier PDF. Lancez l'impression sur le PDF souhaite dans la liste.</span>
           </div>
         ` : ""}
-      </div>
-      ${renderPdfPreview(previewFile)}
+      </aside>
     </div>
   `;
   attachPrintSettingsForm();
   attachPrintButtons();
 
-  startDeletionTimer();
+  if (resetTimer) startDeletionTimer();
+  else updateDeletionCountdown();
+  startPrintStatusPolling();
 }
 
 codeForm.addEventListener("submit", async (event) => {
@@ -467,6 +513,7 @@ codeForm.addEventListener("submit", async (event) => {
   } catch (error) {
     activeJob = null;
     stopDeletionTimer();
+    stopPrintStatusPolling();
     setMessage(error.message, "error");
   }
 });

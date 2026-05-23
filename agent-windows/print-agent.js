@@ -29,7 +29,24 @@ function safeName(name) {
 
 function printSettings(settings = {}) {
   const parts = [];
-  parts.push(settings.colorMode === "couleur" ? "color" : "monochrome");
+
+  // Canon imageFORCE C5140 : en mode couleur/auto, on laisse le pilote decider.
+  // Si on envoie "color", le pilote peut forcer une sortie couleur.
+  const colorMode = String(settings.colorMode || settings.color || settings.modeCouleur || "auto")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const forceNoirEtBlanc =
+    colorMode.includes("noir") ||
+    colorMode.includes("black") ||
+    colorMode.includes("mono") ||
+    colorMode.includes("gris") ||
+    colorMode.includes("gray") ||
+    colorMode === "nb" ||
+    colorMode === "n&b" ||
+    colorMode === "bw";
+  if (forceNoirEtBlanc) parts.push("monochrome");
+
   if (settings.duplex === "recto-verso-long") parts.push("duplexlong");
   else if (settings.duplex === "recto-verso-court") parts.push("duplexshort");
   else parts.push("simplex");

@@ -240,6 +240,29 @@ function listTrackedJobs() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+function requestPageCount(file, settings = {}) {
+  const copies = Math.min(99, Math.max(1, Number.parseInt(settings.copies, 10) || 1));
+  return (Number(file?.pages) || 1) * copies;
+}
+
+function sessionCounters(job, files) {
+  const counts = { bwPages: 0, colorPages: 0, totalPages: 0 };
+  const fileById = new Map(files.map((file) => [file.id, file]));
+  const requests = (job.printRequests || []).filter((request) => request.status !== "failed");
+
+  for (const request of requests) {
+    const file = fileById.get(request.fileId);
+    if (!file) continue;
+    const settings = sanitizePrintSettings(request.settings || job.printSettings || {});
+    const pages = requestPageCount(file, settings);
+    if (settings.colorMode === "couleur") counts.colorPages += pages;
+    else counts.bwPages += pages;
+  }
+
+  counts.totalPages = counts.bwPages + counts.colorPages;
+  return counts;
+}
+
 function publicJob(job, status = "actif") {
   const station = stationFrom(job.station);
   const printSettings = sanitizePrintSettings(job.printSettings || { colorMode: job.printMode });
@@ -252,7 +275,8 @@ function publicJob(job, status = "actif") {
     viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
     downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
   }));
-  const totalPages = files.reduce((sum, file) => sum + file.pages, 0);
+  const counters = sessionCounters(job, files);
+  const depositPages = files.reduce((sum, file) => sum + file.pages, 0);
   const printMode = printSettings.colorMode;
   return {
     code: job.code,
@@ -262,9 +286,10 @@ function publicJob(job, status = "actif") {
     printMode,
     printSettings,
     printSettingsLabel: printSettingsLabel(printSettings),
-    totalPages,
-    bwPages: printMode === "couleur" ? 0 : totalPages,
-    colorPages: printMode === "couleur" ? totalPages : 0,
+    totalPages: counters.totalPages,
+    bwPages: counters.bwPages,
+    colorPages: counters.colorPages,
+    depositPages,
     createdAt: job.createdAt,
     expiresAt: job.expiresAt,
     status,
