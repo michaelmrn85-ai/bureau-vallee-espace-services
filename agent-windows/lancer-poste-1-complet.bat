@@ -4,6 +4,8 @@ cd /d "%~dp0"
 
 set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 if not exist "%CHROME%" set "CHROME=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if not exist "%CHROME%" set "CHROME=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+if not exist "%CHROME%" for /f "delims=" %%i in ('where chrome 2^>nul') do if not exist "%CHROME%" set "CHROME=%%i"
 
 if not exist "%CHROME%" (
   echo Google Chrome est introuvable.
