@@ -36,24 +36,35 @@
 
     <section class="choice-grid" aria-label="Choix du mode d'impression">
       <button class="print-choice-card" type="button" data-flow="usb">
-        <p class="eyebrow">Possibilite 1</p>
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path d="M25 7h14v19h5a8 8 0 0 1 8 8v9a14 14 0 0 1-14 14H26a14 14 0 0 1-14-14v-9a8 8 0 0 1 8-8h5V7Z"/>
+            <path d="M29 7h6M22 31h20M25 39h14"/>
+          </svg>
+        </span>
         <h2>Impression via cle USB</h2>
-        <div class="choice-steps">
-          <div><span>1</span><strong>Inserez votre cle USB sur ce poste.</strong></div>
-          <div><span>2</span><strong>Choisissez votre PDF depuis cette page.</strong></div>
-          <div><span>3</span><strong>Verifiez les reglages d'impression.</strong></div>
-          <div><span>4</span><strong>Lancez l'impression puis retirez votre cle.</strong></div>
+        <p>Choisissez votre PDF depuis la cle branchee sur ce poste.</p>
+        <div class="choice-tags">
+          <span>PDF</span>
+          <span>A5</span>
+          <span>A4</span>
+          <span>A3</span>
         </div>
       </button>
 
       <button class="print-choice-card is-mobile" type="button" data-flow="mobile">
-        <p class="eyebrow">Possibilite 2</p>
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <rect x="20" y="6" width="24" height="52" rx="6"/>
+            <path d="M29 12h6M28 50h8M27 24h10v10H27zM25 20h2M37 20h2M25 38h2M37 38h2"/>
+          </svg>
+        </span>
         <h2>Impression via mobile</h2>
-        <div class="choice-steps">
-          <div><span>1</span><strong>Flashez le QR code affiche sur ce poste.</strong></div>
-          <div><span>2</span><strong>Envoyez votre PDF depuis votre telephone.</strong></div>
-          <div><span>3</span><strong>Saisissez ici le code obtenu sur votre mobile.</strong></div>
-          <div><span>4</span><strong>Reglez puis imprimez votre PDF depuis ce poste.</strong></div>
+        <p>Flashez le QR code, envoyez votre PDF, puis saisissez le code ici.</p>
+        <div class="choice-tags">
+          <span>QR code</span>
+          <span>PDF</span>
+          <span>Code client</span>
         </div>
       </button>
     </section>
