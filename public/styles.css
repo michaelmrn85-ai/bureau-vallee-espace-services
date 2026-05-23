@@ -149,40 +149,55 @@ h2 {
   padding: 28px;
 }
 
-.welcome-grid {
+.choice-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 24px;
 }
 
-.steps-panel,
-.print-options-panel {
+.print-choice-card,
+.format-panel {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--panel);
   box-shadow: 0 26px 80px rgba(0, 0, 0, 0.26);
 }
 
-.steps-panel {
+.print-choice-card {
   display: grid;
-  gap: 12px;
-  padding: 18px;
+  gap: 18px;
+  min-height: 100%;
+  padding: clamp(22px, 4vw, 34px);
 }
 
-.steps-panel div {
+.print-choice-card h2 {
+  font-size: clamp(34px, 4.4vw, 58px);
+  line-height: 1;
+}
+
+.print-choice-card.is-mobile {
+  border-color: rgba(255, 210, 0, 0.36);
+}
+
+.choice-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.choice-steps div {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: center;
-  min-height: 108px;
+  min-height: 86px;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.055);
 }
 
-.steps-panel span {
+.choice-steps span {
   display: grid;
   place-items: center;
   width: 42px;
@@ -194,34 +209,25 @@ h2 {
   font-weight: 900;
 }
 
-.steps-panel strong {
+.choice-steps strong {
   line-height: 1.25;
 }
 
-.print-options-panel {
-  padding: clamp(22px, 4vw, 34px);
+.format-panel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 18px;
 }
 
-.print-options-panel h2 {
-  margin-bottom: 18px;
-  font-size: clamp(30px, 4vw, 48px);
-  line-height: 1.08;
-}
-
-.print-options-panel p:not(.eyebrow) {
-  margin: 18px 0 10px;
-  color: var(--muted);
-  font-weight: 900;
-}
-
-.source-list,
 .accepted-files {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.source-list span,
 .accepted-files strong {
   display: inline-flex;
   align-items: center;
@@ -229,11 +235,6 @@ h2 {
   padding: 10px 14px;
   border-radius: 10px;
   font-weight: 900;
-}
-
-.source-list span {
-  color: #06111c;
-  background: var(--yellow);
 }
 
 .accepted-files strong {
@@ -888,7 +889,8 @@ label {
 
 @media (max-width: 760px) {
   .hero,
-  .welcome-grid,
+  .choice-grid,
+  .format-panel,
   .job-workspace,
   .job-head,
   .file-card,
@@ -910,7 +912,8 @@ label {
 
   .preset-grid,
   .station-admin-grid,
-  .welcome-grid,
+  .choice-grid,
+  .format-panel,
   .print-settings-grid,
   .code-metrics {
     grid-template-columns: 1fr;

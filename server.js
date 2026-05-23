@@ -50,6 +50,12 @@ const upload = multer({
 });
 
 app.use(express.json());
+app.use((request, response, next) => {
+  if (/\.(html|css|js)$/i.test(request.path) || ["/poste-1", "/poste-2", "/admin", "/upload"].includes(request.path)) {
+    response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (request, response) => {

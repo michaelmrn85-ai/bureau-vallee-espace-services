@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bureau Vallee - Impression client</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20260523-print-preview">
 </head>
 <body>
   <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
@@ -28,7 +28,7 @@
       <div>
         <p class="eyebrow">Bureau Vallee Montaigu-Vendee</p>
         <h1><span id="station-title">Poste</span> - Espace impression</h1>
-        <p class="lead">Suivez les etapes a l'ecran, puis ouvrez vos PDF sur ce poste pour les imprimer.</p>
+        <p class="lead">Choisissez votre mode d'impression, puis suivez les etapes indiquees sur ce poste.</p>
       </div>
       <div class="qr-card">
         <img id="upload-qr" src="/qr.svg?station=poste-1" alt="QR code upload mobile">
@@ -37,36 +37,50 @@
       </div>
     </section>
 
-    <section class="welcome-grid">
-      <div class="steps-panel" aria-label="Etapes impression">
-        <div><span>1</span><strong>Flashez le QR code.</strong></div>
-        <div><span>2</span><strong>Sur votre mobile, choisissez votre ou vos fichiers.</strong></div>
-        <div><span>3</span><strong>Saisissez le code obtenu sur le poste ou vous etes.</strong></div>
-        <div><span>4</span><strong>Reglez puis imprimez vos PDF. Les Word sont a voir au comptoir.</strong></div>
-      </div>
+    <section class="choice-grid" aria-label="Choix du mode d'impression">
+      <article class="print-choice-card">
+        <p class="eyebrow">Possibilite 1</p>
+        <h2>Impression via cle USB</h2>
+        <div class="choice-steps">
+          <div><span>1</span><strong>Inserez votre cle USB sur ce poste.</strong></div>
+          <div><span>2</span><strong>Ouvrez votre fichier PDF depuis la cle.</strong></div>
+          <div><span>3</span><strong>Verifiez les reglages d'impression.</strong></div>
+          <div><span>4</span><strong>Lancez l'impression puis retirez votre cle.</strong></div>
+        </div>
+      </article>
 
-      <aside class="print-options-panel">
-        <p class="eyebrow">Vous pouvez</p>
-        <h2>Imprimer depuis votre telephone ou depuis votre cle USB</h2>
-        <div class="source-list">
-          <span>Telephone</span>
-          <span>Cle USB</span>
+      <article class="print-choice-card is-mobile">
+        <p class="eyebrow">Possibilite 2</p>
+        <h2>Impression via mobile</h2>
+        <div class="choice-steps">
+          <div><span>1</span><strong>Flashez le QR code affiche sur ce poste.</strong></div>
+          <div><span>2</span><strong>Envoyez votre PDF depuis votre telephone.</strong></div>
+          <div><span>3</span><strong>Saisissez ici le code obtenu sur votre mobile.</strong></div>
+          <div><span>4</span><strong>Reglez puis imprimez votre PDF depuis ce poste.</strong></div>
         </div>
-        <p>Impression autonome</p>
-        <div class="accepted-files" aria-label="Formats acceptes en impression autonome">
-          <strong>PDF</strong>
-          <strong>A5</strong>
-          <strong>A4</strong>
-          <strong>A3</strong>
-        </div>
-        <p>Au comptoir</p>
-        <div class="accepted-files" aria-label="Formats acceptes">
+      </article>
+    </section>
+
+    <section class="format-panel">
+      <div>
+        <p class="eyebrow">Impression autonome</p>
+        <h2>Fichiers acceptes</h2>
+      </div>
+      <div class="accepted-files" aria-label="Formats acceptes en impression autonome">
+        <strong>PDF</strong>
+        <strong>A5</strong>
+        <strong>A4</strong>
+        <strong>A3</strong>
+      </div>
+      <div>
+        <p class="eyebrow">Au comptoir</p>
+        <div class="accepted-files" aria-label="Formats au comptoir">
           <strong>Word</strong>
           <strong>PNG</strong>
           <strong>JPEG</strong>
           <strong>JPG</strong>
         </div>
-      </aside>
+      </div>
     </section>
 
     <section class="panel">
@@ -96,8 +110,8 @@
     </div>
   </div>
 
-  <script src="/notice.js"></script>
-  <script src="/session.js"></script>
-  <script src="/app.js"></script>
+  <script src="/notice.js?v=20260523-print-preview"></script>
+  <script src="/session.js?v=20260523-print-preview"></script>
+  <script src="/app.js?v=20260523-print-preview"></script>
 </body>
 </html>
