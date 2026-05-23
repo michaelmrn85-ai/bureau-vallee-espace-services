@@ -262,6 +262,17 @@ input {
   background: rgba(255, 255, 255, 0.08);
 }
 
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 15px 16px;
+  color: var(--ink);
+  background: #122238;
+  font: inherit;
+  font-weight: 800;
+}
+
 textarea {
   width: 100%;
   resize: vertical;
@@ -292,6 +303,11 @@ button,
   font-weight: 900;
   text-decoration: none;
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.62;
+  cursor: wait;
 }
 
 .text-link {
@@ -425,6 +441,76 @@ body.session-closed .mobile-shell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.job-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.job-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.print-settings,
+.counter-notice,
+.pdf-preview-panel {
+  padding: 18px;
+  border: 1px solid rgba(255, 210, 0, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 210, 0, 0.06);
+}
+
+.print-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.print-settings label {
+  margin-bottom: 0;
+}
+
+.counter-notice {
+  display: grid;
+  gap: 6px;
+}
+
+.counter-notice span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.counter-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  padding: 15px 18px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 900;
+}
+
+.pdf-preview-panel {
+  min-height: 680px;
+}
+
+.pdf-preview-panel h2 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(20px, 2vw, 30px);
+}
+
+.pdf-preview-panel iframe {
+  width: 100%;
+  height: 600px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
 }
 
 .danger {
@@ -679,7 +765,8 @@ label {
 .code-main span,
 .code-main em,
 .code-metrics span,
-.code-files span {
+.code-files span,
+.print-request-list span {
   color: var(--muted);
   font-weight: 800;
 }
@@ -709,6 +796,18 @@ label {
 .code-files {
   display: grid;
   gap: 6px;
+}
+
+.print-request-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.print-request-list span {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 210, 0, 0.08);
 }
 
 .code-metrics {
@@ -790,6 +889,7 @@ label {
 @media (max-width: 760px) {
   .hero,
   .welcome-grid,
+  .job-workspace,
   .job-head,
   .file-card,
   .code-card {
@@ -811,6 +911,7 @@ label {
   .preset-grid,
   .station-admin-grid,
   .welcome-grid,
+  .print-settings-grid,
   .code-metrics {
     grid-template-columns: 1fr;
   }

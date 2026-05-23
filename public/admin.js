@@ -39,6 +39,17 @@ function renderSessionStatuses(stations) {
   });
 }
 
+function renderPrintRequests(job) {
+  if (!job.printRequests?.length) return "";
+  return `
+    <div class="print-request-list">
+      ${job.printRequests.map((request) => `
+        <span>${request.fileName || "PDF"} - ${request.status} - ${request.settingsLabel || job.printSettingsLabel || ""}${request.error ? ` - ${request.error}` : ""}</span>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderJobs(jobs) {
   if (!jobs.length) {
     codesList.innerHTML = `
@@ -85,10 +96,12 @@ function renderJobs(jobs) {
       </div>
       <div>
         <h2>${job.customerName || "Client"}</h2>
-        <p>${job.files.length} fichier(s) - ${job.stationLabel || station.label} - depot ${formatDate(job.createdAt)} - ${job.printMode === "couleur" ? "Couleur" : "Noir et blanc"}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
+        <p>${job.files.length} fichier(s) - ${job.stationLabel || station.label} - depot ${formatDate(job.createdAt)}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
+        <p>${job.printSettingsLabel || (job.printMode === "couleur" ? "Couleur" : "Noir et blanc")}</p>
         <div class="code-files">
           ${job.files.map((file) => `<span>${file.originalName} - ${file.pages} page(s)</span>`).join("")}
         </div>
+        ${renderPrintRequests(job)}
       </div>
       <div class="code-metrics">
         <div><span>N&B</span><strong>${job.bwPages}</strong></div>

@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/upload.js && node --check public/codes.js && node --check public/message.js && node --check public/notice.js && node --check public/session.js && node --check public/admin.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/upload.js && node --check public/codes.js && node --check public/message.js && node --check public/notice.js && node --check public/session.js && node --check public/admin.js && node --check agent-windows/print-agent.js"
   },
   "dependencies": {
     "express": "^4.19.2",

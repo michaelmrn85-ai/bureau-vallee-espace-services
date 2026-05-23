@@ -8,6 +8,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3100;
 const RENDER_BASE_URL = "https://bureau-vallee-espace-services.onrender.com";
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || RENDER_BASE_URL).replace(/\/$/, "");
+const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || "bureau-vallee-agent";
 const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
 const TMP_DIR = path.join(DATA_DIR, "tmp");
@@ -21,6 +22,15 @@ const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jp
 const stations = {
   "poste-1": "Poste 1",
   "poste-2": "Poste 2",
+};
+const defaultPrintSettings = {
+  colorMode: "noir-blanc",
+  duplex: "recto",
+  paperSize: "A4",
+  scaling: "ajuster",
+  orientation: "auto",
+  pageRange: "",
+  copies: 1,
 };
 
 fs.mkdirSync(JOBS_DIR, { recursive: true });
@@ -91,6 +101,60 @@ function writeHistory(history) {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(cleanedHistory, null, 2));
 }
 
+function sanitizePrintSettings(input = {}) {
+  const settings = {
+    colorMode: input.colorMode === "couleur" ? "couleur" : "noir-blanc",
+    duplex: ["recto", "recto-verso-long", "recto-verso-court"].includes(input.duplex) ? input.duplex : "recto",
+    paperSize: ["A5", "A4", "A3"].includes(input.paperSize) ? input.paperSize : "A4",
+    scaling: input.scaling === "taille-reelle" ? "taille-reelle" : "ajuster",
+    orientation: ["auto", "portrait", "paysage"].includes(input.orientation) ? input.orientation : "auto",
+    pageRange: String(input.pageRange || "").replace(/[^\d,\-\s]/g, "").slice(0, 40).trim(),
+    copies: Number.parseInt(input.copies, 10) || 1,
+  };
+  settings.copies = Math.min(99, Math.max(1, settings.copies));
+  return settings;
+}
+
+function printSettingsLabel(settings = defaultPrintSettings) {
+  const duplexLabels = {
+    recto: "Recto",
+    "recto-verso-long": "Recto-verso bord long",
+    "recto-verso-court": "Recto-verso bord court",
+  };
+  const scalingLabels = {
+    ajuster: "Ajuster",
+    "taille-reelle": "Taille reelle",
+  };
+  const orientationLabels = {
+    auto: "Auto",
+    portrait: "Portrait",
+    paysage: "Paysage",
+  };
+  const pageRange = settings.pageRange ? `Pages ${settings.pageRange}` : "Toutes les pages";
+  return [
+    settings.colorMode === "couleur" ? "Couleur" : "Noir et blanc",
+    duplexLabels[settings.duplex] || duplexLabels.recto,
+    settings.paperSize || "A4",
+    scalingLabels[settings.scaling] || scalingLabels.ajuster,
+    orientationLabels[settings.orientation] || orientationLabels.auto,
+    pageRange,
+    `${settings.copies || 1} exemplaire(s)`,
+  ].join(" - ");
+}
+
+function findPrintRequest(job, requestId) {
+  return (job.printRequests || []).find((request) => request.id === requestId);
+}
+
+function requirePrintAgent(request, response) {
+  const token = request.get("x-print-agent-token") || request.query.token;
+  if (token !== PRINT_AGENT_TOKEN) {
+    response.status(401).json({ error: "Agent non autorise." });
+    return false;
+  }
+  return true;
+}
+
 function archiveJob(job, reason) {
   if (!job) return;
   const history = readHistory().filter((item) => item.code !== job.code);
@@ -98,6 +162,7 @@ function archiveJob(job, reason) {
     ...publicJob(job, "termine"),
     deletedAt: new Date().toISOString(),
     deleteReason: reason,
+    printRequests: job.printRequests || [],
     files: job.files.map((file) => ({
       id: file.id,
       originalName: file.originalName,
@@ -171,6 +236,7 @@ function listTrackedJobs() {
 
 function publicJob(job, status = "actif") {
   const station = stationFrom(job.station);
+  const printSettings = sanitizePrintSettings(job.printSettings || { colorMode: job.printMode });
   const files = job.files.map((file) => ({
     id: file.id,
     originalName: file.originalName,
@@ -181,13 +247,15 @@ function publicJob(job, status = "actif") {
     downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
   }));
   const totalPages = files.reduce((sum, file) => sum + file.pages, 0);
-  const printMode = job.printMode === "couleur" ? "couleur" : "noir-blanc";
+  const printMode = printSettings.colorMode;
   return {
     code: job.code,
     customerName: job.customerName,
     station,
     stationLabel: stations[station],
     printMode,
+    printSettings,
+    printSettingsLabel: printSettingsLabel(printSettings),
     totalPages,
     bwPages: printMode === "couleur" ? 0 : totalPages,
     colorPages: printMode === "couleur" ? totalPages : 0,
@@ -195,6 +263,7 @@ function publicJob(job, status = "actif") {
     expiresAt: job.expiresAt,
     status,
     downloadAllUrl: files.length ? `/api/jobs/${job.code}/download-all` : "",
+    printRequests: job.printRequests || [],
     files,
   };
 }
@@ -453,6 +522,7 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
     const expiresAt = new Date(now.getTime() + JOB_TTL_MS);
     const directory = jobDir(code);
     const printMode = request.body.printMode === "couleur" ? "couleur" : "noir-blanc";
+    const printSettings = sanitizePrintSettings({ colorMode: printMode });
     const files = request.files.map((file, index) => {
       const extension = path.extname(file.originalname).toLowerCase();
       const id = `${Date.now()}-${index}`;
@@ -474,6 +544,7 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
       customerName: String(request.body.customerName || "").trim(),
       station: stationFrom(request.body.station),
       printMode,
+      printSettings,
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
       files,
@@ -502,6 +573,106 @@ app.get("/api/jobs/:code", (request, response) => {
     writeJob(job);
   }
   response.json(publicJob(job));
+});
+
+app.post("/api/jobs/:code/settings", (request, response) => {
+  const job = readJob(request.params.code);
+  if (!job) {
+    response.status(404).json({ error: "Code introuvable." });
+    return;
+  }
+  job.printSettings = sanitizePrintSettings(request.body);
+  job.printMode = job.printSettings.colorMode;
+  writeJob(job);
+  response.json(publicJob(job));
+});
+
+app.post("/api/jobs/:code/print", (request, response) => {
+  const job = readJob(request.params.code);
+  if (!job) {
+    response.status(404).json({ error: "Code introuvable." });
+    return;
+  }
+  if (new Date(job.expiresAt).getTime() <= Date.now()) {
+    deleteJob(job.code, "expiration");
+    response.status(404).json({ error: "Code expire." });
+    return;
+  }
+
+  const file = job.files.find((item) => item.id === request.body.fileId);
+  if (!file) {
+    response.status(404).json({ error: "Fichier introuvable." });
+    return;
+  }
+  if (file.extension !== ".pdf") {
+    response.status(400).json({ error: "Seuls les PDF peuvent etre imprimes directement." });
+    return;
+  }
+
+  const printSettings = sanitizePrintSettings(request.body.settings || job.printSettings || {});
+  job.printSettings = printSettings;
+  job.printMode = printSettings.colorMode;
+  job.printRequests = job.printRequests || [];
+  const printRequest = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    fileId: file.id,
+    fileName: file.originalName,
+    station: stationFrom(job.station),
+    status: "queued",
+    settings: printSettings,
+    settingsLabel: printSettingsLabel(printSettings),
+    createdAt: new Date().toISOString(),
+  };
+  job.printRequests.push(printRequest);
+  writeJob(job);
+  response.status(201).json({ printRequest, job: publicJob(job) });
+});
+
+app.get("/api/print-agent/next", (request, response) => {
+  if (!requirePrintAgent(request, response)) return;
+  const station = stationFrom(request.query.station);
+  const jobs = listActiveJobs();
+  for (const job of jobs) {
+    if (stationFrom(job.station) !== station) continue;
+    const printRequest = (job.printRequests || []).find((item) => item.status === "queued");
+    if (!printRequest) continue;
+    const file = job.files.find((item) => item.id === printRequest.fileId && item.extension === ".pdf");
+    if (!file) continue;
+
+    printRequest.status = "printing";
+    printRequest.claimedAt = new Date().toISOString();
+    writeJob(job);
+    response.json({
+      requestId: printRequest.id,
+      code: job.code,
+      station,
+      fileId: file.id,
+      fileName: file.originalName,
+      fileUrl: `${PUBLIC_BASE_URL}/api/jobs/${job.code}/files/${file.id}`,
+      settings: printRequest.settings || sanitizePrintSettings(job.printSettings),
+      settingsLabel: printRequest.settingsLabel || printSettingsLabel(job.printSettings),
+    });
+    return;
+  }
+  response.json({ request: null });
+});
+
+app.post("/api/print-agent/requests/:requestId/status", (request, response) => {
+  if (!requirePrintAgent(request, response)) return;
+  const station = stationFrom(request.body.station);
+  const status = ["done", "failed", "queued"].includes(request.body.status) ? request.body.status : "failed";
+  for (const job of listActiveJobs()) {
+    if (stationFrom(job.station) !== station) continue;
+    const printRequest = findPrintRequest(job, request.params.requestId);
+    if (!printRequest) continue;
+    printRequest.status = status;
+    printRequest.updatedAt = new Date().toISOString();
+    printRequest.error = String(request.body.error || "").slice(0, 500);
+    writeJob(job);
+    response.json({ ok: true, printRequest });
+    return;
+  }
+  response.status(404).json({ error: "Demande introuvable." });
 });
 
 app.get("/api/jobs/:code/download-all", (request, response) => {
