@@ -160,7 +160,7 @@ function renderPrintSettings(settings = {}) {
           <input name="copies" type="number" min="1" max="99" value="${copies}">
         </label>
       </div>
-      <button type="submit">Enregistrer les reglages</button>
+      <button class="settings-save-button" type="submit">Appliquer les reglages</button>
       <p class="message" id="print-settings-message"></p>
     </form>
   `;
@@ -275,6 +275,38 @@ function attachPrintButtons() {
       }
     });
   });
+}
+
+async function uploadUsbFile() {
+  const file = usbFileInput.files[0];
+  if (!file) {
+    setUsbMessage("Choisissez un fichier PDF.", "error");
+    return;
+  }
+  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    setUsbMessage("Seuls les fichiers PDF sont acceptes en impression autonome.", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.set("station", currentStation());
+  formData.set("printMode", "noir-blanc");
+  formData.set("customerName", "Cle USB");
+  formData.append("files", file);
+  setUsbMessage("Chargement du PDF...");
+
+  try {
+    const response = await fetch("/api/jobs", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
+    setUsbMessage("PDF charge.", "success");
+    renderJob(payload);
+  } catch (error) {
+    setUsbMessage(error.message, "error");
+  }
 }
 
 function stopDeletionTimer() {
@@ -393,7 +425,7 @@ function renderJob(job) {
               <small>${file.extension.toUpperCase()} - ${formatSize(file.size)}</small>
             </div>
             <div class="file-actions">
-              ${isPdf(file) ? `<button type="button" data-print-file="${file.id}">Imprimer ce PDF</button>` : `<span class="counter-pill">Au comptoir</span>`}
+              ${isPdf(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
               <a href="${file.downloadUrl}" download>Telecharger</a>
               ${latestPrintStatus(file.id) ? `<span class="counter-pill">${latestPrintStatus(file.id)}</span>` : ""}
             </div>
@@ -455,35 +487,9 @@ disconnectSessionBtn.addEventListener("click", disconnectSession);
 
 usbForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const file = usbFileInput.files[0];
-  if (!file) {
-    setUsbMessage("Choisissez un fichier PDF.", "error");
-    return;
-  }
-  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-    setUsbMessage("Seuls les fichiers PDF sont acceptes en impression autonome.", "error");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.set("station", currentStation());
-  formData.set("printMode", "noir-blanc");
-  formData.set("customerName", "Cle USB");
-  formData.append("files", file);
-  setUsbMessage("Chargement du PDF...");
-
-  try {
-    const response = await fetch("/api/jobs", {
-      method: "POST",
-      body: formData,
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
-    setUsbMessage("PDF charge.", "success");
-    renderJob(payload);
-  } catch (error) {
-    setUsbMessage(error.message, "error");
-  }
+  uploadUsbFile();
 });
+
+usbFileInput.addEventListener("change", uploadUsbFile);
 
 loadConfig();

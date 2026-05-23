@@ -20,10 +20,7 @@ function setUploadMessage(text, tone = "") {
   uploadMessage.dataset.tone = tone;
 }
 
-filesInput.addEventListener("change", renderSelectedFiles);
-
-uploadForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function sendUpload() {
   if (!filesInput.files.length) {
     setUploadMessage("Ajoutez au moins un fichier.", "error");
     return;
@@ -49,4 +46,14 @@ uploadForm.addEventListener("submit", async (event) => {
   } catch (error) {
     setUploadMessage(error.message, "error");
   }
+}
+
+filesInput.addEventListener("change", () => {
+  renderSelectedFiles();
+  sendUpload();
+});
+
+uploadForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  sendUpload();
 });
