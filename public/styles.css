@@ -70,7 +70,14 @@ body.client-session-active .station-welcome {
 }
 
 body.client-session-active .shell {
+  width: min(1380px, calc(100vw - 18px));
   padding-top: 8px;
+}
+
+body.client-session-active {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 210, 0, 0.2), transparent 26%),
+    linear-gradient(145deg, #078bd1 0%, #0478bb 45%, #07589a 100%);
 }
 
 .brand-header-row,
@@ -309,8 +316,9 @@ button.print-choice-card {
   margin-bottom: 10px;
   padding: 8px 12px;
   border: 1px solid rgba(255, 210, 0, 0.28);
-  border-radius: 12px;
-  background: rgba(255, 210, 0, 0.08);
+  border-radius: 18px;
+  background: rgba(4, 55, 105, 0.72);
+  box-shadow: 0 16px 38px rgba(0, 39, 75, 0.28);
 }
 
 .session-toolbar.hidden {
@@ -403,7 +411,7 @@ button,
 .download-all-button,
 .text-link {
   border: 0;
-  border-radius: 10px;
+  border-radius: 16px;
   padding: 15px 18px;
   color: #06111c;
   background: var(--yellow);
@@ -420,18 +428,21 @@ button,
 
 .primary-print-button {
   min-width: 150px;
-  background: linear-gradient(180deg, #39c7ff, #0675b9);
-  color: white;
-  box-shadow: 0 10px 22px rgba(0, 118, 190, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffe56a, #ffd200);
+  color: #07305d;
+  box-shadow: 0 10px 22px rgba(0, 39, 75, 0.35);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .settings-save-button,
 .secondary-submit {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--ink);
-  border: 1px solid var(--line);
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffe56a, #ffd200);
+  color: #07305d;
 }
 
 button:disabled {
@@ -541,8 +552,9 @@ body.session-closed .mobile-shell {
   align-items: center;
   padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.055);
+  border-radius: 18px;
+  background: rgba(4, 55, 105, 0.72);
+  box-shadow: 0 14px 34px rgba(0, 39, 75, 0.24);
 }
 
 .job-head span,
@@ -574,7 +586,7 @@ body.session-closed .mobile-shell {
 
 .job-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 12px;
   align-items: stretch;
 }
@@ -587,7 +599,7 @@ body.session-closed .mobile-shell {
 
 .job-controls {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   align-content: start;
   max-height: calc(100vh - 118px);
   overflow: auto;
@@ -596,42 +608,44 @@ body.session-closed .mobile-shell {
 .print-settings,
 .counter-notice,
 .pdf-preview-panel {
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(255, 210, 0, 0.22);
-  border-radius: 12px;
-  background: rgba(255, 210, 0, 0.06);
+  border-radius: 18px;
+  background: rgba(4, 55, 105, 0.72);
+  box-shadow: 0 18px 45px rgba(0, 39, 75, 0.26);
 }
 
 .print-settings-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 5px;
+  margin-bottom: 7px;
 }
 
 .print-settings label {
-  gap: 4px;
+  gap: 3px;
   margin-bottom: 0;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .job-controls .panel-heading {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .job-controls h2 {
-  font-size: 27px;
+  font-size: 24px;
   line-height: 1.02;
 }
 
 .job-controls select,
 .job-controls input {
-  padding: 10px 11px;
-  border-radius: 9px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(8, 32, 66, 0.86);
 }
 
 .job-controls .settings-save-button {
-  padding: 11px 12px;
+  padding: 10px 12px;
 }
 
 .counter-notice {
@@ -656,21 +670,22 @@ body.session-closed .mobile-shell {
 
 .pdf-preview-panel {
   min-height: 0;
-  height: min(50vh, 510px);
+  height: calc(100vh - 285px);
+  max-height: 700px;
 }
 
 .pdf-preview-panel h2 {
   max-width: 100%;
   overflow-wrap: anywhere;
-  font-size: clamp(18px, 1.8vw, 26px);
+  font-size: clamp(17px, 1.6vw, 24px);
 }
 
 .pdf-preview-panel iframe {
   width: 100%;
-  height: calc(100% - 74px);
-  min-height: 300px;
+  height: calc(100% - 68px);
+  min-height: 330px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 16px;
   background: white;
 }
 
@@ -693,7 +708,7 @@ body.session-closed .mobile-shell {
 }
 
 .file-strip .file-card {
-  min-height: 70px;
+  min-height: 68px;
 }
 
 .danger {

@@ -448,7 +448,6 @@ function renderJob(job, resetTimer = true) {
         <strong>${job.customerName || "Client"}</strong>
         <small id="deletion-countdown">Suppression automatique dans 3 minutes</small>
       </div>
-      ${job.downloadAllUrl ? `<a class="download-all-button" href="${job.downloadAllUrl}" download>Telecharger tout</a>` : ""}
     </div>
     <div class="job-workspace">
       <main class="document-stage">
@@ -462,7 +461,6 @@ function renderJob(job, resetTimer = true) {
               </div>
               <div class="file-actions">
                 ${isPdf(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
-                <a href="${file.downloadUrl}" download>Telecharger</a>
                 ${latestPrintStatus(file.id) ? `<span class="counter-pill">${latestPrintStatus(file.id)}</span>` : ""}
               </div>
             </article>
