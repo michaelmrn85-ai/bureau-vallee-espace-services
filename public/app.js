@@ -15,6 +15,9 @@ const mobilePanel = document.getElementById("mobile-panel");
 const usbForm = document.getElementById("usb-form");
 const usbFileInput = document.getElementById("usb-file-input");
 const usbMessage = document.getElementById("usb-message");
+const clientSessionToolbar = document.getElementById("client-session-toolbar");
+const clientSessionLabel = document.getElementById("client-session-label");
+const disconnectSessionBtn = document.getElementById("disconnect-session");
 let currentCode = "";
 let activeJob = null;
 let deletionSeconds = 0;
@@ -44,6 +47,12 @@ function setUsbMessage(text, tone = "") {
   usbMessage.dataset.tone = tone;
 }
 
+function startClientSession(label) {
+  clientSessionLabel.textContent = label;
+  clientSessionToolbar.classList.remove("hidden");
+  document.body.classList.add("client-session-active");
+}
+
 function showHome() {
   stopDeletionTimer();
   activeJob = null;
@@ -53,6 +62,8 @@ function showHome() {
   filesContainer.classList.add("hidden");
   usbPanel.classList.add("hidden");
   mobilePanel.classList.add("hidden");
+  clientSessionToolbar.classList.add("hidden");
+  document.body.classList.remove("client-session-active");
   choiceGrid.classList.remove("hidden");
   formatPanel.classList.remove("hidden");
   setMessage("");
@@ -60,6 +71,7 @@ function showHome() {
 }
 
 function showFlow(flow) {
+  startClientSession(flow === "usb" ? "Impression via cle USB" : "Impression via mobile");
   choiceGrid.classList.add("hidden");
   formatPanel.classList.add("hidden");
   filesContainer.classList.add("hidden");
@@ -290,6 +302,13 @@ async function deleteCurrentJob(finalMessage) {
   setMessage(finalMessage, "success");
 }
 
+async function disconnectSession() {
+  if (activeJob?.code) {
+    await deleteCurrentJob("Session terminee. Vos fichiers ont ete supprimes.");
+  }
+  showHome();
+}
+
 function updateDeletionCountdown() {
   const countdownLabel = document.getElementById("deletion-countdown");
   if (countdownLabel) {
@@ -317,7 +336,7 @@ function startDeletionTimer() {
     }
 
     if (deletionSeconds <= 0) {
-      deleteCurrentJob("Temps termine. Les fichiers ont ete supprimes automatiquement. Merci de vos impressions, veuillez vous approcher de la caisse.");
+      disconnectSession();
     }
   }, 1000);
 }
@@ -389,12 +408,7 @@ function renderJob(job) {
       </div>
       ${renderPdfPreview(previewFile)}
     </div>
-    <button class="danger delete-session-button" id="delete-job">Suppression de vos fichiers ?</button>
   `;
-
-  document.getElementById("delete-job").addEventListener("click", async () => {
-    await deleteCurrentJob("Merci de vos impressions, veuillez vous approcher de la caisse.");
-  });
   attachPrintSettingsForm();
   attachPrintButtons();
 
@@ -434,8 +448,10 @@ document.querySelectorAll("[data-flow]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-back-home]").forEach((button) => {
-  button.addEventListener("click", showHome);
+  button.addEventListener("click", disconnectSession);
 });
+
+disconnectSessionBtn.addEventListener("click", disconnectSession);
 
 usbForm.addEventListener("submit", async (event) => {
   event.preventDefault();
