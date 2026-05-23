@@ -82,11 +82,11 @@ async function downloadFile(url, targetPath) {
 function runSumatra(config, filePath, settings) {
   return new Promise((resolve, reject) => {
     const args = [
-      "-print-to",
-      config.printerName,
       "-silent",
       "-print-settings",
       printSettings(settings),
+      "-print-to",
+      config.printerName,
       filePath,
     ];
     const child = spawn(config.sumatraPath, args, { windowsHide: true });
@@ -102,12 +102,62 @@ function runSumatra(config, filePath, settings) {
   });
 }
 
+function runPowerShell(script) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], {
+      windowsHide: true,
+    });
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(stderr || `PowerShell a retourne le code ${code}`));
+    });
+  });
+}
+
+async function ejectUsbDrives() {
+  const script = `
+    $shell = New-Object -ComObject Shell.Application
+    $drives = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2"
+    foreach ($drive in $drives) {
+      $item = $shell.Namespace(17).ParseName($drive.DeviceID + "\\")
+      if ($item -ne $null) { $item.InvokeVerb("Eject") }
+    }
+  `;
+  await runPowerShell(script);
+}
+
 async function markStatus(config, requestId, status, error = "") {
   await api(config, `/api/print-agent/requests/${requestId}/status`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ station: config.station, status, error }),
   });
+}
+
+async function markCommandStatus(config, commandId, status, error = "") {
+  await api(config, `/api/print-agent/commands/${commandId}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ station: config.station, status, error }),
+  });
+}
+
+async function handleCommand(config, command) {
+  if (!command || command.type !== "eject-usb") return;
+  console.log(`[${new Date().toLocaleTimeString()}] Ejection cle USB demandee.`);
+  try {
+    await ejectUsbDrives();
+    await markCommandStatus(config, command.id, "done");
+    console.log("Commande d'ejection envoyee a Windows.");
+  } catch (error) {
+    await markCommandStatus(config, command.id, "failed", error.message).catch(() => {});
+    console.error(`Erreur ejection USB: ${error.message}`);
+  }
 }
 
 async function handleRequest(config, request) {
@@ -134,6 +184,8 @@ async function loop() {
   console.log(`Copieur Windows: ${config.printerName}`);
   for (;;) {
     try {
+      const commandPayload = await api(config, `/api/print-agent/commands/next?station=${encodeURIComponent(config.station)}`);
+      if (commandPayload.command) await handleCommand(config, commandPayload.command);
       const payload = await api(config, `/api/print-agent/next?station=${encodeURIComponent(config.station)}`);
       if (payload.requestId) await handleRequest(config, payload);
     } catch (error) {

@@ -24,6 +24,7 @@ let deletionSeconds = 0;
 let deletionInterval = null;
 let expirationWarningShown = false;
 let printStatusInterval = null;
+let usbReminderTimer = null;
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -48,6 +49,18 @@ function setUsbMessage(text, tone = "") {
   usbMessage.dataset.tone = tone;
 }
 
+function stopUsbReminder() {
+  window.clearTimeout(usbReminderTimer);
+  usbReminderTimer = null;
+}
+
+function startUsbReminder() {
+  stopUsbReminder();
+  usbReminderTimer = window.setTimeout(() => {
+    setUsbMessage("N'oubliez pas votre cle USB.", "error");
+  }, 90 * 1000);
+}
+
 function startClientSession(label) {
   clientSessionLabel.textContent = label;
   clientSessionToolbar.classList.remove("hidden");
@@ -57,6 +70,7 @@ function startClientSession(label) {
 function showHome() {
   stopDeletionTimer();
   stopPrintStatusPolling();
+  stopUsbReminder();
   activeJob = null;
   currentCode = "";
   pickupCode.value = "";
@@ -74,6 +88,8 @@ function showHome() {
 
 function showFlow(flow) {
   startClientSession(flow === "usb" ? "Impression via cle USB" : "Impression via mobile");
+  if (flow === "usb") startUsbReminder();
+  else stopUsbReminder();
   choiceGrid.classList.add("hidden");
   formatPanel.classList.add("hidden");
   filesContainer.classList.add("hidden");
@@ -105,6 +121,7 @@ function renderPrintSettings(settings = {}) {
   const scaling = settings.scaling || "ajuster";
   const orientation = settings.orientation || "auto";
   const pageRange = settings.pageRange || "";
+  const pagesPerSheet = String(settings.pagesPerSheet || 1);
   const copies = settings.copies || 1;
   return `
     <form class="print-settings" id="print-settings-form">
@@ -156,6 +173,14 @@ function renderPrintSettings(settings = {}) {
         <label>
           Plage de pages
           <input name="pageRange" type="text" inputmode="numeric" placeholder="Ex : 1-3, 5" value="${pageRange}">
+        </label>
+        <label>
+          Pages par feuille
+          <select name="pagesPerSheet">
+            ${renderOption("1", "Normal", pagesPerSheet)}
+            ${renderOption("2", "2 fois sur une feuille", pagesPerSheet)}
+            ${renderOption("4", "4 fois sur une feuille", pagesPerSheet)}
+          </select>
         </label>
         <label>
           Exemplaires
@@ -279,6 +304,19 @@ function renderPdfPreview(file) {
   `;
 }
 
+async function requestUsbEject() {
+  const notify = usbPanel.classList.contains("hidden") ? setMessage : setUsbMessage;
+  notify("Ejection de la cle USB...");
+  try {
+    const response = await fetch(`/api/stations/${currentStation()}/eject`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Ejection impossible.");
+    notify("Demande d'ejection envoyee. Vous pouvez retirer la cle quand Windows l'autorise.", "success");
+  } catch (error) {
+    notify(error.message, "error");
+  }
+}
+
 function attachPrintButtons() {
   document.querySelectorAll("[data-print-file]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -375,6 +413,7 @@ async function deleteCurrentJob(finalMessage) {
 }
 
 async function disconnectSession() {
+  stopUsbReminder();
   if (activeJob?.code) {
     await deleteCurrentJob("Session terminee. Vos fichiers ont ete supprimes.");
   }
@@ -448,6 +487,7 @@ function renderJob(job, resetTimer = true) {
         <strong>${job.customerName || "Client"}</strong>
         <small id="deletion-countdown">Suppression automatique dans 3 minutes</small>
       </div>
+      ${job.customerName === "Cle USB" ? `<button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>` : ""}
     </div>
     <div class="job-workspace">
       <main class="document-stage">
@@ -536,5 +576,9 @@ usbForm.addEventListener("submit", async (event) => {
 });
 
 usbFileInput.addEventListener("change", uploadUsbFile);
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-eject-usb]")) requestUsbEject();
+});
 
 loadConfig();

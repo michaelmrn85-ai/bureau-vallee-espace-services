@@ -400,6 +400,14 @@ button.print-choice-card {
   align-items: flex-start;
 }
 
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .usb-form {
   display: grid;
   gap: 16px;
@@ -504,6 +512,12 @@ button:disabled {
 .text-link {
   display: inline-flex;
   align-items: center;
+}
+
+.eject-usb-button {
+  border: 2px solid rgba(255, 255, 255, 0.84);
+  background: #ffffff;
+  color: #07305d;
 }
 
 .message {

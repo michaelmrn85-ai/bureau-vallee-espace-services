@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const qrcode = require("qrcode-generator");
+const { PDFDocument } = require("pdf-lib");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3100;
@@ -15,6 +16,7 @@ const TMP_DIR = path.join(DATA_DIR, "tmp");
 const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
 const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
+const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 80 * 1024 * 1024;
@@ -30,6 +32,7 @@ const defaultPrintSettings = {
   scaling: "ajuster",
   orientation: "auto",
   pageRange: "",
+  pagesPerSheet: 1,
   copies: 1,
 };
 
@@ -107,6 +110,21 @@ function writeHistory(history) {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(cleanedHistory, null, 2));
 }
 
+function readCommands() {
+  if (!fs.existsSync(COMMANDS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(COMMANDS_FILE, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeCommands(commands) {
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const cleanedCommands = commands.filter((command) => new Date(command.createdAt).getTime() >= cutoff);
+  fs.writeFileSync(COMMANDS_FILE, JSON.stringify(cleanedCommands, null, 2));
+}
+
 function sanitizePrintSettings(input = {}) {
   const settings = {
     colorMode: input.colorMode === "couleur" ? "couleur" : "noir-blanc",
@@ -115,8 +133,10 @@ function sanitizePrintSettings(input = {}) {
     scaling: input.scaling === "taille-reelle" ? "taille-reelle" : "ajuster",
     orientation: ["auto", "portrait", "paysage"].includes(input.orientation) ? input.orientation : "auto",
     pageRange: String(input.pageRange || "").replace(/[^\d,\-\s]/g, "").slice(0, 40).trim(),
+    pagesPerSheet: Number.parseInt(input.pagesPerSheet, 10) || 1,
     copies: Number.parseInt(input.copies, 10) || 1,
   };
+  settings.pagesPerSheet = [1, 2, 4].includes(settings.pagesPerSheet) ? settings.pagesPerSheet : 1;
   settings.copies = Math.min(99, Math.max(1, settings.copies));
   return settings;
 }
@@ -137,12 +157,15 @@ function printSettingsLabel(settings = defaultPrintSettings) {
     paysage: "Paysage",
   };
   const pageRange = settings.pageRange ? `Pages ${settings.pageRange}` : "Toutes les pages";
+  const pagesPerSheet = Number(settings.pagesPerSheet || 1);
+  const pagesPerSheetLabel = pagesPerSheet === 1 ? "1 page par feuille" : `${pagesPerSheet} pages par feuille`;
   return [
     settings.colorMode === "couleur" ? "Couleur" : "Noir et blanc",
     duplexLabels[settings.duplex] || duplexLabels.recto,
     settings.paperSize || "A4",
     scalingLabels[settings.scaling] || scalingLabels.ajuster,
     orientationLabels[settings.orientation] || orientationLabels.auto,
+    pagesPerSheetLabel,
     pageRange,
     `${settings.copies || 1} exemplaire(s)`,
   ].join(" - ");
@@ -203,9 +226,15 @@ function listActiveJobs() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-function estimatePdfPages(filePath) {
+async function estimatePdfPages(filePath) {
+  const bytes = fs.readFileSync(filePath);
   try {
-    const content = fs.readFileSync(filePath, "latin1");
+    return Math.max(1, (await PDFDocument.load(bytes)).getPageCount());
+  } catch (error) {
+    // Some PDFs are malformed but still printable; keep the older lightweight fallback.
+  }
+  try {
+    const content = bytes.toString("latin1");
     const matches = content.match(/\/Type\s*\/Page\b/g);
     return Math.max(1, matches ? matches.length : 1);
   } catch (error) {
@@ -213,7 +242,7 @@ function estimatePdfPages(filePath) {
   }
 }
 
-function estimatePages(filePath, extension) {
+async function estimatePages(filePath, extension) {
   if (extension === ".pdf") return estimatePdfPages(filePath);
   return 1;
 }
@@ -240,9 +269,99 @@ function listTrackedJobs() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+function selectedPageIndexes(totalPages, pageRange = "") {
+  const total = Math.max(1, Number(totalPages) || 1);
+  const indexes = [];
+  const seen = new Set();
+  const cleanedRange = String(pageRange || "").trim();
+  if (!cleanedRange) return Array.from({ length: total }, (_, index) => index);
+
+  for (const segment of cleanedRange.split(",")) {
+    const value = segment.trim();
+    if (!value) continue;
+    const match = value.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (!match) continue;
+    const start = Math.min(total, Math.max(1, Number.parseInt(match[1], 10)));
+    const end = Math.min(total, Math.max(start, Number.parseInt(match[2] || match[1], 10)));
+    for (let page = start; page <= end; page += 1) {
+      const index = page - 1;
+      if (!seen.has(index)) {
+        seen.add(index);
+        indexes.push(index);
+      }
+    }
+  }
+
+  return indexes.length ? indexes : Array.from({ length: total }, (_, index) => index);
+}
+
 function requestPageCount(file, settings = {}) {
   const copies = Math.min(99, Math.max(1, Number.parseInt(settings.copies, 10) || 1));
-  return (Number(file?.pages) || 1) * copies;
+  const pagesPerSheet = [1, 2, 4].includes(Number(settings.pagesPerSheet)) ? Number(settings.pagesPerSheet) : 1;
+  const logicalPages = selectedPageIndexes(file?.pages || 1, settings.pageRange).length;
+  return Math.ceil(logicalPages / pagesPerSheet) * copies;
+}
+
+function paperSizePoints(paperSize = "A4", orientation = "auto", pagesPerSheet = 1) {
+  const sizes = {
+    A5: [419.53, 595.28],
+    A4: [595.28, 841.89],
+    A3: [841.89, 1190.55],
+  };
+  const [shortSide, longSide] = sizes[paperSize] || sizes.A4;
+  if (orientation === "portrait") return [shortSide, longSide];
+  if (orientation === "paysage") return [longSide, shortSide];
+  return pagesPerSheet > 1 ? [longSide, shortSide] : [shortSide, longSide];
+}
+
+async function createPreparedPdf(job, file, settings, requestId) {
+  const pagesPerSheet = Number(settings.pagesPerSheet || 1);
+  const shouldPreparePdf =
+    [2, 4].includes(pagesPerSheet) ||
+    ["A3", "A5"].includes(settings.paperSize) ||
+    ["portrait", "paysage"].includes(settings.orientation);
+  if (!shouldPreparePdf) return { storedName: file.storedName, settings };
+
+  const sourcePath = path.join(jobDir(job.code), file.storedName);
+  const sourcePdf = await PDFDocument.load(fs.readFileSync(sourcePath));
+  const outputPdf = await PDFDocument.create();
+  const selectedIndexes = selectedPageIndexes(sourcePdf.getPageCount(), settings.pageRange);
+  const embeddedPages = await outputPdf.embedPdf(fs.readFileSync(sourcePath), selectedIndexes);
+  const [sheetWidth, sheetHeight] = paperSizePoints(settings.paperSize, settings.orientation, pagesPerSheet);
+  const columns = pagesPerSheet === 1 ? 1 : 2;
+  const rows = pagesPerSheet === 4 ? 2 : 1;
+  const margin = 18;
+  const gutter = 10;
+  const slotWidth = (sheetWidth - margin * 2 - gutter * (columns - 1)) / columns;
+  const slotHeight = (sheetHeight - margin * 2 - gutter * (rows - 1)) / rows;
+
+  for (let index = 0; index < embeddedPages.length; index += pagesPerSheet) {
+    const page = outputPdf.addPage([sheetWidth, sheetHeight]);
+    for (let offset = 0; offset < pagesPerSheet; offset += 1) {
+      const embeddedPage = embeddedPages[index + offset];
+      if (!embeddedPage) continue;
+      const column = offset % columns;
+      const row = Math.floor(offset / columns);
+      const scale = Math.min(slotWidth / embeddedPage.width, slotHeight / embeddedPage.height);
+      const width = embeddedPage.width * scale;
+      const height = embeddedPage.height * scale;
+      const x = margin + column * (slotWidth + gutter) + (slotWidth - width) / 2;
+      const y = sheetHeight - margin - (row + 1) * slotHeight - row * gutter + (slotHeight - height) / 2;
+      page.drawPage(embeddedPage, { x, y, width, height });
+    }
+  }
+
+  const storedName = `${requestId}-prepared-${settings.paperSize}-${pagesPerSheet}up.pdf`;
+  fs.writeFileSync(path.join(jobDir(job.code), storedName), await outputPdf.save());
+  return {
+    storedName,
+    settings: {
+      ...settings,
+      pageRange: "",
+      pagesPerSheet,
+      orientation: pagesPerSheet > 1 && settings.orientation === "auto" ? "paysage" : settings.orientation,
+    },
+  };
 }
 
 function sessionCounters(job, files) {
@@ -541,7 +660,7 @@ app.get("/api/jobs", (request, response) => {
   });
 });
 
-app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
+app.post("/api/jobs", upload.array("files", 10), async (request, response, next) => {
   try {
     if (!request.files?.length) {
       response.status(400).json({ error: "Ajoutez au moins un fichier." });
@@ -554,7 +673,7 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
     const directory = jobDir(code);
     const printMode = request.body.printMode === "couleur" ? "couleur" : "noir-blanc";
     const printSettings = sanitizePrintSettings({ colorMode: printMode });
-    const files = request.files.map((file, index) => {
+    const files = await Promise.all(request.files.map(async (file, index) => {
       const extension = path.extname(file.originalname).toLowerCase();
       const id = `${Date.now()}-${index}`;
       const storedName = `${id}${extension}`;
@@ -566,9 +685,9 @@ app.post("/api/jobs", upload.array("files", 10), (request, response, next) => {
         storedName,
         extension,
         size: file.size,
-        pages: estimatePages(storedPath, extension),
+        pages: await estimatePages(storedPath, extension),
       };
-    });
+    }));
 
     const job = {
       code,
@@ -618,45 +737,53 @@ app.post("/api/jobs/:code/settings", (request, response) => {
   response.json(publicJob(job));
 });
 
-app.post("/api/jobs/:code/print", (request, response) => {
-  const job = readJob(request.params.code);
-  if (!job) {
-    response.status(404).json({ error: "Code introuvable." });
-    return;
-  }
-  if (new Date(job.expiresAt).getTime() <= Date.now()) {
-    deleteJob(job.code, "expiration");
-    response.status(404).json({ error: "Code expire." });
-    return;
-  }
+app.post("/api/jobs/:code/print", async (request, response, next) => {
+  try {
+    const job = readJob(request.params.code);
+    if (!job) {
+      response.status(404).json({ error: "Code introuvable." });
+      return;
+    }
+    if (new Date(job.expiresAt).getTime() <= Date.now()) {
+      deleteJob(job.code, "expiration");
+      response.status(404).json({ error: "Code expire." });
+      return;
+    }
 
-  const file = job.files.find((item) => item.id === request.body.fileId);
-  if (!file) {
-    response.status(404).json({ error: "Fichier introuvable." });
-    return;
-  }
-  if (file.extension !== ".pdf") {
-    response.status(400).json({ error: "Seuls les PDF peuvent etre imprimes directement." });
-    return;
-  }
+    const file = job.files.find((item) => item.id === request.body.fileId);
+    if (!file) {
+      response.status(404).json({ error: "Fichier introuvable." });
+      return;
+    }
+    if (file.extension !== ".pdf") {
+      response.status(400).json({ error: "Seuls les PDF peuvent etre imprimes directement." });
+      return;
+    }
 
-  const printSettings = sanitizePrintSettings(request.body.settings || job.printSettings || {});
-  job.printSettings = printSettings;
-  job.printMode = printSettings.colorMode;
-  job.printRequests = job.printRequests || [];
-  const printRequest = {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-    fileId: file.id,
-    fileName: file.originalName,
-    station: stationFrom(job.station),
-    status: "queued",
-    settings: printSettings,
-    settingsLabel: printSettingsLabel(printSettings),
-    createdAt: new Date().toISOString(),
-  };
-  job.printRequests.push(printRequest);
-  writeJob(job);
-  response.status(201).json({ printRequest, job: publicJob(job) });
+    const printSettings = sanitizePrintSettings(request.body.settings || job.printSettings || {});
+    job.printSettings = printSettings;
+    job.printMode = printSettings.colorMode;
+    job.printRequests = job.printRequests || [];
+    const requestId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const printFile = await createPreparedPdf(job, file, printSettings, requestId);
+    const printRequest = {
+      id: requestId,
+      fileId: file.id,
+      fileName: file.originalName,
+      printStoredName: printFile.storedName,
+      station: stationFrom(job.station),
+      status: "queued",
+      settings: printFile.settings,
+      originalSettings: printSettings,
+      settingsLabel: printSettingsLabel(printSettings),
+      createdAt: new Date().toISOString(),
+    };
+    job.printRequests.push(printRequest);
+    writeJob(job);
+    response.status(201).json({ printRequest, job: publicJob(job) });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/print-agent/next", (request, response) => {
@@ -679,13 +806,60 @@ app.get("/api/print-agent/next", (request, response) => {
       station,
       fileId: file.id,
       fileName: file.originalName,
-      fileUrl: `${PUBLIC_BASE_URL}/api/jobs/${job.code}/files/${file.id}`,
+      fileUrl: `${PUBLIC_BASE_URL}/api/jobs/${job.code}/print-files/${printRequest.id}`,
       settings: printRequest.settings || sanitizePrintSettings(job.printSettings),
       settingsLabel: printRequest.settingsLabel || printSettingsLabel(job.printSettings),
     });
     return;
   }
   response.json({ request: null });
+});
+
+app.post("/api/stations/:station/eject", (request, response) => {
+  const station = stationFrom(request.params.station);
+  const commands = readCommands();
+  const command = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    station,
+    type: "eject-usb",
+    status: "queued",
+    createdAt: new Date().toISOString(),
+  };
+  commands.push(command);
+  writeCommands(commands);
+  response.status(201).json({ ok: true, command });
+});
+
+app.get("/api/print-agent/commands/next", (request, response) => {
+  if (!requirePrintAgent(request, response)) return;
+  const station = stationFrom(request.query.station);
+  const commands = readCommands();
+  const command = commands.find((item) => item.station === station && item.status === "queued");
+  if (!command) {
+    response.json({ command: null });
+    return;
+  }
+
+  command.status = "claimed";
+  command.claimedAt = new Date().toISOString();
+  writeCommands(commands);
+  response.json({ command });
+});
+
+app.post("/api/print-agent/commands/:commandId/status", (request, response) => {
+  if (!requirePrintAgent(request, response)) return;
+  const commands = readCommands();
+  const command = commands.find((item) => item.id === request.params.commandId);
+  if (!command) {
+    response.status(404).json({ error: "Commande introuvable." });
+    return;
+  }
+
+  command.status = ["done", "failed"].includes(request.body.status) ? request.body.status : "failed";
+  command.error = String(request.body.error || "").slice(0, 500);
+  command.updatedAt = new Date().toISOString();
+  writeCommands(commands);
+  response.json({ ok: true, command });
 });
 
 app.post("/api/print-agent/requests/:requestId/status", (request, response) => {
@@ -722,6 +896,30 @@ app.get("/api/jobs/:code/download-all", (request, response) => {
   response.setHeader("Content-Type", "application/zip");
   response.setHeader("Content-Disposition", `attachment; filename="bureau-vallee-${job.code}.zip"`);
   response.send(zip);
+});
+
+app.get("/api/jobs/:code/print-files/:requestId", (request, response) => {
+  const job = readJob(request.params.code);
+  if (!job) {
+    response.status(404).send("Code introuvable.");
+    return;
+  }
+
+  const printRequest = findPrintRequest(job, request.params.requestId);
+  if (!printRequest) {
+    response.status(404).send("Demande introuvable.");
+    return;
+  }
+
+  const sourceFile = job.files.find((file) => file.id === printRequest.fileId);
+  const storedName = printRequest.printStoredName || sourceFile?.storedName;
+  if (!storedName) {
+    response.status(404).send("Fichier introuvable.");
+    return;
+  }
+
+  response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(printRequest.fileName || "document.pdf")}"`);
+  response.sendFile(path.join(jobDir(job.code), storedName));
 });
 
 app.get("/api/jobs/:code/files/:fileId", (request, response) => {
