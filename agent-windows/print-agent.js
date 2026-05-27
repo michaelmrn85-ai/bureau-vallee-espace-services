@@ -59,6 +59,33 @@ function printSettings(settings = {}) {
   return parts.join(",");
 }
 
+function powerShellString(value) {
+  return `'${String(value || "").replace(/'/g, "''")}'`;
+}
+
+function isBlackAndWhite(settings = {}) {
+  const colorMode = String(settings.colorMode || settings.color || settings.modeCouleur || "auto")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return (
+    colorMode.includes("noir") ||
+    colorMode.includes("black") ||
+    colorMode.includes("mono") ||
+    colorMode.includes("gris") ||
+    colorMode.includes("gray") ||
+    colorMode === "nb" ||
+    colorMode === "n&b" ||
+    colorMode === "bw"
+  );
+}
+
+function duplexMode(settings = {}) {
+  if (settings.duplex === "recto-verso-long") return "TwoSidedLongEdge";
+  if (settings.duplex === "recto-verso-court") return "TwoSidedShortEdge";
+  return "OneSided";
+}
+
 async function api(config, route, options = {}) {
   const response = await fetch(`${config.baseUrl}${route}`, {
     ...options,
@@ -131,6 +158,21 @@ async function ejectUsbDrives() {
   await runPowerShell(script);
 }
 
+async function applyPrinterConfiguration(config, settings = {}) {
+  const paperSize = ["A3", "A4", "A5"].includes(settings.paperSize) ? settings.paperSize : "A4";
+  const color = isBlackAndWhite(settings) ? "$false" : "$true";
+  const duplex = duplexMode(settings);
+  const script = `
+    try {
+      Set-PrintConfiguration -PrinterName ${powerShellString(config.printerName)} -PaperSize ${paperSize} -Color ${color} -DuplexingMode ${duplex} -ErrorAction Stop
+    } catch {
+      Write-Error $_.Exception.Message
+      exit 1
+    }
+  `;
+  await runPowerShell(script);
+}
+
 async function markStatus(config, requestId, status, error = "") {
   await api(config, `/api/print-agent/requests/${requestId}/status`, {
     method: "POST",
@@ -168,6 +210,15 @@ async function handleRequest(config, request) {
   console.log(`Reglages: ${request.settingsLabel}`);
   try {
     await downloadFile(request.fileUrl, filePath);
+    try {
+      await applyPrinterConfiguration(config, request.settings);
+      console.log(`Configuration pilote: ${request.settings.paperSize || "A4"} / ${duplexMode(request.settings)}`);
+    } catch (error) {
+      if (request.settings?.paperSize === "A3") {
+        throw new Error(`Configuration A3 impossible dans le pilote Windows: ${error.message}`);
+      }
+      console.warn(`Configuration pilote ignoree: ${error.message}`);
+    }
     await runSumatra(config, filePath, request.settings);
     await markStatus(config, request.requestId, "done");
     if (!config.keepPrintedFiles) fs.rmSync(filePath, { force: true });

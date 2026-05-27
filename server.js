@@ -318,6 +318,14 @@ function paperSizePoints(paperSize = "A4", orientation = "auto", pagesPerSheet =
   return pagesPerSheet > 1 ? [longSide, shortSide] : [shortSide, longSide];
 }
 
+function resolvedSheetOrientation(settings = {}, embeddedPages = []) {
+  if (settings.orientation === "portrait" || settings.orientation === "paysage") return settings.orientation;
+  if (Number(settings.pagesPerSheet || 1) > 1) return "paysage";
+  const firstPage = embeddedPages[0];
+  if (!firstPage) return "portrait";
+  return firstPage.width > firstPage.height ? "paysage" : "portrait";
+}
+
 async function createImagePrintPdf(sourcePath, extension, targetPath) {
   const bytes = Uint8Array.from(fs.readFileSync(sourcePath));
   const outputPdf = await PDFDocument.create();
@@ -352,7 +360,8 @@ async function createPreparedPdf(job, file, settings, requestId) {
   const outputPdf = await PDFDocument.create();
   const selectedIndexes = selectedPageIndexes(sourcePdf.getPageCount(), settings.pageRange);
   const embeddedPages = await outputPdf.embedPdf(fs.readFileSync(sourcePath), selectedIndexes);
-  const [sheetWidth, sheetHeight] = paperSizePoints(settings.paperSize, settings.orientation, pagesPerSheet);
+  const sheetOrientation = resolvedSheetOrientation(settings, embeddedPages);
+  const [sheetWidth, sheetHeight] = paperSizePoints(settings.paperSize, sheetOrientation, pagesPerSheet);
   const columns = pagesPerSheet === 1 ? 1 : 2;
   const rows = pagesPerSheet === 4 ? 2 : 1;
   const margin = 18;
@@ -384,7 +393,7 @@ async function createPreparedPdf(job, file, settings, requestId) {
       ...settings,
       pageRange: "",
       pagesPerSheet,
-      orientation: pagesPerSheet > 1 && settings.orientation === "auto" ? "paysage" : settings.orientation,
+      orientation: sheetOrientation,
     },
   };
 }
