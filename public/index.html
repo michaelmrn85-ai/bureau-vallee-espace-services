@@ -76,6 +76,8 @@
       </div>
       <div class="accepted-files" aria-label="Formats acceptes en impression autonome">
         <strong>PDF</strong>
+        <strong>PNG</strong>
+        <strong>JPEG</strong>
         <strong>A5</strong>
         <strong>A4</strong>
         <strong>A3</strong>
@@ -104,9 +106,9 @@
       </div>
       <form class="usb-form" id="usb-form">
         <label class="drop-zone">
-          <input id="usb-file-input" type="file" accept=".pdf,application/pdf" required>
-          <span>Choisir et charger le PDF</span>
-          <small>Selectionnez le fichier sur votre cle USB. Il s'affiche automatiquement apres validation.</small>
+          <input id="usb-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple required>
+          <span>Choisir et charger le fichier</span>
+          <small>Selectionnez un PDF, PNG, JPG ou JPEG sur votre cle USB.</small>
         </label>
       </form>
       <p class="message" id="usb-message"></p>

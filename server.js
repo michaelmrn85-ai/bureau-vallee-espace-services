@@ -36,6 +36,10 @@ const defaultPrintSettings = {
   copies: 1,
 };
 
+function isDirectPrintableExtension(extension) {
+  return [".pdf", ".png", ".jpg", ".jpeg"].includes(String(extension || "").toLowerCase());
+}
+
 fs.mkdirSync(JOBS_DIR, { recursive: true });
 fs.mkdirSync(TMP_DIR, { recursive: true });
 
@@ -314,15 +318,36 @@ function paperSizePoints(paperSize = "A4", orientation = "auto", pagesPerSheet =
   return pagesPerSheet > 1 ? [longSide, shortSide] : [shortSide, longSide];
 }
 
+async function createImagePrintPdf(sourcePath, extension, targetPath) {
+  const bytes = Uint8Array.from(fs.readFileSync(sourcePath));
+  const outputPdf = await PDFDocument.create();
+  const image = extension === ".png" ? await outputPdf.embedPng(bytes) : await outputPdf.embedJpg(bytes);
+  const [pageWidth, pageHeight] = paperSizePoints("A4", "auto", 1);
+  const page = outputPdf.addPage([pageWidth, pageHeight]);
+  const margin = 18;
+  const maxWidth = pageWidth - margin * 2;
+  const maxHeight = pageHeight - margin * 2;
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  page.drawImage(image, {
+    x: margin + (maxWidth - width) / 2,
+    y: margin + (maxHeight - height) / 2,
+    width,
+    height,
+  });
+  fs.writeFileSync(targetPath, await outputPdf.save());
+}
+
 async function createPreparedPdf(job, file, settings, requestId) {
   const pagesPerSheet = Number(settings.pagesPerSheet || 1);
   const shouldPreparePdf =
     [2, 4].includes(pagesPerSheet) ||
     ["A3", "A5"].includes(settings.paperSize) ||
     ["portrait", "paysage"].includes(settings.orientation);
-  if (!shouldPreparePdf) return { storedName: file.storedName, settings };
+  if (!shouldPreparePdf) return { storedName: file.printableStoredName || file.storedName, settings };
 
-  const sourcePath = path.join(jobDir(job.code), file.storedName);
+  const sourcePath = path.join(jobDir(job.code), file.printableStoredName || file.storedName);
   const sourcePdf = await PDFDocument.load(fs.readFileSync(sourcePath));
   const outputPdf = await PDFDocument.create();
   const selectedIndexes = selectedPageIndexes(sourcePdf.getPageCount(), settings.pageRange);
@@ -391,6 +416,7 @@ function publicJob(job, status = "actif") {
     extension: file.extension.replace(".", ""),
     size: file.size,
     pages: file.pages || 1,
+    printable: isDirectPrintableExtension(file.extension),
     viewUrl: `/api/jobs/${job.code}/files/${file.id}`,
     downloadUrl: `/api/jobs/${job.code}/files/${file.id}?download=1`,
   }));
@@ -679,10 +705,15 @@ app.post("/api/jobs", upload.array("files", 10), async (request, response, next)
       const storedName = `${id}${extension}`;
       const storedPath = path.join(directory, storedName);
       fs.renameSync(file.path, storedPath);
+      const printableStoredName = [".png", ".jpg", ".jpeg"].includes(extension) ? `${id}-print.pdf` : "";
+      if (printableStoredName) {
+        await createImagePrintPdf(storedPath, extension, path.join(directory, printableStoredName));
+      }
       return {
         id,
         originalName: file.originalname,
         storedName,
+        printableStoredName,
         extension,
         size: file.size,
         pages: await estimatePages(storedPath, extension),
@@ -755,8 +786,8 @@ app.post("/api/jobs/:code/print", async (request, response, next) => {
       response.status(404).json({ error: "Fichier introuvable." });
       return;
     }
-    if (file.extension !== ".pdf") {
-      response.status(400).json({ error: "Seuls les PDF peuvent etre imprimes directement." });
+    if (!isDirectPrintableExtension(file.extension)) {
+      response.status(400).json({ error: "Ce format doit etre traite au comptoir." });
       return;
     }
 
@@ -770,6 +801,7 @@ app.post("/api/jobs/:code/print", async (request, response, next) => {
       id: requestId,
       fileId: file.id,
       fileName: file.originalName,
+      printFileName: file.extension === ".pdf" ? file.originalName : `${path.parse(file.originalName).name}.pdf`,
       printStoredName: printFile.storedName,
       station: stationFrom(job.station),
       status: "queued",
@@ -794,7 +826,7 @@ app.get("/api/print-agent/next", (request, response) => {
     if (stationFrom(job.station) !== station) continue;
     const printRequest = (job.printRequests || []).find((item) => item.status === "queued");
     if (!printRequest) continue;
-    const file = job.files.find((item) => item.id === printRequest.fileId && item.extension === ".pdf");
+    const file = job.files.find((item) => item.id === printRequest.fileId && isDirectPrintableExtension(item.extension));
     if (!file) continue;
 
     printRequest.status = "printing";
@@ -806,6 +838,7 @@ app.get("/api/print-agent/next", (request, response) => {
       station,
       fileId: file.id,
       fileName: file.originalName,
+      printFileName: printRequest.printFileName || file.originalName,
       fileUrl: `${PUBLIC_BASE_URL}/api/jobs/${job.code}/print-files/${printRequest.id}`,
       settings: printRequest.settings || sanitizePrintSettings(job.printSettings),
       settingsLabel: printRequest.settingsLabel || printSettingsLabel(job.printSettings),
@@ -918,7 +951,7 @@ app.get("/api/jobs/:code/print-files/:requestId", (request, response) => {
     return;
   }
 
-  response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(printRequest.fileName || "document.pdf")}"`);
+  response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(printRequest.printFileName || printRequest.fileName || "document.pdf")}"`);
   response.sendFile(path.join(jobDir(job.code), storedName));
 });
 

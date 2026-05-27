@@ -110,6 +110,14 @@ function isPdf(file) {
   return file.extension.toLowerCase() === "pdf";
 }
 
+function isImage(file) {
+  return ["png", "jpg", "jpeg"].includes(file.extension.toLowerCase());
+}
+
+function isPrintable(file) {
+  return Boolean(file.printable) || isPdf(file) || isImage(file);
+}
+
 function renderOption(value, label, selectedValue) {
   return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${label}</option>`;
 }
@@ -275,19 +283,32 @@ function startPrintStatusPolling() {
   }, 2200);
 }
 
-function firstPdfFile(job) {
-  return job.files.find(isPdf);
+function firstPreviewFile(job) {
+  return job.files.find((file) => isPdf(file) || isImage(file));
 }
 
-function renderPdfPreview(file) {
+function renderFilePreview(file) {
   if (!file) {
     return `
       <section class="pdf-preview-panel empty-preview">
         <div>
           <p class="eyebrow">Apercu</p>
-          <h2>Fichier non PDF</h2>
-          <p>Les fichiers Word, PNG et JPEG sont disponibles en telechargement et doivent etre traites au comptoir.</p>
+          <h2>Aucun apercu direct</h2>
+          <p>Les fichiers Word doivent etre traites au comptoir.</p>
         </div>
+      </section>
+    `;
+  }
+  if (isImage(file)) {
+    return `
+      <section class="pdf-preview-panel image-preview-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Apercu image</p>
+            <h2>${file.originalName}</h2>
+          </div>
+        </div>
+        <img src="${file.viewUrl}" alt="Apercu du fichier ${file.originalName}">
       </section>
     `;
   }
@@ -302,6 +323,18 @@ function renderPdfPreview(file) {
       <iframe src="${file.viewUrl}#toolbar=0&navpanes=0" title="Apercu du fichier PDF ${file.originalName}"></iframe>
     </section>
   `;
+}
+
+async function sendPrintRequest(fileId, settings) {
+  const response = await fetch(`/api/jobs/${activeJob.code}/print`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileId, settings }),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Impression impossible.");
+  activeJob = payload.job;
+  return payload;
 }
 
 async function requestUsbEject() {
@@ -327,14 +360,7 @@ function attachPrintButtons() {
       button.textContent = "Envoi...";
       try {
         const settings = await savePrintSettings();
-        const response = await fetch(`/api/jobs/${activeJob.code}/print`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId, settings }),
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Impression impossible.");
-        activeJob = payload.job;
+        await sendPrintRequest(fileId, settings);
         if (settingsMessage) {
           settingsMessage.textContent = "Demande envoyee au copieur de ce poste.";
           settingsMessage.dataset.tone = "success";
@@ -352,16 +378,55 @@ function attachPrintButtons() {
       }
     });
   });
+
+  const selectedButton = document.querySelector("[data-print-selected]");
+  if (selectedButton) {
+    selectedButton.addEventListener("click", async () => {
+      if (!activeJob?.code) return;
+      const selectedFileIds = [...document.querySelectorAll("[data-print-select]:checked")].map((input) => input.value);
+      const settingsMessage = document.getElementById("print-settings-message");
+      if (!selectedFileIds.length) {
+        if (settingsMessage) {
+          settingsMessage.textContent = "Selectionnez au moins un fichier.";
+          settingsMessage.dataset.tone = "error";
+        }
+        return;
+      }
+      selectedButton.disabled = true;
+      selectedButton.textContent = "Envoi...";
+      try {
+        const settings = await savePrintSettings();
+        for (const fileId of selectedFileIds) {
+          await sendPrintRequest(fileId, settings);
+        }
+        if (settingsMessage) {
+          settingsMessage.textContent = `${selectedFileIds.length} fichier(s) envoye(s) au copieur.`;
+          settingsMessage.dataset.tone = "success";
+        }
+        renderJob(activeJob);
+      } catch (error) {
+        selectedButton.disabled = false;
+        selectedButton.textContent = "Imprimer la selection";
+        if (settingsMessage) {
+          settingsMessage.textContent = error.message;
+          settingsMessage.dataset.tone = "error";
+        } else {
+          setMessage(error.message, "error");
+        }
+      }
+    });
+  }
 }
 
 async function uploadUsbFile() {
-  const file = usbFileInput.files[0];
-  if (!file) {
-    setUsbMessage("Choisissez un fichier PDF.", "error");
+  const files = [...usbFileInput.files];
+  if (!files.length) {
+    setUsbMessage("Choisissez au moins un fichier.", "error");
     return;
   }
-  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-    setUsbMessage("Seuls les fichiers PDF sont acceptes en impression autonome.", "error");
+  const unsupportedFile = files.find((file) => !/\.(pdf|png|jpe?g)$/i.test(file.name));
+  if (unsupportedFile) {
+    setUsbMessage("Formats acceptes en autonomie : PDF, PNG, JPG et JPEG.", "error");
     return;
   }
 
@@ -369,8 +434,10 @@ async function uploadUsbFile() {
   formData.set("station", currentStation());
   formData.set("printMode", "noir-blanc");
   formData.set("customerName", "Cle USB");
-  formData.append("files", file);
-  setUsbMessage("Chargement du PDF...");
+  for (const file of files) {
+    formData.append("files", file);
+  }
+  setUsbMessage("Chargement du fichier...");
 
   try {
     const response = await fetch("/api/jobs", {
@@ -379,7 +446,7 @@ async function uploadUsbFile() {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
-    setUsbMessage("PDF charge.", "success");
+    setUsbMessage("Fichier charge.", "success");
     renderJob(payload);
   } catch (error) {
     setUsbMessage(error.message, "error");
@@ -478,8 +545,9 @@ function renderJob(job, resetTimer = true) {
   mobilePanel.classList.add("hidden");
   filesContainer.classList.remove("hidden");
   setMessage(`${job.files.length} fichier(s) disponible(s) pour le code ${job.code}.`, "success");
-  const hasPdf = job.files.some(isPdf);
-  const previewFile = firstPdfFile(job);
+  const printableFiles = job.files.filter(isPrintable);
+  const hasPrintable = printableFiles.length > 0;
+  const previewFile = firstPreviewFile(job);
   filesContainer.innerHTML = `
     <div class="job-head">
       <div>
@@ -491,16 +559,17 @@ function renderJob(job, resetTimer = true) {
     </div>
     <div class="job-workspace">
       <main class="document-stage">
-        ${renderPdfPreview(previewFile)}
+        ${renderFilePreview(previewFile)}
         <div class="file-strip">
           ${job.files.map((file) => `
             <article class="file-card">
-              <div>
+              ${isPrintable(file) ? `<label class="print-select"><input type="checkbox" data-print-select value="${file.id}" checked><span>Selection</span></label>` : ""}
+              <div class="file-main">
                 <strong>${file.originalName}</strong>
                 <small>${file.extension.toUpperCase()} - ${formatSize(file.size)} - ${file.pages || 1} page(s)</small>
               </div>
               <div class="file-actions">
-                ${isPdf(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
+                ${isPrintable(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
                 ${latestPrintStatus(file.id) ? `<span class="counter-pill">${latestPrintStatus(file.id)}</span>` : ""}
               </div>
             </article>
@@ -508,16 +577,23 @@ function renderJob(job, resetTimer = true) {
         </div>
       </main>
       <aside class="job-controls">
-        ${hasPdf ? renderPrintSettings(job.printSettings) : `
+        ${hasPrintable ? renderPrintSettings(job.printSettings) : `
           <div class="counter-notice">
             <strong>Impression au comptoir</strong>
-            <span>Les fichiers non PDF doivent etre presentes a l'equipe Bureau Vallee.</span>
+            <span>Les fichiers Word doivent etre presentes a l'equipe Bureau Vallee.</span>
           </div>
         `}
-        ${hasPdf && job.files.filter(isPdf).length > 1 ? `
+        ${printableFiles.length > 1 ? `
+          <div class="multi-print-panel">
+            <strong>Impression multiple</strong>
+            <span>Cochez les fichiers a imprimer puis lancez la selection. Ils partiront un par un au copieur.</span>
+            <button class="settings-save-button" type="button" data-print-selected>Imprimer la selection</button>
+          </div>
+        ` : ""}
+        ${printableFiles.length > 1 ? `
           <div class="counter-notice">
             <strong>Apercu</strong>
-            <span>L'apercu affiche le premier PDF. Lancez l'impression sur le PDF souhaite dans la liste.</span>
+            <span>L'apercu affiche le premier fichier compatible. Utilisez la liste pour imprimer chaque document.</span>
           </div>
         ` : ""}
       </aside>

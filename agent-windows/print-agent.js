@@ -163,7 +163,7 @@ async function handleCommand(config, command) {
 async function handleRequest(config, request) {
   const workDir = path.join(os.tmpdir(), "bureau-vallee-print-agent", config.station);
   fs.mkdirSync(workDir, { recursive: true });
-  const filePath = path.join(workDir, `${request.code}-${request.requestId}-${safeName(request.fileName)}`);
+  const filePath = path.join(workDir, `${request.code}-${request.requestId}-${safeName(request.printFileName || request.fileName)}`);
   console.log(`[${new Date().toLocaleTimeString()}] Impression ${request.code} - ${request.fileName}`);
   console.log(`Reglages: ${request.settingsLabel}`);
   try {
