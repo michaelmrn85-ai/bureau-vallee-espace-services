@@ -20,7 +20,7 @@ const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE = 80 * 1024 * 1024;
-const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"]);
+const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif"]);
 const stations = {
   "poste-1": "Poste 1",
   "poste-2": "Poste 2",
@@ -49,7 +49,7 @@ const upload = multer({
   fileFilter(request, file, callback) {
     const extension = path.extname(file.originalname).toLowerCase();
     if (!allowedExtensions.has(extension)) {
-      callback(new Error("Format non accepte. PDF, Word, PNG et JPEG uniquement."));
+      callback(new Error("Format non accepte. PDF, Word, PNG, JPEG et HEIC uniquement."));
       return;
     }
     callback(null, true);
@@ -620,11 +620,20 @@ app.get("/qr.svg", (request, response) => {
   response.type("image/svg+xml").send(qr.createSvgTag({ cellSize: 8, margin: 4 }));
 });
 
+app.get("/qr.gif", (request, response) => {
+  const qr = qrcode(0, "M");
+  qr.addData(uploadUrl(request.query.station));
+  qr.make();
+  const dataUrl = qr.createDataURL(8, 4);
+  const base64 = dataUrl.replace(/^data:image\/gif;base64,/, "");
+  response.type("image/gif").send(Buffer.from(base64, "base64"));
+});
+
 app.get("/api/config", (request, response) => {
   const station = stationFrom(request.query.station);
   response.json({
     uploadUrl: uploadUrl(station),
-    qrUrl: `/qr.svg?station=${station}`,
+    qrUrl: `/qr.gif?station=${station}`,
     stationLinks: {
       "poste-1": `${PUBLIC_BASE_URL}/poste-1`,
       "poste-2": `${PUBLIC_BASE_URL}/poste-2`,

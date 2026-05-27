@@ -12,18 +12,13 @@
     <strong id="notice-screen-message"></strong>
   </section>
 
-  <section class="session-screen hidden" id="session-screen" aria-live="polite">
-    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-    <strong id="session-screen-message"></strong>
-  </section>
-
   <main class="mobile-shell">
     <section class="mobile-card">
       <img class="mobile-logo" src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
       <div class="notice-banner hidden" id="notice-banner"></div>
       <p class="eyebrow">Bureau Vallee</p>
       <h1>Envoyer mes fichiers</h1>
-      <p class="lead">Ajoutez vos PDF, PNG, JPG ou JPEG pour l'impression autonome. Pour les fichiers Word, rapprochez-vous du comptoir.</p>
+      <p class="lead">Ajoutez vos PDF, PNG, JPG, JPEG ou HEIC. Pour les fichiers Word et HEIC, rapprochez-vous du comptoir.</p>
 
       <form id="upload-form">
         <label>
@@ -32,7 +27,7 @@
         </label>
 
         <label class="drop-zone">
-          <input id="files-input" name="files" type="file" multiple required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg">
+          <input id="files-input" name="files" type="file" multiple required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,image/heic,image/heif">
           <span>Choisir et envoyer mes fichiers</span>
           <small>Le code s'affiche automatiquement apres selection.</small>
         </label>
@@ -56,7 +51,6 @@
     </section>
   </main>
   <script src="/notice.js?v=20260523-print-preview"></script>
-  <script src="/session.js?v=20260523-print-preview"></script>
   <script src="/upload.js?v=20260523-print-preview"></script>
 </body>
 </html>

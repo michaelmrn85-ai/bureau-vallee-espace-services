@@ -422,9 +422,9 @@ async function uploadUsbFile() {
     setUsbMessage("Choisissez au moins un fichier.", "error");
     return;
   }
-  const unsupportedFile = files.find((file) => !/\.(pdf|png|jpe?g)$/i.test(file.name));
+  const unsupportedFile = files.find((file) => !/\.(pdf|png|jpe?g|heic|heif)$/i.test(file.name));
   if (unsupportedFile) {
-    setUsbMessage("Formats acceptes en autonomie : PDF, PNG, JPG et JPEG.", "error");
+    setUsbMessage("Formats acceptes : PDF, PNG, JPG, JPEG et HEIC.", "error");
     return;
   }
 
@@ -526,7 +526,7 @@ async function loadConfig() {
     uploadQr.src = config.qrUrl;
   } catch (error) {
     uploadUrlLabel.textContent = `https://bureau-vallee-espace-services.onrender.com/upload?station=${currentStation()}`;
-    uploadQr.src = `/qr.svg?station=${currentStation()}`;
+    uploadQr.src = `/qr.gif?station=${currentStation()}`;
   }
 }
 
