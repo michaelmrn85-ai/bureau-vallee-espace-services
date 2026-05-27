@@ -327,11 +327,18 @@ button.print-choice-card {
 
 .format-panel {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(260px, auto) 1fr auto;
   gap: 12px;
   align-items: center;
   margin-top: 12px;
   padding: 12px;
+}
+
+.format-warning {
+  margin: 6px 0 0;
+  color: var(--yellow);
+  font-weight: 900;
+  line-height: 1.25;
 }
 
 .accepted-files {

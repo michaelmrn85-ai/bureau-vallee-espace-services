@@ -125,7 +125,7 @@ function renderOption(value, label, selectedValue) {
 function renderPrintSettings(settings = {}) {
   const colorMode = settings.colorMode || "noir-blanc";
   const duplex = settings.duplex || "recto";
-  const paperSize = settings.paperSize || "A4";
+  const paperSize = "A4";
   const scaling = settings.scaling || "ajuster";
   const orientation = settings.orientation || "auto";
   const pageRange = settings.pageRange || "";
@@ -158,9 +158,7 @@ function renderPrintSettings(settings = {}) {
         <label>
           Format papier
           <select name="paperSize">
-            ${renderOption("A5", "A5", paperSize)}
             ${renderOption("A4", "A4", paperSize)}
-            ${renderOption("A3", "A3", paperSize)}
           </select>
         </label>
         <label>
