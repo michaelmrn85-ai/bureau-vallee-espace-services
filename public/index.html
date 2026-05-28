@@ -21,7 +21,7 @@
     <header class="station-welcome">
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
       <h1>Bienvenue en Espace Services - <span id="station-title">Poste</span></h1>
-      <p>Choisissez votre mode d'impression.</p>
+      <p>Imprimez vos fichiers en A4 depuis votre telephone ou votre cle USB.</p>
     </header>
 
     <div class="notice-banner hidden" id="notice-banner"></div>
@@ -43,7 +43,7 @@
           </svg>
         </span>
         <h2>Impression via cle USB</h2>
-        <p>Choisissez votre fichier depuis la cle branchee sur ce poste.</p>
+        <p>Choisir un fichier sur votre cle.</p>
         <div class="choice-tags">
           <span>PDF</span>
           <span>A4</span>
@@ -59,7 +59,7 @@
           </svg>
         </span>
         <h2>Impression via mobile</h2>
-        <p>Flashez le QR code, envoyez votre fichier, puis saisissez le code ici.</p>
+        <p>Flasher le QR code et saisir le code obtenu.</p>
         <div class="choice-tags">
           <span>QR code</span>
           <span>PDF</span>
@@ -69,35 +69,21 @@
       </button>
     </section>
 
-    <section class="format-panel">
+    <section class="format-panel compact-home-info">
       <div>
-        <p class="eyebrow">Impression autonome</p>
+        <p class="eyebrow">A retenir</p>
         <h2>Impression A4 uniquement</h2>
         <p class="format-warning">Pour vos impressions A3 ou sur papier epais, merci de vous rapprocher du comptoir.</p>
       </div>
-      <div class="accepted-files" aria-label="Formats acceptes en impression autonome">
-        <strong>PDF</strong>
-        <strong>PNG</strong>
-        <strong>JPEG</strong>
-        <strong>A4</strong>
-      </div>
-      <div>
-        <p class="eyebrow">Au comptoir</p>
-        <div class="accepted-files" aria-label="Formats au comptoir">
-          <strong>Word</strong>
-          <strong>HEIC</strong>
-          <strong>PNG</strong>
-          <strong>JPEG</strong>
-          <strong>JPG</strong>
-        </div>
-      </div>
+      <button class="help-button" id="help-button" type="button">Aide</button>
     </section>
 
     <aside class="wifi-bubble" aria-label="Information Wi-Fi">
       <span>Pour plus de fluidite</span>
       <strong>Connectez-vous au Wi-Fi public</strong>
-      <small>Reseau : <b>wifipublicbv</b> - Mot de passe : <b>bureauvallee</b></small>
+      <small>Reseau : <b>wifi_bvpublic</b> - Mot de passe : <b>bureauvallee</b></small>
     </aside>
+    <p class="message home-message" id="home-message"></p>
 
     <section class="panel flow-panel hidden" id="usb-panel">
       <div class="panel-heading">

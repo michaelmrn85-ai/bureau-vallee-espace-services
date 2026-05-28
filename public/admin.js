@@ -7,6 +7,7 @@ const disableBtn = document.getElementById("disable-notice");
 const adminMessage = document.getElementById("notice-admin-message");
 const sessionInput = document.getElementById("session-message");
 const sessionAdminMessage = document.getElementById("session-admin-message");
+const helpList = document.getElementById("help-list");
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -56,6 +57,10 @@ function renderPrintRequests(job) {
   `;
 }
 
+function donePrintCount(job) {
+  return (job.printRequests || []).filter((request) => request.status === "done").length;
+}
+
 function renderJobs(jobs) {
   if (!jobs.length) {
     codesList.innerHTML = `
@@ -84,7 +89,7 @@ function renderJobs(jobs) {
       <section class="station-history">
         <div class="station-history-heading">
           <div>
-            <p class="eyebrow">Historique impression</p>
+            <p class="eyebrow">Compteur reel</p>
             <h3>${station.label}</h3>
           </div>
           <div class="station-history-totals">
@@ -103,8 +108,7 @@ function renderJobs(jobs) {
       <div>
         <h2>${job.customerName || "Client"}</h2>
         <p>${job.files.length} fichier(s) - ${job.stationLabel || station.label} - depot ${formatDate(job.createdAt)}${job.deletedAt ? ` - termine ${formatDate(job.deletedAt)}` : ""}</p>
-        <p>Compteur session : ${job.bwPages || 0} page(s) N&B, ${job.colorPages || 0} page(s) couleur.</p>
-        <p>${job.printSettingsLabel || (job.printMode === "couleur" ? "Couleur" : "Noir et blanc")}</p>
+        <p>Impressions confirmees : ${donePrintCount(job)}</p>
         <div class="code-files">
           ${job.files.map((file) => `<span>${file.originalName} - ${file.pages} page(s)</span>`).join("")}
         </div>
@@ -126,14 +130,55 @@ function renderJobs(jobs) {
   }).join("");
 }
 
+function renderHelpRequests(requests = []) {
+  if (!helpList) return;
+  if (!requests.length) {
+    helpList.innerHTML = "";
+    return;
+  }
+
+  helpList.innerHTML = requests.map((request) => `
+    <article class="help-alert">
+      <div>
+        <span>Demande d'aide</span>
+        <strong>${request.stationLabel || request.station}</strong>
+        <small>${formatDate(request.createdAt)}</small>
+      </div>
+      <button type="button" data-clear-help="${request.station}">Traite</button>
+    </article>
+  `).join("");
+}
+
+async function loadHelpRequests() {
+  try {
+    const response = await fetch("/api/help");
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Aide indisponible.");
+    renderHelpRequests(payload.requests || []);
+  } catch (error) {
+    if (helpList) {
+      helpList.innerHTML = `
+        <div class="empty-card">
+          <strong>Demandes d'aide indisponibles.</strong>
+        </div>
+      `;
+    }
+  }
+}
+
+async function clearHelpRequest(station) {
+  await fetch(`/api/help/${station}`, { method: "DELETE" });
+  loadHelpRequests();
+}
+
 async function loadCodes() {
-  setCodesMessage("Chargement des codes...");
+  setCodesMessage("Chargement des compteurs...");
   try {
     const response = await fetch("/api/jobs");
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
     renderJobs(payload.jobs || []);
-    setCodesMessage(`${payload.jobs?.length || 0} suivi(s) client conserve(s).`, "success");
+    setCodesMessage("Compteurs reels par poste, conserves 3 minutes apres fin de session.", "success");
   } catch (error) {
     setCodesMessage(error.message, "error");
   }
@@ -202,6 +247,12 @@ document.querySelectorAll("[data-preset]").forEach((button) => {
 });
 
 refreshBtn.addEventListener("click", loadCodes);
+if (helpList) {
+  helpList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-clear-help]");
+    if (button) clearHelpRequest(button.dataset.clearHelp);
+  });
+}
 
 activateBtn.addEventListener("click", () => {
   if (!noticeInput.value.trim()) {
@@ -222,5 +273,8 @@ document.querySelectorAll("[data-session-action][data-station]").forEach((button
 });
 
 loadCodes();
+loadHelpRequests();
 loadNotice();
 loadSession();
+window.setInterval(loadCodes, 4000);
+window.setInterval(loadHelpRequests, 3000);

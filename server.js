@@ -17,8 +17,9 @@ const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
 const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
+const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
-const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const HISTORY_TTL_MS = 3 * 60 * 1000;
 const MAX_FILE_SIZE = 80 * 1024 * 1024;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif"]);
 const stations = {
@@ -127,6 +128,24 @@ function writeCommands(commands) {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const cleanedCommands = commands.filter((command) => new Date(command.createdAt).getTime() >= cutoff);
   fs.writeFileSync(COMMANDS_FILE, JSON.stringify(cleanedCommands, null, 2));
+}
+
+function readHelpRequests() {
+  if (!fs.existsSync(HELP_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(HELP_FILE, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeHelpRequests(requests) {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  const cleanedRequests = requests.filter((request) => {
+    if (!request.active) return false;
+    return new Date(request.createdAt).getTime() >= cutoff;
+  });
+  fs.writeFileSync(HELP_FILE, JSON.stringify(cleanedRequests, null, 2));
 }
 
 function sanitizePrintSettings(input = {}) {
@@ -269,7 +288,8 @@ function listTrackedJobs() {
     .filter((job) => !activeCodes.has(job.code))
     .map((job) => ({ ...job }));
   writeHistory(history);
-  return [...activeJobs, ...history]
+  const recentHistory = readHistory().filter((job) => !activeCodes.has(job.code));
+  return [...activeJobs, ...recentHistory]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -401,7 +421,7 @@ async function createPreparedPdf(job, file, settings, requestId) {
 function sessionCounters(job, files) {
   const counts = { bwPages: 0, colorPages: 0, totalPages: 0 };
   const fileById = new Map(files.map((file) => [file.id, file]));
-  const requests = (job.printRequests || []).filter((request) => request.status !== "failed");
+  const requests = (job.printRequests || []).filter((request) => request.status === "done");
 
   for (const request of requests) {
     const file = fileById.get(request.fileId);
@@ -702,6 +722,33 @@ app.get("/api/jobs", (request, response) => {
   response.json({
     jobs: listTrackedJobs(),
   });
+});
+
+app.get("/api/help", (request, response) => {
+  const requests = readHelpRequests();
+  writeHelpRequests(requests);
+  response.json({ requests: readHelpRequests() });
+});
+
+app.post("/api/help", (request, response) => {
+  const station = stationFrom(request.body.station);
+  const requests = readHelpRequests().filter((item) => item.station !== station);
+  const helpRequest = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    station,
+    stationLabel: stations[station],
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  requests.unshift(helpRequest);
+  writeHelpRequests(requests);
+  response.status(201).json({ ok: true, request: helpRequest });
+});
+
+app.delete("/api/help/:station", (request, response) => {
+  const station = stationFrom(request.params.station);
+  writeHelpRequests(readHelpRequests().filter((item) => item.station !== station));
+  response.json({ ok: true });
 });
 
 app.post("/api/jobs", upload.array("files", 10), async (request, response, next) => {

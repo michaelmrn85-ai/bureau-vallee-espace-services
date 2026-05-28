@@ -334,6 +334,13 @@ button.print-choice-card {
   padding: 12px;
 }
 
+.compact-home-info {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .format-warning {
   margin: 6px 0 0;
   color: var(--yellow);
@@ -373,6 +380,20 @@ button.print-choice-card {
 
 .wifi-bubble b {
   color: var(--ink);
+}
+
+.help-button {
+  min-width: 130px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffe56a, #ffd200);
+  color: #07305d;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
+.home-message {
+  margin-top: 8px;
 }
 
 .accepted-files {
@@ -1051,6 +1072,35 @@ label {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.help-admin {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.help-alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 210, 0, 0.44);
+  border-radius: 18px;
+  background: rgba(255, 210, 0, 0.13);
+}
+
+.help-alert span,
+.help-alert small {
+  display: block;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.help-alert strong {
+  color: var(--yellow);
+  font-size: 24px;
 }
 
 .station-history-heading {

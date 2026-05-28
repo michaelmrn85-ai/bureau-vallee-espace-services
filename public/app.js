@@ -1,6 +1,7 @@
 const codeForm = document.getElementById("code-form");
 const pickupCode = document.getElementById("pickup-code");
 const message = document.getElementById("message");
+const homeMessage = document.getElementById("home-message");
 const filesContainer = document.getElementById("files");
 const uploadUrlLabel = document.getElementById("upload-url");
 const uploadQr = document.getElementById("upload-qr");
@@ -18,6 +19,7 @@ const usbMessage = document.getElementById("usb-message");
 const clientSessionToolbar = document.getElementById("client-session-toolbar");
 const clientSessionLabel = document.getElementById("client-session-label");
 const disconnectSessionBtn = document.getElementById("disconnect-session");
+const helpButton = document.getElementById("help-button");
 let currentCode = "";
 let activeJob = null;
 let deletionSeconds = 0;
@@ -42,6 +44,11 @@ function formatSize(bytes) {
 function setMessage(text, tone = "") {
   message.textContent = text;
   message.dataset.tone = tone;
+}
+
+function setHomeMessage(text, tone = "") {
+  homeMessage.textContent = text;
+  homeMessage.dataset.tone = tone;
 }
 
 function setUsbMessage(text, tone = "") {
@@ -83,6 +90,7 @@ function showHome() {
   choiceGrid.classList.remove("hidden");
   formatPanel.classList.remove("hidden");
   setMessage("");
+  setHomeMessage("");
   setUsbMessage("");
 }
 
@@ -345,6 +353,26 @@ async function requestUsbEject() {
     notify("Demande d'ejection envoyee. Vous pouvez retirer la cle quand Windows l'autorise.", "success");
   } catch (error) {
     notify(error.message, "error");
+  }
+}
+
+async function requestHelp() {
+  if (!helpButton) return;
+  helpButton.disabled = true;
+  helpButton.textContent = "Aide demandee";
+  setHomeMessage("Un vendeur va venir vous aider.", "success");
+  try {
+    const response = await fetch("/api/help", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ station: currentStation() }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Demande d'aide impossible.");
+  } catch (error) {
+    helpButton.disabled = false;
+    helpButton.textContent = "Aide";
+    setHomeMessage(error.message, "error");
   }
 }
 
@@ -643,6 +671,7 @@ document.querySelectorAll("[data-back-home]").forEach((button) => {
 });
 
 disconnectSessionBtn.addEventListener("click", disconnectSession);
+if (helpButton) helpButton.addEventListener("click", requestHelp);
 
 usbForm.addEventListener("submit", async (event) => {
   event.preventDefault();
