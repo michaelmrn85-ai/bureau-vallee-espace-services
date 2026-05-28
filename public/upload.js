@@ -28,6 +28,7 @@ async function sendUpload() {
 
   const formData = new FormData(uploadForm);
   formData.set("station", currentStation());
+  formData.set("printMode", "noir-blanc");
   setUploadMessage("Envoi en cours...");
   result.classList.add("hidden");
 
