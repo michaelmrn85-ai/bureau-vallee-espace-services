@@ -270,6 +270,29 @@ async function estimatePages(filePath, extension) {
   return 1;
 }
 
+async function storeUploadedFiles(files, directory, offset = 0) {
+  return Promise.all(files.map(async (file, index) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    const id = `${Date.now()}-${offset + index}`;
+    const storedName = `${id}${extension}`;
+    const storedPath = path.join(directory, storedName);
+    fs.renameSync(file.path, storedPath);
+    const printableStoredName = [".png", ".jpg", ".jpeg"].includes(extension) ? `${id}-print.pdf` : "";
+    if (printableStoredName) {
+      await createImagePrintPdf(storedPath, extension, path.join(directory, printableStoredName));
+    }
+    return {
+      id,
+      originalName: file.originalname,
+      storedName,
+      printableStoredName,
+      extension,
+      size: file.size,
+      pages: await estimatePages(storedPath, extension),
+    };
+  }));
+}
+
 function reserveCode() {
   for (let attempt = 0; attempt < 80; attempt += 1) {
     const code = generateCode();
@@ -764,26 +787,7 @@ app.post("/api/jobs", upload.array("files", 10), async (request, response, next)
     const directory = jobDir(code);
     const printMode = request.body.printMode === "couleur" ? "couleur" : "noir-blanc";
     const printSettings = sanitizePrintSettings({ colorMode: printMode });
-    const files = await Promise.all(request.files.map(async (file, index) => {
-      const extension = path.extname(file.originalname).toLowerCase();
-      const id = `${Date.now()}-${index}`;
-      const storedName = `${id}${extension}`;
-      const storedPath = path.join(directory, storedName);
-      fs.renameSync(file.path, storedPath);
-      const printableStoredName = [".png", ".jpg", ".jpeg"].includes(extension) ? `${id}-print.pdf` : "";
-      if (printableStoredName) {
-        await createImagePrintPdf(storedPath, extension, path.join(directory, printableStoredName));
-      }
-      return {
-        id,
-        originalName: file.originalname,
-        storedName,
-        printableStoredName,
-        extension,
-        size: file.size,
-        pages: await estimatePages(storedPath, extension),
-      };
-    }));
+    const files = await storeUploadedFiles(request.files, directory);
 
     const job = {
       code,
@@ -796,6 +800,28 @@ app.post("/api/jobs", upload.array("files", 10), async (request, response, next)
       files,
     };
 
+    writeJob(job);
+    response.status(201).json(publicJob(job));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/jobs/:code/files", upload.array("files", 10), async (request, response, next) => {
+  try {
+    const job = readJob(request.params.code);
+    if (!job) {
+      response.status(404).json({ error: "Session introuvable." });
+      return;
+    }
+    if (!request.files?.length) {
+      response.status(400).json({ error: "Ajoutez au moins un fichier." });
+      return;
+    }
+
+    const files = await storeUploadedFiles(request.files, jobDir(job.code), job.files.length);
+    job.files.push(...files);
+    job.expiresAt = new Date(Date.now() + JOB_TTL_MS).toISOString();
     writeJob(job);
     response.status(201).json(publicJob(job));
   } catch (error) {

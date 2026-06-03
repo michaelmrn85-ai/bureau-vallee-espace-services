@@ -27,6 +27,7 @@ let deletionInterval = null;
 let expirationWarningShown = false;
 let printStatusInterval = null;
 let usbReminderTimer = null;
+let activePreviewFileId = "";
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -79,6 +80,7 @@ function showHome() {
   stopPrintStatusPolling();
   stopUsbReminder();
   activeJob = null;
+  activePreviewFileId = "";
   currentCode = "";
   pickupCode.value = "";
   filesContainer.innerHTML = "";
@@ -290,7 +292,8 @@ function startPrintStatusPolling() {
 }
 
 function firstPreviewFile(job) {
-  return job.files.find((file) => isPdf(file) || isImage(file));
+  return job.files.find((file) => file.id === activePreviewFileId && (isPdf(file) || isImage(file)))
+    || job.files.find((file) => isPdf(file) || isImage(file));
 }
 
 function renderFilePreview(file) {
@@ -374,6 +377,17 @@ async function requestHelp() {
     helpButton.textContent = "Aide";
     setHomeMessage(error.message, "error");
   }
+}
+
+function showUsbPickerForCurrentJob() {
+  if (!activeJob?.code) return;
+  stopPrintStatusPolling();
+  filesContainer.classList.add("hidden");
+  usbPanel.classList.remove("hidden");
+  mobilePanel.classList.add("hidden");
+  usbFileInput.value = "";
+  setUsbMessage("Selectionnez un ou plusieurs fichiers a ajouter a cette session.", "success");
+  startUsbReminder();
 }
 
 function attachPrintButtons() {
@@ -466,13 +480,14 @@ async function uploadUsbFile() {
   setUsbMessage("Chargement du fichier...");
 
   try {
-    const response = await fetch("/api/jobs", {
+    const endpoint = activeJob?.code ? `/api/jobs/${activeJob.code}/files` : "/api/jobs";
+    const response = await fetch(endpoint, {
       method: "POST",
       body: formData,
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
-    setUsbMessage("Fichier charge.", "success");
+    setUsbMessage(activeJob?.code ? "Fichier ajoute a la session." : "Fichier charge.", "success");
     renderJob(payload);
   } catch (error) {
     setUsbMessage(error.message, "error");
@@ -498,6 +513,7 @@ async function deleteCurrentJob(finalMessage) {
     // The visual flow still resets even if the file was already removed.
   }
   activeJob = null;
+  activePreviewFileId = "";
   currentCode = "";
   filesContainer.innerHTML = "";
   filesContainer.classList.add("hidden");
@@ -574,6 +590,7 @@ function renderJob(job, resetTimer = true) {
   const printableFiles = job.files.filter(isPrintable);
   const hasPrintable = printableFiles.length > 0;
   const previewFile = firstPreviewFile(job);
+  activePreviewFileId = previewFile?.id || "";
   filesContainer.innerHTML = `
     <div class="job-head">
       <div>
@@ -581,7 +598,12 @@ function renderJob(job, resetTimer = true) {
         <strong>${job.customerName || "Client"}</strong>
         <small id="deletion-countdown">Suppression automatique dans 3 minutes</small>
       </div>
-      ${job.customerName === "Cle USB" ? `<button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>` : ""}
+      ${job.customerName === "Cle USB" ? `
+        <div class="panel-actions">
+          <button class="text-link" type="button" data-show-usb-picker>Ajouter depuis la cle USB</button>
+          <button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>
+        </div>
+      ` : ""}
     </div>
     <div class="job-workspace">
       <main class="document-stage">
@@ -595,6 +617,7 @@ function renderJob(job, resetTimer = true) {
                 <small>${file.extension.toUpperCase()} - ${formatSize(file.size)} - ${file.pages || 1} page(s)</small>
               </div>
               <div class="file-actions">
+                ${(isPdf(file) || isImage(file)) ? `<button class="preview-button" type="button" data-preview-file="${file.id}">${activePreviewFileId === file.id ? "Affiche" : "Voir"}</button>` : ""}
                 ${isPrintable(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
                 ${latestPrintStatus(file.id) ? `<span class="counter-pill">${latestPrintStatus(file.id)}</span>` : ""}
               </div>
@@ -682,6 +705,12 @@ usbFileInput.addEventListener("change", uploadUsbFile);
 
 document.addEventListener("click", (event) => {
   if (event.target.closest("[data-eject-usb]")) requestUsbEject();
+  if (event.target.closest("[data-show-usb-picker]")) showUsbPickerForCurrentJob();
+  const previewButton = event.target.closest("[data-preview-file]");
+  if (previewButton && activeJob) {
+    activePreviewFileId = previewButton.dataset.previewFile;
+    renderJob(activeJob, false);
+  }
 });
 
 loadConfig();

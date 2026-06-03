@@ -558,6 +558,14 @@ button,
   letter-spacing: 0.04em;
 }
 
+.preview-button {
+  min-width: 82px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+}
+
 .settings-save-button,
 .secondary-submit {
   border: 2px solid rgba(255, 255, 255, 0.86);
