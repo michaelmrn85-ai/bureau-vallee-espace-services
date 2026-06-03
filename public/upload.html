@@ -18,7 +18,7 @@
       <div class="notice-banner hidden" id="notice-banner"></div>
       <p class="eyebrow">Bureau Vallee</p>
       <h1>Envoyer mes fichiers</h1>
-      <p class="lead">Ajoutez vos PDF, PNG, JPG, JPEG ou HEIC. Pour les fichiers Word et HEIC, rapprochez-vous du comptoir.</p>
+      <p class="lead">Ajoutez vos PDF, PNG, JPG, JPEG ou HEIC. Les fichiers Word sont a presenter au comptoir.</p>
 
       <form id="upload-form">
         <label>
@@ -33,7 +33,10 @@
         </label>
 
         <div class="selected-files" id="selected-files"></div>
-        <button class="wide-btn secondary-submit" type="submit">Renvoyer si besoin</button>
+        <div class="busy-state hidden" id="upload-busy" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <strong>Merci de patienter</strong>
+        </div>
       </form>
 
       <div class="result hidden" id="result">

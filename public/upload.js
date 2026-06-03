@@ -4,6 +4,8 @@ const selectedFiles = document.getElementById("selected-files");
 const result = document.getElementById("result");
 const resultCode = document.getElementById("result-code");
 const uploadMessage = document.getElementById("upload-message");
+const uploadBusy = document.getElementById("upload-busy");
+let isUploading = false;
 
 function currentStation() {
   const params = new URLSearchParams(window.location.search);
@@ -20,7 +22,14 @@ function setUploadMessage(text, tone = "") {
   uploadMessage.dataset.tone = tone;
 }
 
+function setUploadBusy(active) {
+  isUploading = active;
+  uploadBusy.classList.toggle("hidden", !active);
+  filesInput.disabled = active;
+}
+
 async function sendUpload() {
+  if (isUploading) return;
   if (!filesInput.files.length) {
     setUploadMessage("Ajoutez au moins un fichier.", "error");
     return;
@@ -29,7 +38,8 @@ async function sendUpload() {
   const formData = new FormData(uploadForm);
   formData.set("station", currentStation());
   formData.set("printMode", "noir-blanc");
-  setUploadMessage("Envoi en cours...");
+  setUploadBusy(true);
+  setUploadMessage("Merci de patienter, envoi de vos fichiers...");
   result.classList.add("hidden");
 
   try {
@@ -46,6 +56,8 @@ async function sendUpload() {
     setUploadMessage("Fichiers envoyes.", "success");
   } catch (error) {
     setUploadMessage(error.message, "error");
+  } finally {
+    setUploadBusy(false);
   }
 }
 
