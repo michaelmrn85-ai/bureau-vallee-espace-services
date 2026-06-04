@@ -574,6 +574,14 @@ button,
   color: #07305d;
 }
 
+.main-print-button {
+  width: 100%;
+  min-height: 64px;
+  font-size: 24px;
+  text-transform: uppercase;
+  box-shadow: 0 14px 30px rgba(0, 39, 75, 0.36);
+}
+
 button:disabled {
   opacity: 0.62;
   cursor: wait;
@@ -669,9 +677,8 @@ button:disabled {
   min-height: 100vh;
   padding: clamp(28px, 5vw, 64px);
   background:
-    linear-gradient(155deg, rgba(255, 210, 0, 0.14), transparent 34%),
-    linear-gradient(215deg, rgba(0, 155, 78, 0.18), transparent 36%),
-    #08131f;
+    radial-gradient(circle at 18% 12%, rgba(255, 210, 0, 0.2), transparent 26%),
+    linear-gradient(145deg, #078bd1 0%, #0478bb 45%, #07589a 100%);
   text-align: center;
 }
 
@@ -1087,6 +1094,90 @@ label {
 
 .modal.hidden {
   display: none;
+}
+
+.print-status-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 12, 24, 0.52);
+  pointer-events: none;
+}
+
+.print-status-modal.hidden {
+  display: none;
+}
+
+.print-status-card {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  width: min(560px, calc(100vw - 34px));
+  padding: clamp(28px, 4vw, 46px);
+  border: 2px solid rgba(255, 210, 0, 0.58);
+  border-radius: 26px;
+  background: rgba(7, 28, 52, 0.96);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.58);
+  text-align: center;
+}
+
+.print-status-card .print-status-spinner {
+  width: 86px;
+  height: 86px;
+  border-width: 8px;
+  border-color: rgba(255, 255, 255, 0.34);
+  border-top-color: var(--yellow);
+}
+
+.print-status-modal[data-status="done"] .print-status-spinner,
+.print-status-modal[data-status="failed"] .print-status-spinner {
+  display: grid;
+  place-items: center;
+  border: 0;
+  animation: none;
+}
+
+.print-status-modal[data-status="done"] .print-status-spinner::before {
+  content: "OK";
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: #28d778;
+  color: #06111c;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.print-status-modal[data-status="failed"] .print-status-spinner::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  font-size: 42px;
+  font-weight: 900;
+}
+
+.print-status-card strong {
+  color: var(--yellow);
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: 0.98;
+}
+
+.print-status-card p {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 900;
+  line-height: 1.18;
 }
 
 .modal-card {

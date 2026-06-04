@@ -15,11 +15,11 @@ async function loadSessionState() {
       return;
     }
 
-    message.textContent = session.message || "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.";
+    message.textContent = session.message || "Poste en pause, merci de patienter.";
     screen.classList.remove("hidden");
     document.body.classList.add("session-closed");
   } catch (error) {
-    message.textContent = "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.";
+    message.textContent = "Poste en pause, merci de patienter.";
     screen.classList.remove("hidden");
     document.body.classList.add("session-closed");
   }

@@ -36,6 +36,7 @@ const defaultPrintSettings = {
   pagesPerSheet: 1,
   copies: 1,
 };
+const DEFAULT_SESSION_MESSAGE = "Poste en pause, merci de patienter.";
 
 function isDirectPrintableExtension(extension) {
   return [".pdf", ".png", ".jpg", ".jpeg"].includes(String(extension || "").toLowerCase());
@@ -601,7 +602,7 @@ function writeNotice(notice) {
 
 function defaultSession() {
   return {
-    message: "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.",
+    message: DEFAULT_SESSION_MESSAGE,
     stations: {
       "poste-1": { active: false },
       "poste-2": { active: false },
@@ -716,7 +717,7 @@ app.get("/api/session", (request, response) => {
 });
 
 app.post("/api/session", (request, response) => {
-  const message = String(request.body.message || "").trim().slice(0, 180) || defaultSession().message;
+  const message = String(request.body.message || "").trim().slice(0, 180) || DEFAULT_SESSION_MESSAGE;
   const station = stationFrom(request.body.station);
   const current = readSession();
   const session = {

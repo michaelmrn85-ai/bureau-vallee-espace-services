@@ -208,7 +208,7 @@ async function loadSession() {
 }
 
 async function saveSession(station, active) {
-  const message = sessionInput.value.trim() || "Bienvenue en Espace Services, merci de vous approcher du ou de la vendeuse.";
+  const message = sessionInput.value.trim() || "Poste en pause, merci de patienter.";
   try {
     const response = await fetch("/api/session", {
       method: "POST",

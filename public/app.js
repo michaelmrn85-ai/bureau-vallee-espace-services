@@ -9,6 +9,9 @@ const stationTitle = document.getElementById("station-title");
 const expirationModal = document.getElementById("expiration-modal");
 const expirationCountdown = document.getElementById("expiration-countdown");
 const closeExpirationModalBtn = document.getElementById("close-expiration-modal");
+const printStatusModal = document.getElementById("print-status-modal");
+const printStatusTitle = document.getElementById("print-status-title");
+const printStatusDetail = document.getElementById("print-status-detail");
 const choiceGrid = document.querySelector(".choice-grid");
 const formatPanel = document.querySelector(".format-panel");
 const usbPanel = document.getElementById("usb-panel");
@@ -31,6 +34,7 @@ let activePreviewFileId = "";
 let selectedPrintFileIds = new Set();
 let knownPrintableFileIds = new Set();
 let printSelectionReady = false;
+let printStatusHideTimer = null;
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -82,6 +86,7 @@ function showHome() {
   stopDeletionTimer();
   stopPrintStatusPolling();
   stopUsbReminder();
+  hidePrintStatusModal();
   activeJob = null;
   activePreviewFileId = "";
   selectedPrintFileIds = new Set();
@@ -270,6 +275,10 @@ function latestPrintStatus(fileId) {
   return request ? printStatusLabel(request.status) : "";
 }
 
+function latestPrintRequest(job = activeJob) {
+  return [...(job?.printRequests || [])].reverse()[0] || null;
+}
+
 function hasPendingPrintRequest(job = activeJob) {
   return (job?.printRequests || []).some((request) => ["queued", "printing"].includes(request.status));
 }
@@ -300,6 +309,53 @@ function refreshPrintStatuses(job = activeJob) {
       status.textContent = label;
       status.classList.toggle("hidden", !label);
     }
+  }
+  updatePrintStatusModal(job);
+}
+
+function hidePrintStatusModal() {
+  window.clearTimeout(printStatusHideTimer);
+  printStatusHideTimer = null;
+  printStatusModal.classList.add("hidden");
+}
+
+function updatePrintStatusModal(job = activeJob) {
+  const request = latestPrintRequest(job);
+  if (!request) {
+    hidePrintStatusModal();
+    return;
+  }
+
+  window.clearTimeout(printStatusHideTimer);
+  printStatusHideTimer = null;
+  printStatusModal.dataset.status = request.status;
+
+  if (request.status === "queued") {
+    printStatusTitle.textContent = "En attente";
+    printStatusDetail.textContent = "Votre impression est envoyee au copieur.";
+    printStatusModal.classList.remove("hidden");
+    return;
+  }
+
+  if (request.status === "printing") {
+    printStatusTitle.textContent = "Impression en cours";
+    printStatusDetail.textContent = "Merci de patienter.";
+    printStatusModal.classList.remove("hidden");
+    return;
+  }
+
+  if (request.status === "done") {
+    printStatusTitle.textContent = "Imprime";
+    printStatusDetail.textContent = "Merci de recuperer vos impressions et de vous rapprocher de la caisse.";
+    printStatusModal.classList.remove("hidden");
+    printStatusHideTimer = window.setTimeout(hidePrintStatusModal, 3500);
+    return;
+  }
+
+  if (request.status === "failed") {
+    printStatusTitle.textContent = "Erreur d'impression";
+    printStatusDetail.textContent = "Merci de demander de l'aide a un vendeur.";
+    printStatusModal.classList.remove("hidden");
   }
 }
 
@@ -437,6 +493,7 @@ function attachPrintButtons() {
       try {
         const settings = await savePrintSettings();
         await sendPrintRequest(fileId, settings);
+        updatePrintStatusModal(activeJob);
         if (settingsMessage) {
           settingsMessage.textContent = "Impression en cours. Merci de patienter.";
           settingsMessage.dataset.tone = "success";
@@ -481,19 +538,20 @@ function attachPrintButtons() {
         for (const fileId of selectedFileIds) {
           await sendPrintRequest(fileId, settings);
         }
+        updatePrintStatusModal(activeJob);
         if (settingsMessage) {
           settingsMessage.textContent = `${selectedFileIds.length} fichier(s) en cours d'impression. Merci de patienter.`;
           settingsMessage.dataset.tone = "success";
         }
         selectedButton.disabled = false;
         selectedButton.classList.remove("is-busy");
-        selectedButton.textContent = "Imprimer la selection";
+        selectedButton.textContent = "Imprimer";
         refreshPrintStatuses(activeJob);
         startPrintStatusPolling();
       } catch (error) {
         selectedButton.disabled = false;
         selectedButton.classList.remove("is-busy");
-        selectedButton.textContent = "Imprimer la selection";
+        selectedButton.textContent = "Imprimer";
         if (settingsMessage) {
           settingsMessage.textContent = error.message;
           settingsMessage.dataset.tone = "error";
@@ -554,6 +612,7 @@ async function deleteCurrentJob(finalMessage) {
   const code = activeJob.code;
   stopDeletionTimer();
   stopPrintStatusPolling();
+  hidePrintStatusModal();
   try {
     await fetch(`/api/jobs/${code}`, { method: "DELETE" });
   } catch (error) {
@@ -639,6 +698,7 @@ function renderJob(job, resetTimer = true) {
   setMessage(`${job.files.length} fichier(s) disponible(s) pour le code ${job.code}.`, "success");
   const printableFiles = job.files.filter(isPrintable);
   const hasPrintable = printableFiles.length > 0;
+  const showPerFilePrintButtons = printableFiles.length <= 1;
   const previewFile = firstPreviewFile(job);
   syncSelectedPrintFiles(job);
   activePreviewFileId = previewFile?.id || "";
@@ -669,7 +729,8 @@ function renderJob(job, resetTimer = true) {
               </div>
               <div class="file-actions">
                 ${(isPdf(file) || isImage(file)) ? `<button class="preview-button" type="button" data-preview-file="${file.id}">${activePreviewFileId === file.id ? "Affiche" : "Voir"}</button>` : ""}
-                ${isPrintable(file) ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : `<span class="counter-pill">Au comptoir</span>`}
+                ${isPrintable(file) && showPerFilePrintButtons ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : ""}
+                ${!isPrintable(file) ? `<span class="counter-pill">Au comptoir</span>` : ""}
                 <span class="counter-pill${latestPrintStatus(file.id) ? "" : " hidden"}" data-print-status="${file.id}">${latestPrintStatus(file.id)}</span>
               </div>
             </article>
@@ -687,7 +748,7 @@ function renderJob(job, resetTimer = true) {
           <div class="multi-print-panel">
             <strong>Impression multiple</strong>
             <span>Cochez les fichiers a imprimer puis lancez la selection. Ils partiront un par un au copieur.</span>
-            <button class="settings-save-button" type="button" data-print-selected>Imprimer la selection</button>
+            <button class="settings-save-button main-print-button" type="button" data-print-selected>Imprimer</button>
           </div>
         ` : ""}
         ${printableFiles.length > 1 ? `
