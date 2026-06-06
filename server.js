@@ -20,7 +20,8 @@ const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 3 * 60 * 1000;
-const MAX_FILE_SIZE = 80 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = 500;
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif"]);
 const stations = {
   "poste-1": "Poste 1",
@@ -1078,6 +1079,10 @@ app.delete("/api/jobs/:code", (request, response) => {
 app.use((error, request, response, next) => {
   for (const file of request.files || []) {
     if (file.path && fs.existsSync(file.path)) fs.rmSync(file.path, { force: true });
+  }
+  if (error.code === "LIMIT_FILE_SIZE") {
+    response.status(400).json({ error: `Fichier trop lourd. Limite : ${MAX_FILE_SIZE_MB} Mo par fichier.` });
+    return;
   }
   response.status(400).json({ error: error.message || "Operation impossible." });
 });
