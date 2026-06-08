@@ -19,11 +19,26 @@
     <section class="panel">
       <div class="panel-heading">
         <p class="eyebrow">Administration</p>
-        <h1 class="page-title">Espace admin</h1>
-        <p class="lead">Suivi des codes clients et message d'information affiché sur les pages clients.</p>
+        <h1 class="page-title">Tableau de bord</h1>
+        <p class="lead">Compteurs essentiels, etat des postes et messages clients.</p>
       </div>
 
+      <section class="dashboard-summary" id="dashboard-summary" aria-live="polite"></section>
+
       <div class="admin-grid">
+        <section class="admin-section admin-section-wide">
+          <div class="panel-heading panel-heading-row">
+            <div>
+              <p class="eyebrow">Suivi caisse</p>
+              <h2>Compteur pages</h2>
+            </div>
+            <button id="refresh-codes" type="button">Actualiser</button>
+          </div>
+          <div class="help-admin" id="help-list"></div>
+          <p class="message" id="codes-message"></p>
+          <div class="codes-list" id="codes-list"></div>
+        </section>
+
         <section class="admin-section">
           <div class="panel-heading">
             <p class="eyebrow">Session client</p>
@@ -59,19 +74,6 @@
             </article>
           </div>
           <p class="message" id="session-admin-message"></p>
-        </section>
-
-        <section class="admin-section">
-          <div class="panel-heading panel-heading-row">
-            <div>
-              <p class="eyebrow">Suivi caisse</p>
-              <h2>Compteur pages</h2>
-            </div>
-            <button id="refresh-codes" type="button">Actualiser</button>
-          </div>
-          <div class="help-admin" id="help-list"></div>
-          <p class="message" id="codes-message"></p>
-          <div class="codes-list" id="codes-list"></div>
         </section>
 
         <section class="admin-section">

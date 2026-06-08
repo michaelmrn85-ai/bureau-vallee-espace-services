@@ -8,6 +8,9 @@ const adminMessage = document.getElementById("notice-admin-message");
 const sessionInput = document.getElementById("session-message");
 const sessionAdminMessage = document.getElementById("session-admin-message");
 const helpList = document.getElementById("help-list");
+const dashboardSummary = document.getElementById("dashboard-summary");
+let latestJobs = [];
+let latestHelpRequests = [];
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -61,7 +64,72 @@ function donePrintCount(job) {
   return (job.printRequests || []).filter((request) => request.status === "done").length;
 }
 
+function summarizeJobs(jobs = [], helpRequests = latestHelpRequests) {
+  return jobs.reduce((summary, job) => {
+    const station = job.station || "poste-1";
+    summary.total.bwPages += Number(job.bwPages || 0);
+    summary.total.colorPages += Number(job.colorPages || 0);
+    summary.total.totalPages += Number(job.totalPages || 0);
+    summary.total.activeJobs += job.status === "actif" ? 1 : 0;
+    summary.total.donePrints += donePrintCount(job);
+
+    if (summary.stations[station]) {
+      summary.stations[station].bwPages += Number(job.bwPages || 0);
+      summary.stations[station].colorPages += Number(job.colorPages || 0);
+      summary.stations[station].totalPages += Number(job.totalPages || 0);
+      summary.stations[station].activeJobs += job.status === "actif" ? 1 : 0;
+    }
+    return summary;
+  }, {
+    total: { bwPages: 0, colorPages: 0, totalPages: 0, activeJobs: 0, donePrints: 0, helpRequests: helpRequests.length },
+    stations: {
+      "poste-1": { label: "Poste 1", bwPages: 0, colorPages: 0, totalPages: 0, activeJobs: 0 },
+      "poste-2": { label: "Poste 2", bwPages: 0, colorPages: 0, totalPages: 0, activeJobs: 0 },
+    },
+  });
+}
+
+function renderDashboard(jobs = latestJobs, helpRequests = latestHelpRequests) {
+  if (!dashboardSummary) return;
+  const summary = summarizeJobs(jobs, helpRequests);
+  dashboardSummary.innerHTML = `
+    <article class="dashboard-card is-primary">
+      <span>Total pages</span>
+      <strong>${summary.total.totalPages}</strong>
+      <small>N&B ${summary.total.bwPages} - Couleur ${summary.total.colorPages}</small>
+    </article>
+    <article class="dashboard-card">
+      <span>Noir et blanc</span>
+      <strong>${summary.total.bwPages}</strong>
+      <small>Pages confirmees caisse</small>
+    </article>
+    <article class="dashboard-card">
+      <span>Couleur</span>
+      <strong>${summary.total.colorPages}</strong>
+      <small>Pages confirmees caisse</small>
+    </article>
+    <article class="dashboard-card">
+      <span>Sessions actives</span>
+      <strong>${summary.total.activeJobs}</strong>
+      <small>${summary.total.donePrints} impression(s) confirmee(s)</small>
+    </article>
+    <article class="dashboard-card ${summary.total.helpRequests ? "needs-help" : ""}">
+      <span>Aide client</span>
+      <strong>${summary.total.helpRequests}</strong>
+      <small>${summary.total.helpRequests ? "Demande en attente" : "Aucune demande"}</small>
+    </article>
+    ${Object.entries(summary.stations).map(([id, station]) => `
+      <article class="dashboard-card station-dashboard-card">
+        <span>${station.label}</span>
+        <strong>${station.totalPages}</strong>
+        <small>N&B ${station.bwPages} - Couleur ${station.colorPages} - ${station.activeJobs} actif(s)</small>
+      </article>
+    `).join("")}
+  `;
+}
+
 function renderJobs(jobs) {
+  renderDashboard(jobs);
   if (!jobs.length) {
     codesList.innerHTML = `
       <div class="empty-card">
@@ -131,6 +199,8 @@ function renderJobs(jobs) {
 }
 
 function renderHelpRequests(requests = []) {
+  latestHelpRequests = requests;
+  renderDashboard();
   if (!helpList) return;
   if (!requests.length) {
     helpList.innerHTML = "";
@@ -177,6 +247,7 @@ async function loadCodes() {
     const response = await fetch("/api/jobs");
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
+    latestJobs = payload.jobs || [];
     renderJobs(payload.jobs || []);
     setCodesMessage("Compteurs reels par poste, conserves 3 minutes apres fin de session.", "success");
   } catch (error) {

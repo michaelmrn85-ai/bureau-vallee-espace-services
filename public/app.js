@@ -38,6 +38,7 @@ let selectedPrintFileIds = new Set();
 let knownPrintableFileIds = new Set();
 let printSelectionReady = false;
 let printStatusHideTimer = null;
+let usbEjectHideTimer = null;
 let clockInterval = null;
 
 function currentStation() {
@@ -466,7 +467,11 @@ async function requestUsbEject() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Ejection impossible.");
     notify("Demande d'ejection envoyee. Vous pouvez retirer la cle quand Windows l'autorise.", "success");
+    window.clearTimeout(usbEjectHideTimer);
     usbEjectModal.classList.remove("hidden");
+    usbEjectHideTimer = window.setTimeout(() => {
+      usbEjectModal.classList.add("hidden");
+    }, 10000);
   } catch (error) {
     notify(error.message, "error");
   }
@@ -817,6 +822,7 @@ closeExpirationModalBtn.addEventListener("click", () => {
 });
 
 closeUsbEjectModalBtn.addEventListener("click", () => {
+  window.clearTimeout(usbEjectHideTimer);
   usbEjectModal.classList.add("hidden");
 });
 
