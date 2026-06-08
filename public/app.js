@@ -13,6 +13,8 @@ const closeExpirationModalBtn = document.getElementById("close-expiration-modal"
 const printStatusModal = document.getElementById("print-status-modal");
 const printStatusTitle = document.getElementById("print-status-title");
 const printStatusDetail = document.getElementById("print-status-detail");
+const sessionCloseModal = document.getElementById("session-close-modal");
+const sessionCloseCountdown = document.getElementById("session-close-countdown");
 const usbEjectModal = document.getElementById("usb-eject-modal");
 const closeUsbEjectModalBtn = document.getElementById("close-usb-eject-modal");
 const choiceGrid = document.querySelector(".choice-grid");
@@ -40,6 +42,9 @@ let printSelectionReady = false;
 let printStatusHideTimer = null;
 let usbEjectHideTimer = null;
 let clockInterval = null;
+let sessionCloseInterval = null;
+const SESSION_SECONDS = 300;
+const SESSION_CLOSE_SECONDS = 10;
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -108,6 +113,7 @@ function showHome() {
   stopPrintStatusPolling();
   stopUsbReminder();
   hidePrintStatusModal();
+  hideSessionCloseModal();
   activeJob = null;
   activePreviewFileId = "";
   selectedPrintFileIds = new Set();
@@ -126,6 +132,12 @@ function showHome() {
   setMessage("");
   setHomeMessage("");
   setUsbMessage("");
+}
+
+function hideSessionCloseModal() {
+  window.clearInterval(sessionCloseInterval);
+  sessionCloseInterval = null;
+  sessionCloseModal.classList.add("hidden");
 }
 
 function showFlow(flow) {
@@ -661,10 +673,33 @@ async function deleteCurrentJob(finalMessage) {
 
 async function disconnectSession() {
   stopUsbReminder();
-  if (activeJob?.code) {
+  const hadFiles = Boolean(activeJob?.code);
+  if (hadFiles) {
     await deleteCurrentJob("Session terminee. Vos fichiers ont ete supprimes.");
   }
-  showHome();
+  if (!hadFiles) {
+    showHome();
+    return;
+  }
+  let remaining = SESSION_CLOSE_SECONDS;
+  const updateCloseCountdown = () => {
+    const progress = Math.max(0, Math.min(1, remaining / SESSION_CLOSE_SECONDS));
+    sessionCloseCountdown.textContent = String(remaining);
+    sessionCloseCountdown.style.setProperty("--timer-progress", `${progress * 360}deg`);
+  };
+
+  hideSessionCloseModal();
+  sessionCloseModal.classList.remove("hidden");
+  updateCloseCountdown();
+
+  sessionCloseInterval = window.setInterval(() => {
+    remaining -= 1;
+    updateCloseCountdown();
+    if (remaining <= 0) {
+      hideSessionCloseModal();
+      showHome();
+    }
+  }, 1000);
 }
 
 function updateDeletionCountdown() {
@@ -672,7 +707,7 @@ function updateDeletionCountdown() {
   if (countdownLabel) {
     const minutes = Math.floor(Math.max(0, deletionSeconds) / 60);
     const seconds = String(Math.max(0, deletionSeconds) % 60).padStart(2, "0");
-    const progress = Math.max(0, Math.min(1, deletionSeconds / 180));
+    const progress = Math.max(0, Math.min(1, deletionSeconds / SESSION_SECONDS));
     countdownLabel.textContent = `${minutes}:${seconds}`;
     countdownLabel.style.setProperty("--timer-progress", `${progress * 360}deg`);
     countdownLabel.classList.toggle("is-urgent", deletionSeconds <= 30);
@@ -684,7 +719,7 @@ function updateDeletionCountdown() {
 
 function startDeletionTimer() {
   stopDeletionTimer();
-  deletionSeconds = 180;
+  deletionSeconds = SESSION_SECONDS;
   updateDeletionCountdown();
 
   deletionInterval = window.setInterval(() => {
@@ -737,7 +772,7 @@ function renderJob(job, resetTimer = true) {
     <div class="job-head">
       <div class="session-timer">
         <span>Fin session</span>
-        <strong id="deletion-countdown" style="--timer-progress: 360deg">3:00</strong>
+        <strong id="deletion-countdown" style="--timer-progress: 360deg">5:00</strong>
       </div>
       <div>
         <span>Code ${job.code}</span>
@@ -842,7 +877,7 @@ document.querySelectorAll("[data-back-home]").forEach((button) => {
   button.addEventListener("click", disconnectSession);
 });
 
-disconnectSessionBtn.addEventListener("click", disconnectSession);
+if (disconnectSessionBtn) disconnectSessionBtn.addEventListener("click", disconnectSession);
 if (helpButton) helpButton.addEventListener("click", requestHelp);
 
 usbForm.addEventListener("submit", async (event) => {

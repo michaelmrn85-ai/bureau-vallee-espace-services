@@ -15,11 +15,11 @@ async function loadSessionState() {
       return;
     }
 
-    message.textContent = session.message || "Poste en pause, merci de patienter.";
+    message.textContent = session.message || "Mise a jour ou grande serie d'impressions en cours.";
     screen.classList.remove("hidden");
     document.body.classList.add("session-closed");
   } catch (error) {
-    message.textContent = "Poste en pause, merci de patienter.";
+    message.textContent = "Mise a jour ou grande serie d'impressions en cours.";
     screen.classList.remove("hidden");
     document.body.classList.add("session-closed");
   }

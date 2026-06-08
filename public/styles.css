@@ -1240,6 +1240,21 @@ label {
   display: none;
 }
 
+.session-close-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 12, 24, 0.68);
+  backdrop-filter: blur(5px);
+}
+
+.session-close-modal.hidden {
+  display: none;
+}
+
 .usb-eject-card {
   display: grid;
   justify-items: center;
@@ -1329,6 +1344,51 @@ label {
 }
 
 .print-status-card p {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.session-close-card {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  width: min(560px, calc(100vw - 34px));
+  padding: clamp(28px, 4vw, 46px);
+  border: 2px solid rgba(255, 210, 0, 0.72);
+  border-radius: 26px;
+  background: rgba(7, 28, 52, 0.98);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.58);
+  text-align: center;
+}
+
+.session-close-card strong {
+  --timer-progress: 360deg;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  color: var(--yellow);
+  background:
+    linear-gradient(rgba(7, 28, 52, 0.98), rgba(7, 28, 52, 0.98)) padding-box,
+    conic-gradient(var(--yellow) var(--timer-progress), rgba(255, 255, 255, 0.18) 0) border-box;
+  border: 8px solid transparent;
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.session-close-card h2 {
+  margin: 0;
+  color: var(--yellow);
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: 0.98;
+}
+
+.session-close-card p {
   margin: 0;
   color: var(--ink);
   font-size: clamp(20px, 2.4vw, 30px);
@@ -1619,6 +1679,118 @@ label {
   background: rgba(255, 255, 255, 0.035);
 }
 
+.admin-shell {
+  width: min(1760px, calc(100vw - 48px));
+}
+
+.admin-dashboard-panel {
+  padding: clamp(22px, 2vw, 34px);
+}
+
+.station-dashboard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+  margin-top: 18px;
+}
+
+.station-counter-card {
+  display: grid;
+  gap: 20px;
+  min-height: 560px;
+  padding: clamp(26px, 3vw, 44px);
+  border: 2px solid rgba(255, 210, 0, 0.3);
+  border-radius: 24px;
+  background: rgba(4, 55, 105, 0.74);
+  box-shadow: 0 24px 70px rgba(0, 39, 75, 0.32);
+}
+
+.station-counter-card.is-open {
+  border-color: rgba(118, 232, 166, 0.42);
+}
+
+.station-counter-card.is-closed {
+  border-color: rgba(255, 95, 95, 0.55);
+}
+
+.station-counter-heading,
+.station-counter-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.station-counter-heading span,
+.station-counter-total span,
+.station-counter-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.station-counter-heading strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--yellow);
+  font-size: clamp(42px, 4.5vw, 72px);
+  line-height: 0.95;
+}
+
+.station-counter-heading small,
+.station-counter-total small {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.station-counter-total {
+  padding: 22px;
+  border-radius: 18px;
+  background: rgba(255, 210, 0, 0.12);
+  text-align: center;
+}
+
+.station-counter-total strong {
+  display: block;
+  margin: 8px 0;
+  color: var(--yellow);
+  font-size: clamp(72px, 9vw, 150px);
+  line-height: 0.9;
+}
+
+.station-counter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.station-counter-grid div {
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.075);
+  text-align: center;
+}
+
+.station-counter-grid strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--yellow);
+  font-size: clamp(56px, 6vw, 102px);
+  line-height: 0.9;
+}
+
+.station-counter-actions button {
+  flex: 1 1 180px;
+  min-height: 64px;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
 .station-admin-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1677,6 +1849,8 @@ label {
 
   .preset-grid,
   .dashboard-summary,
+  .station-dashboard,
+  .station-counter-grid,
   .admin-grid,
   .station-admin-grid,
   .choice-grid,

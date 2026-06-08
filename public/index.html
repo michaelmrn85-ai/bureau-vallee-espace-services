@@ -31,7 +31,6 @@
         <span>Session en cours</span>
         <strong id="client-session-label">Impression</strong>
       </div>
-      <button class="text-link" type="button" id="disconnect-session">Deconnexion</button>
     </section>
 
     <section class="choice-grid" aria-label="Choix du mode d'impression">
@@ -150,6 +149,14 @@
       <span class="print-status-spinner spinner" aria-hidden="true"></span>
       <strong id="print-status-title">Impression en cours</strong>
       <p id="print-status-detail">Merci de patienter.</p>
+    </div>
+  </div>
+
+  <div class="session-close-modal hidden" id="session-close-modal" role="status" aria-live="polite">
+    <div class="session-close-card">
+      <strong id="session-close-countdown" style="--timer-progress: 360deg">10</strong>
+      <h2>Session terminee</h2>
+      <p>Merci pour vos impressions. Veuillez vous rapprocher de la caisse.</p>
     </div>
   </div>
 

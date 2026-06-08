@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Bureau Vallee Espace Services</title>
-  <link rel="stylesheet" href="/styles.css?v=20260523-print-preview">
+  <link rel="stylesheet" href="/styles.css?v=20260608-dashboard">
 </head>
 <body>
-  <main class="shell">
+  <main class="shell admin-shell">
     <header class="brand-header brand-header-row">
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
       <div class="station-links">
@@ -16,93 +16,19 @@
       </div>
     </header>
 
-    <section class="panel">
-      <div class="panel-heading">
-        <p class="eyebrow">Administration</p>
-        <h1 class="page-title">Tableau de bord</h1>
-        <p class="lead">Compteurs essentiels, etat des postes et messages clients.</p>
+    <section class="panel admin-dashboard-panel">
+      <div class="panel-heading panel-heading-row">
+        <div>
+          <p class="eyebrow">Administration</p>
+          <h1 class="page-title">Tableau de bord</h1>
+        </div>
+        <button id="refresh-codes" type="button">Actualiser</button>
       </div>
 
-      <section class="dashboard-summary" id="dashboard-summary" aria-live="polite"></section>
-
-      <div class="admin-grid">
-        <section class="admin-section admin-section-wide">
-          <div class="panel-heading panel-heading-row">
-            <div>
-              <p class="eyebrow">Suivi caisse</p>
-              <h2>Compteur pages</h2>
-            </div>
-            <button id="refresh-codes" type="button">Actualiser</button>
-          </div>
-          <div class="help-admin" id="help-list"></div>
-          <p class="message" id="codes-message"></p>
-          <div class="codes-list" id="codes-list"></div>
-        </section>
-
-        <section class="admin-section">
-          <div class="panel-heading">
-            <p class="eyebrow">Session client</p>
-            <h2>Ouverture de session</h2>
-          </div>
-
-          <label>
-            Message d'accueil
-            <textarea id="session-message" maxlength="180" rows="3" placeholder="Poste en pause, merci de patienter."></textarea>
-          </label>
-
-          <div class="station-admin-grid">
-            <article class="station-admin-card">
-              <div>
-                <strong>Poste 1</strong>
-                <span id="poste-1-status">Chargement...</span>
-              </div>
-              <div class="modal-actions">
-                <button type="button" data-session-action="open" data-station="poste-1">Ouvrir</button>
-                <button class="danger" type="button" data-session-action="close" data-station="poste-1">Fermer</button>
-              </div>
-            </article>
-
-            <article class="station-admin-card">
-              <div>
-                <strong>Poste 2</strong>
-                <span id="poste-2-status">Chargement...</span>
-              </div>
-              <div class="modal-actions">
-                <button type="button" data-session-action="open" data-station="poste-2">Ouvrir</button>
-                <button class="danger" type="button" data-session-action="close" data-station="poste-2">Fermer</button>
-              </div>
-            </article>
-          </div>
-          <p class="message" id="session-admin-message"></p>
-        </section>
-
-        <section class="admin-section">
-          <div class="panel-heading">
-            <p class="eyebrow">Affichage client</p>
-            <h2>Message en grand</h2>
-          </div>
-
-          <div class="preset-grid">
-            <button type="button" data-preset="Nous vous retrouvons demain des 9h">Nous vous retrouvons demain des 9h</button>
-            <button type="button" data-preset="Nous vous retrouvons des lundi 9h">Nous vous retrouvons des lundi 9h</button>
-            <button type="button" data-preset="Impression HS">Impression HS</button>
-            <button type="button" data-preset="Grande serie d'impression en cours">Grande serie d'impression en cours</button>
-          </div>
-
-          <label>
-            Message personnalise
-            <textarea id="notice-message" maxlength="160" rows="4" placeholder="Votre message..."></textarea>
-          </label>
-
-          <div class="modal-actions">
-            <button id="activate-notice" type="button">Afficher le message</button>
-            <button class="danger" id="disable-notice" type="button">Desactiver</button>
-          </div>
-          <p class="message" id="notice-admin-message"></p>
-        </section>
-      </div>
+      <p class="message" id="codes-message"></p>
+      <section class="station-dashboard" id="station-dashboard" aria-live="polite"></section>
     </section>
   </main>
-  <script src="/admin.js?v=20260523-print-preview"></script>
+  <script src="/admin.js?v=20260608-dashboard"></script>
 </body>
 </html>

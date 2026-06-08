@@ -37,7 +37,7 @@ const defaultPrintSettings = {
   pagesPerSheet: 1,
   copies: 1,
 };
-const DEFAULT_SESSION_MESSAGE = "Poste en pause, merci de patienter.";
+const DEFAULT_SESSION_MESSAGE = "Mise a jour ou grande serie d'impressions en cours.";
 
 function isDirectPrintableExtension(extension) {
   return [".pdf", ".png", ".jpg", ".jpeg"].includes(String(extension || "").toLowerCase());
