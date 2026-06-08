@@ -22,6 +22,7 @@ const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 3 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_PDF_PAGES = 500;
 const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif"]);
 const stations = {
   "poste-1": "Poste 1",
@@ -254,14 +255,14 @@ function listActiveJobs() {
 async function estimatePdfPages(filePath) {
   const bytes = fs.readFileSync(filePath);
   try {
-    return Math.max(1, (await PDFDocument.load(bytes)).getPageCount());
+    return Math.min(MAX_PDF_PAGES, Math.max(1, (await PDFDocument.load(bytes, { ignoreEncryption: true })).getPageCount()));
   } catch (error) {
     // Some PDFs are malformed but still printable; keep the older lightweight fallback.
   }
   try {
     const content = bytes.toString("latin1");
     const matches = content.match(/\/Type\s*\/Page\b/g);
-    return Math.max(1, matches ? matches.length : 1);
+    return Math.min(MAX_PDF_PAGES, Math.max(1, matches ? matches.length : 1));
   } catch (error) {
     return 1;
   }
@@ -394,10 +395,12 @@ async function createImagePrintPdf(sourcePath, extension, targetPath) {
 
 async function createPreparedPdf(job, file, settings, requestId) {
   const pagesPerSheet = Number(settings.pagesPerSheet || 1);
+  const pageRange = String(settings.pageRange || "").trim();
   const shouldPreparePdf =
     [2, 4].includes(pagesPerSheet) ||
     ["A3", "A5"].includes(settings.paperSize) ||
-    ["portrait", "paysage"].includes(settings.orientation);
+    ["portrait", "paysage"].includes(settings.orientation) ||
+    Boolean(pageRange);
   if (!shouldPreparePdf) return { storedName: file.printableStoredName || file.storedName, settings };
 
   const sourcePath = path.join(jobDir(job.code), file.printableStoredName || file.storedName);
@@ -1049,6 +1052,30 @@ app.get("/api/jobs/:code/print-files/:requestId", (request, response) => {
 
   response.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(printRequest.printFileName || printRequest.fileName || "document.pdf")}"`);
   response.sendFile(path.join(jobDir(job.code), storedName));
+});
+
+app.delete("/api/jobs/:code/files/:fileId", (request, response) => {
+  const job = readJob(request.params.code);
+  if (!job) {
+    response.status(404).json({ error: "Code introuvable." });
+    return;
+  }
+
+  const file = job.files.find((item) => item.id === request.params.fileId);
+  if (!file) {
+    response.status(404).json({ error: "Fichier introuvable." });
+    return;
+  }
+
+  for (const name of [file.storedName, file.printableStoredName].filter(Boolean)) {
+    fs.rmSync(path.join(jobDir(job.code), name), { force: true });
+  }
+
+  job.files = job.files.filter((item) => item.id !== file.id);
+  job.printRequests = (job.printRequests || []).filter((requestItem) => requestItem.fileId !== file.id);
+  job.expiresAt = new Date(Date.now() + JOB_TTL_MS).toISOString();
+  writeJob(job);
+  response.json(publicJob(job));
 });
 
 app.get("/api/jobs/:code/files/:fileId", (request, response) => {

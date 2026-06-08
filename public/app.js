@@ -671,6 +671,28 @@ async function deleteCurrentJob(finalMessage) {
   setMessage(finalMessage, "success");
 }
 
+async function deleteFileFromJob(fileId) {
+  if (!activeJob?.code || !fileId) return;
+  setMessage("Suppression du fichier...");
+  try {
+    const response = await fetch(`/api/jobs/${activeJob.code}/files/${fileId}`, { method: "DELETE" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Suppression impossible.");
+    selectedPrintFileIds.delete(fileId);
+    knownPrintableFileIds.delete(fileId);
+    if (activePreviewFileId === fileId) activePreviewFileId = "";
+    if (payload.files?.length) {
+      renderJob(payload, false);
+      setMessage("Fichier supprime.", "success");
+      return;
+    }
+    showHome();
+    setHomeMessage("Tous les fichiers ont ete supprimes.", "success");
+  } catch (error) {
+    setMessage(error.message, "error");
+  }
+}
+
 async function disconnectSession() {
   stopUsbReminder();
   const hadFiles = Boolean(activeJob?.code);
@@ -778,12 +800,13 @@ function renderJob(job, resetTimer = true) {
         <span>Code ${job.code}</span>
         <strong>${job.customerName || "Client"}</strong>
       </div>
-      ${job.customerName === "Cle USB" ? `
-        <div class="panel-actions">
+      <div class="panel-actions">
+        ${job.customerName === "Cle USB" ? `
           <button class="text-link" type="button" data-show-usb-picker>Ajouter depuis la cle USB</button>
           <button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>
-        </div>
-      ` : ""}
+        ` : ""}
+        <button class="text-link end-session-button" type="button" data-end-session>Fin de session</button>
+      </div>
     </div>
     <div class="job-workspace">
       <aside class="file-list-panel">
@@ -800,6 +823,7 @@ function renderJob(job, resetTimer = true) {
                 <small>${file.extension.toUpperCase()} - ${formatSize(file.size)} - ${file.pages || 1} page(s)</small>
               </div>
               <div class="file-actions">
+                <button class="file-remove-button" type="button" data-delete-file="${file.id}" title="Supprimer ce fichier">X</button>
                 ${(isPdf(file) || isImage(file)) ? `<button class="preview-button" type="button" data-preview-file="${file.id}">${activePreviewFileId === file.id ? "Affiche" : "Voir"}</button>` : ""}
                 ${!isPrintable(file) ? `<span class="counter-pill">Au comptoir</span>` : ""}
                 <span class="counter-pill${latestPrintStatus(file.id) ? "" : " hidden"}" data-print-status="${file.id}">${latestPrintStatus(file.id)}</span>
@@ -888,6 +912,15 @@ usbForm.addEventListener("submit", async (event) => {
 usbFileInput.addEventListener("change", uploadUsbFile);
 
 document.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-file]");
+  if (deleteButton) {
+    deleteFileFromJob(deleteButton.dataset.deleteFile);
+    return;
+  }
+  if (event.target.closest("[data-end-session]")) {
+    disconnectSession();
+    return;
+  }
   if (event.target.closest("[data-eject-usb]")) requestUsbEject();
   if (event.target.closest("[data-show-usb-picker]")) showUsbPickerForCurrentJob();
   const previewButton = event.target.closest("[data-preview-file]");
