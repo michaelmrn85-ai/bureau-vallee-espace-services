@@ -6,12 +6,15 @@ const filesContainer = document.getElementById("files");
 const uploadUrlLabel = document.getElementById("upload-url");
 const uploadQr = document.getElementById("upload-qr");
 const stationTitle = document.getElementById("station-title");
+const homeClock = document.getElementById("home-clock");
 const expirationModal = document.getElementById("expiration-modal");
 const expirationCountdown = document.getElementById("expiration-countdown");
 const closeExpirationModalBtn = document.getElementById("close-expiration-modal");
 const printStatusModal = document.getElementById("print-status-modal");
 const printStatusTitle = document.getElementById("print-status-title");
 const printStatusDetail = document.getElementById("print-status-detail");
+const usbEjectModal = document.getElementById("usb-eject-modal");
+const closeUsbEjectModalBtn = document.getElementById("close-usb-eject-modal");
 const choiceGrid = document.querySelector(".choice-grid");
 const formatPanel = document.querySelector(".format-panel");
 const usbPanel = document.getElementById("usb-panel");
@@ -35,6 +38,7 @@ let selectedPrintFileIds = new Set();
 let knownPrintableFileIds = new Set();
 let printSelectionReady = false;
 let printStatusHideTimer = null;
+let clockInterval = null;
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -62,6 +66,22 @@ function setHomeMessage(text, tone = "") {
 function setUsbMessage(text, tone = "") {
   usbMessage.textContent = text;
   usbMessage.dataset.tone = tone;
+}
+
+function updateHomeClock() {
+  const now = new Date();
+  const value = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+  homeClock.textContent = value;
+  homeClock.dateTime = now.toISOString();
+}
+
+function startHomeClock() {
+  updateHomeClock();
+  window.clearInterval(clockInterval);
+  clockInterval = window.setInterval(updateHomeClock, 1000);
 }
 
 function stopUsbReminder() {
@@ -215,6 +235,7 @@ function renderPrintSettings(settings = {}) {
         </label>
       </div>
       <button class="settings-save-button" type="submit">Appliquer les reglages</button>
+      <button class="settings-save-button main-print-button" type="button" data-print-selected>Imprimer</button>
       <p class="message" id="print-settings-message"></p>
     </form>
   `;
@@ -445,6 +466,7 @@ async function requestUsbEject() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Ejection impossible.");
     notify("Demande d'ejection envoyee. Vous pouvez retirer la cle quand Windows l'autorise.", "success");
+    usbEjectModal.classList.remove("hidden");
   } catch (error) {
     notify(error.message, "error");
   }
@@ -698,7 +720,6 @@ function renderJob(job, resetTimer = true) {
   setMessage(`${job.files.length} fichier(s) disponible(s) pour le code ${job.code}.`, "success");
   const printableFiles = job.files.filter(isPrintable);
   const hasPrintable = printableFiles.length > 0;
-  const showPerFilePrintButtons = printableFiles.length <= 1;
   const previewFile = firstPreviewFile(job);
   syncSelectedPrintFiles(job);
   activePreviewFileId = previewFile?.id || "";
@@ -717,8 +738,11 @@ function renderJob(job, resetTimer = true) {
       ` : ""}
     </div>
     <div class="job-workspace">
-      <main class="document-stage">
-        ${renderFilePreview(previewFile)}
+      <aside class="file-list-panel">
+        <div class="file-list-heading">
+          <span>Fichiers</span>
+          <strong>${job.files.length}</strong>
+        </div>
         <div class="file-strip">
           ${job.files.map((file) => `
             <article class="file-card">
@@ -729,13 +753,15 @@ function renderJob(job, resetTimer = true) {
               </div>
               <div class="file-actions">
                 ${(isPdf(file) || isImage(file)) ? `<button class="preview-button" type="button" data-preview-file="${file.id}">${activePreviewFileId === file.id ? "Affiche" : "Voir"}</button>` : ""}
-                ${isPrintable(file) && showPerFilePrintButtons ? `<button class="primary-print-button" type="button" data-print-file="${file.id}">Imprimer</button>` : ""}
                 ${!isPrintable(file) ? `<span class="counter-pill">Au comptoir</span>` : ""}
                 <span class="counter-pill${latestPrintStatus(file.id) ? "" : " hidden"}" data-print-status="${file.id}">${latestPrintStatus(file.id)}</span>
               </div>
             </article>
           `).join("")}
         </div>
+      </aside>
+      <main class="document-stage">
+        ${renderFilePreview(previewFile)}
       </main>
       <aside class="job-controls">
         ${hasPrintable ? renderPrintSettings(job.printSettings) : `
@@ -745,16 +771,9 @@ function renderJob(job, resetTimer = true) {
           </div>
         `}
         ${printableFiles.length > 1 ? `
-          <div class="multi-print-panel">
-            <strong>Impression multiple</strong>
-            <span>Cochez les fichiers a imprimer puis lancez la selection. Ils partiront un par un au copieur.</span>
-            <button class="settings-save-button main-print-button" type="button" data-print-selected>Imprimer</button>
-          </div>
-        ` : ""}
-        ${printableFiles.length > 1 ? `
           <div class="counter-notice">
             <strong>Apercu</strong>
-            <span>L'apercu affiche le premier fichier compatible. Utilisez la liste pour imprimer chaque document.</span>
+            <span>Cochez un ou plusieurs fichiers. Le bouton Imprimer lance tous les fichiers selectionnes.</span>
           </div>
         ` : ""}
       </aside>
@@ -797,6 +816,10 @@ closeExpirationModalBtn.addEventListener("click", () => {
   expirationModal.classList.add("hidden");
 });
 
+closeUsbEjectModalBtn.addEventListener("click", () => {
+  usbEjectModal.classList.add("hidden");
+});
+
 document.querySelectorAll("[data-flow]").forEach((button) => {
   button.addEventListener("click", () => showFlow(button.dataset.flow));
 });
@@ -833,3 +856,4 @@ document.addEventListener("change", (event) => {
 });
 
 loadConfig();
+startHomeClock();

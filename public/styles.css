@@ -25,7 +25,7 @@ body {
 button, input { font: inherit; }
 
 .shell {
-  width: min(1280px, calc(100vw - 24px));
+  width: min(1780px, calc(100vw - 48px));
   margin: 0 auto;
   padding: 12px 0;
 }
@@ -37,46 +37,68 @@ button, input { font: inherit; }
 .station-welcome {
   display: grid;
   justify-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 18px;
   text-align: center;
 }
 
 .station-welcome img {
   display: block;
-  width: min(170px, 46vw);
+  width: min(240px, 46vw);
   border-radius: 10px;
   background: white;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
 }
 
 .station-welcome h1 {
-  width: min(980px, 100%);
+  width: min(1200px, 100%);
   margin-bottom: 0;
-  font-size: clamp(28px, 4.4vw, 48px);
+  font-size: clamp(36px, 4.4vw, 64px);
   line-height: 1;
 }
 
 .station-welcome p {
   margin: 0;
   color: var(--muted);
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 800;
+}
+
+.home-clock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 170px;
+  padding: 12px 22px;
+  border: 2px solid rgba(255, 210, 0, 0.42);
+  border-radius: 24px;
+  background: rgba(4, 55, 105, 0.72);
+  color: var(--yellow);
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 16px 36px rgba(0, 39, 75, 0.28);
 }
 
 body.client-session-active .station-welcome {
   display: none;
 }
 
+body.client-session-active .wifi-bubble,
+body.client-session-active .home-message {
+  display: none;
+}
+
 body.client-session-active .shell {
-  width: min(1380px, calc(100vw - 18px));
-  padding-top: 8px;
+  width: min(1880px, calc(100vw - 28px));
+  padding-top: 10px;
 }
 
 body.client-session-active {
   background:
     radial-gradient(circle at 18% 12%, rgba(255, 210, 0, 0.2), transparent 26%),
     linear-gradient(145deg, #078bd1 0%, #0478bb 45%, #07589a 100%);
+  overflow: hidden;
 }
 
 .brand-header-row,
@@ -196,8 +218,8 @@ h2 {
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 10px;
+  gap: 24px;
+  margin-top: 16px;
 }
 
 .print-choice-card,
@@ -211,9 +233,9 @@ h2 {
 .print-choice-card {
   display: grid;
   justify-items: center;
-  gap: 10px;
-  min-height: 230px;
-  padding: 20px;
+  gap: 16px;
+  min-height: 310px;
+  padding: 30px;
   color: var(--ink);
   text-align: center;
   cursor: pointer;
@@ -228,7 +250,7 @@ button.print-choice-card {
 
 .print-choice-card h2 {
   max-width: 430px;
-  font-size: clamp(26px, 3vw, 38px);
+  font-size: clamp(34px, 3vw, 52px);
   line-height: 1;
 }
 
@@ -236,7 +258,7 @@ button.print-choice-card {
   max-width: 430px;
   margin: 0;
   color: rgba(246, 248, 251, 0.82);
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.25;
 }
@@ -254,8 +276,8 @@ button.print-choice-card {
 .choice-icon {
   display: grid;
   place-items: center;
-  width: 86px;
-  height: 86px;
+  width: 118px;
+  height: 118px;
   border: 5px solid white;
   border-radius: 26px;
   color: #07305d;
@@ -264,8 +286,8 @@ button.print-choice-card {
 }
 
 .choice-icon svg {
-  width: 54px;
-  height: 54px;
+  width: 74px;
+  height: 74px;
   fill: none;
   stroke: currentColor;
   stroke-width: 4;
@@ -773,22 +795,58 @@ body.session-closed .mobile-shell {
 
 .job-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 286px;
+  grid-template-columns: 330px minmax(0, 1fr) 315px;
   gap: 10px;
   align-items: stretch;
+  height: calc(100vh - 170px);
+  min-height: 0;
 }
 
 .document-stage {
   display: grid;
   gap: 10px;
   min-width: 0;
+  min-height: 0;
+}
+
+.file-list-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 210, 0, 0.22);
+  border-radius: 18px;
+  background: rgba(4, 55, 105, 0.72);
+  box-shadow: 0 18px 45px rgba(0, 39, 75, 0.26);
+}
+
+.file-list-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.file-list-heading strong {
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: #07305d;
+  font-size: 22px;
 }
 
 .job-controls {
   display: grid;
   gap: 6px;
   align-content: start;
-  max-height: calc(100vh - 96px);
+  max-height: 100%;
   overflow: auto;
 }
 
@@ -857,8 +915,8 @@ body.session-closed .mobile-shell {
 
 .pdf-preview-panel {
   min-height: 0;
-  height: calc(100vh - 245px);
-  max-height: 760px;
+  height: 100%;
+  max-height: none;
 }
 
 .pdf-preview-panel h2 {
@@ -869,8 +927,8 @@ body.session-closed .mobile-shell {
 
 .pdf-preview-panel iframe {
   width: 100%;
-  height: calc(100% - 58px);
-  min-height: 360px;
+  height: calc(100% - 60px);
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: white;
@@ -891,20 +949,29 @@ body.session-closed .mobile-shell {
 
 .file-strip {
   display: grid;
+  align-content: start;
   gap: 6px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .file-strip .file-card {
-  min-height: 58px;
+  min-height: 82px;
 }
 
 .file-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
 }
 
 .file-main {
   min-width: 0;
+}
+
+.file-card .file-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
 }
 
 .print-select {
@@ -1109,6 +1176,47 @@ label {
 
 .print-status-modal.hidden {
   display: none;
+}
+
+.usb-eject-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 26;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 12, 24, 0.6);
+}
+
+.usb-eject-modal.hidden {
+  display: none;
+}
+
+.usb-eject-card {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(560px, calc(100vw - 34px));
+  padding: clamp(28px, 4vw, 46px);
+  border: 2px solid rgba(255, 210, 0, 0.58);
+  border-radius: 26px;
+  background: rgba(7, 28, 52, 0.98);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.58);
+  text-align: center;
+}
+
+.usb-eject-card strong {
+  color: var(--yellow);
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1;
+}
+
+.usb-eject-card p {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 .print-status-card {
