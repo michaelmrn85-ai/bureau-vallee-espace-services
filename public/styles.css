@@ -57,13 +57,6 @@ button, input { font: inherit; }
   line-height: 1;
 }
 
-.station-welcome p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 22px;
-  font-weight: 800;
-}
-
 .home-clock {
   display: inline-flex;
   align-items: center;
@@ -596,6 +589,16 @@ button,
   color: #07305d;
 }
 
+.print-settings-actions {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.print-settings-actions .settings-save-button {
+  width: 100%;
+}
+
 .main-print-button {
   width: 100%;
   min-height: 64px;
@@ -766,6 +769,12 @@ body.session-closed .mobile-shell {
   box-shadow: 0 14px 34px rgba(0, 39, 75, 0.24);
 }
 
+.job-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-content: stretch;
+}
+
 .job-head span,
 .file-card small {
   display: block;
@@ -778,6 +787,45 @@ body.session-closed .mobile-shell {
   margin-top: 4px;
   color: var(--yellow);
   font-weight: 900;
+}
+
+.session-timer {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 92px;
+}
+
+.session-timer span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.session-timer strong {
+  --timer-progress: 360deg;
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  color: var(--yellow);
+  background:
+    linear-gradient(rgba(4, 55, 105, 0.94), rgba(4, 55, 105, 0.94)) padding-box,
+    conic-gradient(var(--yellow) var(--timer-progress), rgba(255, 255, 255, 0.18) 0) border-box;
+  border: 6px solid transparent;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.session-timer strong.is-urgent {
+  color: white;
+  background:
+    linear-gradient(rgba(124, 29, 42, 0.94), rgba(124, 29, 42, 0.94)) padding-box,
+    conic-gradient(var(--danger) var(--timer-progress), rgba(255, 255, 255, 0.18) 0) border-box;
 }
 
 .file-actions {

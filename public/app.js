@@ -235,8 +235,10 @@ function renderPrintSettings(settings = {}) {
           <input name="copies" type="number" min="1" max="99" value="${copies}">
         </label>
       </div>
-      <button class="settings-save-button" type="submit">Appliquer les reglages</button>
-      <button class="settings-save-button main-print-button" type="button" data-print-selected>Imprimer</button>
+      <div class="print-settings-actions">
+        <button class="settings-save-button" type="submit">Appliquer les reglages</button>
+        <button class="settings-save-button main-print-button" type="button" data-print-selected>Imprimer</button>
+      </div>
       <p class="message" id="print-settings-message"></p>
     </form>
   `;
@@ -466,7 +468,7 @@ async function requestUsbEject() {
     const response = await fetch(`/api/stations/${currentStation()}/eject`, { method: "POST" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Ejection impossible.");
-    notify("Demande d'ejection envoyee. Vous pouvez retirer la cle quand Windows l'autorise.", "success");
+    notify("Votre cle USB peut etre ejectee. Vous pouvez la retirer.", "success");
     window.clearTimeout(usbEjectHideTimer);
     usbEjectModal.classList.remove("hidden");
     usbEjectHideTimer = window.setTimeout(() => {
@@ -668,9 +670,12 @@ async function disconnectSession() {
 function updateDeletionCountdown() {
   const countdownLabel = document.getElementById("deletion-countdown");
   if (countdownLabel) {
-    countdownLabel.textContent = deletionSeconds <= 30
-      ? `Suppression automatique dans ${deletionSeconds}s`
-      : "Suppression automatique dans 3 minutes";
+    const minutes = Math.floor(Math.max(0, deletionSeconds) / 60);
+    const seconds = String(Math.max(0, deletionSeconds) % 60).padStart(2, "0");
+    const progress = Math.max(0, Math.min(1, deletionSeconds / 180));
+    countdownLabel.textContent = `${minutes}:${seconds}`;
+    countdownLabel.style.setProperty("--timer-progress", `${progress * 360}deg`);
+    countdownLabel.classList.toggle("is-urgent", deletionSeconds <= 30);
   }
   if (expirationCountdown) {
     expirationCountdown.textContent = String(Math.max(0, deletionSeconds));
@@ -730,10 +735,13 @@ function renderJob(job, resetTimer = true) {
   activePreviewFileId = previewFile?.id || "";
   filesContainer.innerHTML = `
     <div class="job-head">
+      <div class="session-timer">
+        <span>Fin session</span>
+        <strong id="deletion-countdown" style="--timer-progress: 360deg">3:00</strong>
+      </div>
       <div>
         <span>Code ${job.code}</span>
         <strong>${job.customerName || "Client"}</strong>
-        <small id="deletion-countdown">Suppression automatique dans 3 minutes</small>
       </div>
       ${job.customerName === "Cle USB" ? `
         <div class="panel-actions">
