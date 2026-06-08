@@ -1,4 +1,8 @@
 const stationDashboard = document.getElementById("station-dashboard");
+const adminUploadList = document.getElementById("admin-upload-list");
+const adminUploadModal = document.getElementById("admin-upload-modal");
+const openAdminUploadBtn = document.getElementById("open-admin-upload");
+const closeAdminUploadBtn = document.getElementById("close-admin-upload");
 const codesMessage = document.getElementById("codes-message");
 const refreshBtn = document.getElementById("refresh-codes");
 
@@ -19,7 +23,7 @@ function donePrintCount(job) {
 
 function summarizeStation(stationId) {
   return latestJobs
-    .filter((job) => (job.station || "poste-1") === stationId)
+    .filter((job) => !job.adminUpload && (job.station || "poste-1") === stationId)
     .reduce((summary, job) => {
       summary.bwPages += Number(job.bwPages || 0);
       summary.colorPages += Number(job.colorPages || 0);
@@ -28,6 +32,16 @@ function summarizeStation(stationId) {
       summary.donePrints += donePrintCount(job);
       return summary;
     }, { bwPages: 0, colorPages: 0, totalPages: 0, activeJobs: 0, donePrints: 0 });
+}
+
+function formatAdminDate(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function renderDashboard() {
@@ -70,6 +84,35 @@ function renderDashboard() {
   }).join("");
 }
 
+function renderAdminUploads() {
+  const uploads = latestJobs
+    .filter((job) => job.adminUpload)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  adminUploadList.innerHTML = `
+    <div class="admin-upload-heading">
+      <div>
+        <p class="eyebrow">Depot comptoir</p>
+        <h2>Fichiers recus par QR code</h2>
+      </div>
+      <strong>${uploads.length}</strong>
+    </div>
+    ${uploads.length ? uploads.map((job) => `
+      <article class="admin-upload-item">
+        <div class="admin-upload-summary">
+          <span>Code ${job.code} - ${formatAdminDate(job.createdAt)}</span>
+          <strong>${job.customerName || "Client comptoir"}</strong>
+          <small>${job.files.length} fichier(s) - ${job.depositPages || 0} page(s) detectee(s)</small>
+        </div>
+        <div class="admin-upload-actions">
+          ${job.downloadAllUrl ? `<a class="button-link" href="${job.downloadAllUrl}">Telecharger tout</a>` : ""}
+          ${job.files.map((file) => `<a class="text-link" href="${file.downloadUrl}">${file.originalName}</a>`).join("")}
+        </div>
+      </article>
+    `).join("") : `<p class="empty-state">Aucun fichier comptoir recu pour le moment.</p>`}
+  `;
+}
+
 async function loadCodes() {
   setCodesMessage("Mise a jour des compteurs...");
   try {
@@ -78,6 +121,7 @@ async function loadCodes() {
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
     latestJobs = payload.jobs || [];
     renderDashboard();
+    renderAdminUploads();
     setCodesMessage("Compteurs reels N&B et Couleur par poste.", "success");
   } catch (error) {
     setCodesMessage(error.message, "error");
@@ -119,9 +163,23 @@ async function saveSession(station, active) {
   }
 }
 
-refreshBtn.addEventListener("click", () => {
+function refreshDashboard() {
   loadCodes();
   loadSession();
+}
+
+refreshBtn.addEventListener("click", refreshDashboard);
+
+openAdminUploadBtn.addEventListener("click", () => {
+  adminUploadModal.classList.remove("hidden");
+});
+
+closeAdminUploadBtn.addEventListener("click", () => {
+  adminUploadModal.classList.add("hidden");
+});
+
+adminUploadModal.addEventListener("click", (event) => {
+  if (event.target === adminUploadModal) adminUploadModal.classList.add("hidden");
 });
 
 stationDashboard.addEventListener("click", (event) => {
@@ -130,7 +188,6 @@ stationDashboard.addEventListener("click", (event) => {
   saveSession(button.dataset.station, button.dataset.sessionAction === "open");
 });
 
-loadSession();
-loadCodes();
+refreshDashboard();
 window.setInterval(loadSession, 4000);
 window.setInterval(loadCodes, 4000);

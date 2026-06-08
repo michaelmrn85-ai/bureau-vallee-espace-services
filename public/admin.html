@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Bureau Vallee Espace Services</title>
-  <link rel="stylesheet" href="/styles.css?v=20260608-dashboard">
+  <link rel="stylesheet" href="/styles.css?v=20260608-admin-upload">
 </head>
 <body>
   <main class="shell admin-shell">
@@ -22,13 +22,28 @@
           <p class="eyebrow">Administration</p>
           <h1 class="page-title">Tableau de bord</h1>
         </div>
-        <button id="refresh-codes" type="button">Actualiser</button>
+        <div class="admin-heading-actions">
+          <button id="open-admin-upload" type="button">QR code comptoir</button>
+          <button id="refresh-codes" type="button">Actualiser</button>
+        </div>
       </div>
 
       <p class="message" id="codes-message"></p>
       <section class="station-dashboard" id="station-dashboard" aria-live="polite"></section>
+      <section class="admin-upload-list" id="admin-upload-list" aria-live="polite"></section>
     </section>
   </main>
-  <script src="/admin.js?v=20260608-dashboard"></script>
+
+  <div class="admin-upload-modal hidden" id="admin-upload-modal" role="dialog" aria-modal="true" aria-labelledby="admin-upload-title">
+    <div class="admin-upload-card">
+      <button class="admin-modal-close" id="close-admin-upload" type="button" aria-label="Fermer">Fermer</button>
+      <p class="eyebrow">Depot comptoir</p>
+      <h2 id="admin-upload-title">QR code client</h2>
+      <img src="/qr.gif?mode=admin" alt="QR code depot comptoir">
+      <strong>Le client flashe ce QR code pour envoyer ses fichiers au comptoir.</strong>
+      <small>Les fichiers apparaitront dans le tableau de bord admin.</small>
+    </div>
+  </div>
+  <script src="/admin.js?v=20260608-admin-upload"></script>
 </body>
 </html>

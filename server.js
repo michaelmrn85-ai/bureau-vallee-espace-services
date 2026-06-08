@@ -480,6 +480,7 @@ function publicJob(job, status = "actif") {
   return {
     code: job.code,
     customerName: job.customerName,
+    adminUpload: Boolean(job.adminUpload),
     station,
     stationLabel: stations[station],
     printMode,
@@ -582,7 +583,8 @@ function createZipBuffer(entries) {
   return Buffer.concat([...localParts, centralDirectory, endRecord]);
 }
 
-function uploadUrl(station = "poste-1") {
+function uploadUrl(station = "poste-1", mode = "") {
+  if (mode === "admin") return `${PUBLIC_BASE_URL}/upload?mode=admin`;
   return `${PUBLIC_BASE_URL}/upload?station=${stationFrom(station)}`;
 }
 
@@ -660,14 +662,14 @@ app.get("/admin", (request, response) => {
 
 app.get("/qr.svg", (request, response) => {
   const qr = qrcode(0, "M");
-  qr.addData(uploadUrl(request.query.station));
+  qr.addData(uploadUrl(request.query.station, request.query.mode));
   qr.make();
   response.type("image/svg+xml").send(qr.createSvgTag({ cellSize: 8, margin: 4 }));
 });
 
 app.get("/qr.gif", (request, response) => {
   const qr = qrcode(0, "M");
-  qr.addData(uploadUrl(request.query.station));
+  qr.addData(uploadUrl(request.query.station, request.query.mode));
   qr.make();
   const dataUrl = qr.createDataURL(8, 4);
   const base64 = dataUrl.replace(/^data:image\/gif;base64,/, "");
@@ -795,6 +797,7 @@ app.post("/api/jobs", upload.array("files", 10), async (request, response, next)
       code,
       customerName: String(request.body.customerName || "").trim(),
       station: stationFrom(request.body.station),
+      adminUpload: request.body.adminUpload === "1",
       printMode,
       printSettings,
       createdAt: now.toISOString(),

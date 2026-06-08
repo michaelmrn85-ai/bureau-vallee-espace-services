@@ -3,13 +3,26 @@ const filesInput = document.getElementById("files-input");
 const selectedFiles = document.getElementById("selected-files");
 const result = document.getElementById("result");
 const resultCode = document.getElementById("result-code");
+const resultHelp = document.getElementById("result-help");
+const uploadLead = document.getElementById("upload-lead");
 const uploadMessage = document.getElementById("upload-message");
 const uploadBusy = document.getElementById("upload-busy");
 let isUploading = false;
 
+function isAdminUpload() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("mode") === "admin";
+}
+
 function currentStation() {
   const params = new URLSearchParams(window.location.search);
   return params.get("station") === "poste-2" ? "poste-2" : "poste-1";
+}
+
+function setupUploadMode() {
+  if (!isAdminUpload()) return;
+  uploadLead.textContent = "Envoyez vos fichiers a l'equipe Bureau Vallee. Ils seront recuperes au comptoir.";
+  resultHelp.textContent = "Merci. Vos fichiers sont bien envoyes au comptoir.";
 }
 
 function renderSelectedFiles() {
@@ -38,6 +51,10 @@ async function sendUpload() {
   const formData = new FormData(uploadForm);
   formData.set("station", currentStation());
   formData.set("printMode", "noir-blanc");
+  if (isAdminUpload()) {
+    formData.set("adminUpload", "1");
+    if (!formData.get("customerName")) formData.set("customerName", "Client comptoir");
+  }
   setUploadBusy(true);
   setUploadMessage("Merci de patienter, envoi de vos fichiers...");
   result.classList.add("hidden");
@@ -70,3 +87,5 @@ uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   sendUpload();
 });
+
+setupUploadMode();
