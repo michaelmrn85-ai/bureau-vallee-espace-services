@@ -444,7 +444,9 @@ function renderFilePreview(file) {
             <h2>${file.originalName}</h2>
           </div>
         </div>
-        <img src="${file.viewUrl}" alt="Apercu du fichier ${file.originalName}">
+        <div class="image-preview-frame">
+          <img src="${file.viewUrl}" alt="Apercu du fichier ${file.originalName}">
+        </div>
       </section>
     `;
   }
