@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload mobile - Bureau Vallee</title>
-  <link rel="stylesheet" href="/styles.css?v=20260608-admin-upload">
+  <link rel="stylesheet" href="/styles.css?v=20260610-mobile-images">
 </head>
 <body class="mobile-body">
   <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
@@ -18,7 +18,7 @@
       <div class="notice-banner hidden" id="notice-banner"></div>
       <p class="eyebrow">Bureau Vallee</p>
       <h1>Envoyer mes fichiers</h1>
-      <p class="lead" id="upload-lead">Ajoutez vos PDF, PNG, JPG, JPEG ou HEIC jusqu'a 500 Mo par fichier. Les fichiers Word sont a presenter au comptoir.</p>
+      <p class="lead" id="upload-lead">Ajoutez vos PDF, PNG, JPG, JPEG, HEIC ou WebP jusqu'a 500 Mo par fichier. Les fichiers Word sont a presenter au comptoir.</p>
 
       <form id="upload-form">
         <label>
@@ -27,7 +27,7 @@
         </label>
 
         <label class="drop-zone">
-          <input id="files-input" name="files" type="file" multiple required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,image/heic,image/heif">
+          <input id="files-input" name="files" type="file" multiple required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*">
           <span>Choisir et envoyer mes fichiers</span>
           <small>Le code s'affiche automatiquement apres selection. Limite : 500 Mo par fichier.</small>
         </label>
@@ -48,6 +48,6 @@
     </section>
   </main>
   <script src="/notice.js?v=20260523-print-preview"></script>
-  <script src="/upload.js?v=20260608-admin-upload"></script>
+  <script src="/upload.js?v=20260610-mobile-images"></script>
 </body>
 </html>

@@ -23,7 +23,18 @@ const HISTORY_TTL_MS = 3 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_PAGES = 500;
-const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif"]);
+const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
+const mimeExtensions = {
+  "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/heic": ".heic",
+  "image/heif": ".heif",
+  "image/webp": ".webp",
+};
 const stations = {
   "poste-1": "Poste 1",
   "poste-2": "Poste 2",
@@ -44,6 +55,12 @@ function isDirectPrintableExtension(extension) {
   return [".pdf", ".png", ".jpg", ".jpeg"].includes(String(extension || "").toLowerCase());
 }
 
+function extensionFromUpload(file) {
+  const namedExtension = path.extname(file.originalname || "").toLowerCase();
+  if (namedExtension) return namedExtension;
+  return mimeExtensions[String(file.mimetype || "").toLowerCase()] || "";
+}
+
 fs.mkdirSync(JOBS_DIR, { recursive: true });
 fs.mkdirSync(TMP_DIR, { recursive: true });
 
@@ -51,9 +68,9 @@ const upload = multer({
   dest: TMP_DIR,
   limits: { fileSize: MAX_FILE_SIZE, files: 10 },
   fileFilter(request, file, callback) {
-    const extension = path.extname(file.originalname).toLowerCase();
+    const extension = extensionFromUpload(file);
     if (!allowedExtensions.has(extension)) {
-      callback(new Error("Format non accepte. PDF, Word, PNG, JPEG et HEIC uniquement."));
+      callback(new Error("Format non accepte. PDF, Word, PNG, JPEG, HEIC et WebP uniquement."));
       return;
     }
     callback(null, true);
@@ -275,7 +292,7 @@ async function estimatePages(filePath, extension) {
 
 async function storeUploadedFiles(files, directory, offset = 0) {
   return Promise.all(files.map(async (file, index) => {
-    const extension = path.extname(file.originalname).toLowerCase();
+    const extension = extensionFromUpload(file);
     const id = `${Date.now()}-${offset + index}`;
     const storedName = `${id}${extension}`;
     const storedPath = path.join(directory, storedName);
@@ -286,7 +303,7 @@ async function storeUploadedFiles(files, directory, offset = 0) {
     }
     return {
       id,
-      originalName: file.originalname,
+      originalName: path.extname(file.originalname || "") ? file.originalname : `${file.originalname || "photo"}${extension}`,
       storedName,
       printableStoredName,
       extension,

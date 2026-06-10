@@ -612,9 +612,9 @@ async function uploadUsbFile() {
     setUsbMessage("Choisissez au moins un fichier.", "error");
     return;
   }
-  const unsupportedFile = files.find((file) => !/\.(pdf|png|jpe?g|heic|heif)$/i.test(file.name));
+  const unsupportedFile = files.find((file) => !/\.(pdf|png|jpe?g|heic|heif|webp)$/i.test(file.name));
   if (unsupportedFile) {
-    setUsbMessage("Formats acceptes : PDF, PNG, JPG, JPEG et HEIC.", "error");
+    setUsbMessage("Formats acceptes : PDF, PNG, JPG, JPEG, HEIC et WebP.", "error");
     return;
   }
 
