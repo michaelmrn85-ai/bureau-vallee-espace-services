@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bureau Vallee - Impression client</title>
-  <link rel="stylesheet" href="/styles.css?v=20260610-image-preview">
+  <link rel="stylesheet" href="/styles.css?v=20260611-webmail">
 </head>
 <body>
   <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
@@ -64,6 +64,22 @@
           <span>PDF</span>
           <span>PNG/JPEG</span>
           <span>Code client</span>
+        </div>
+      </button>
+
+      <button class="print-choice-card is-webmail" type="button" data-flow="webmail">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <rect x="8" y="14" width="48" height="36" rx="5"/>
+            <path d="M10 18l22 17 22-17M22 39h20"/>
+          </svg>
+        </span>
+        <h2>Navigateur web</h2>
+        <p>Ouvrir uniquement une boite mail.</p>
+        <div class="choice-tags">
+          <span>Gmail</span>
+          <span>Outlook</span>
+          <span>Orange</span>
         </div>
       </button>
     </section>
@@ -130,6 +146,25 @@
       </div>
     </section>
 
+    <section class="panel flow-panel hidden" id="webmail-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Navigateur web</p>
+          <h2>Choisir votre boite mail</h2>
+        </div>
+        <button class="text-link" type="button" data-back-home>Fin de session</button>
+      </div>
+      <div class="webmail-grid">
+        <button type="button" data-webmail="gmail">Gmail</button>
+        <button type="button" data-webmail="outlook">Outlook</button>
+        <button type="button" data-webmail="orange">Orange Mail</button>
+        <button type="button" data-webmail="yahoo">Yahoo Mail</button>
+        <button type="button" data-webmail="laposte">LaPoste.net</button>
+        <button type="button" data-webmail="free">Free Zimbra</button>
+      </div>
+      <p class="message" id="webmail-message"></p>
+    </section>
+
     <section class="files hidden" id="files"></section>
   </main>
 
@@ -170,6 +205,6 @@
 
   <script src="/notice.js?v=20260523-print-preview"></script>
   <script src="/session.js?v=20260523-print-preview"></script>
-  <script src="/app.js?v=20260610-image-preview"></script>
+  <script src="/app.js?v=20260611-webmail"></script>
 </body>
 </html>

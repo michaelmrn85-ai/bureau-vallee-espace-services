@@ -210,7 +210,7 @@ h2 {
 
 .choice-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   margin-top: 16px;
 }
@@ -258,6 +258,10 @@ button.print-choice-card {
 
 .print-choice-card.is-mobile {
   border-color: rgba(255, 210, 0, 0.36);
+}
+
+.print-choice-card.is-webmail {
+  border-color: rgba(118, 232, 166, 0.32);
 }
 
 .print-choice-card:hover,
@@ -495,6 +499,22 @@ button.print-choice-card {
   grid-template-columns: 250px 1fr;
   gap: 18px;
   align-items: center;
+}
+
+.webmail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.webmail-grid button {
+  min-height: 92px;
+  border: 2px solid rgba(255, 210, 0, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 210, 0, 0.96);
+  color: #07305d;
+  font-size: clamp(20px, 2vw, 30px);
+  font-weight: 900;
 }
 
 .code-form {
@@ -2023,7 +2043,8 @@ label {
   .job-workspace,
   .job-head,
   .file-card,
-  .code-card {
+  .code-card,
+  .webmail-grid {
     grid-template-columns: 1fr;
     display: grid;
   }
@@ -2048,6 +2069,7 @@ label {
   .choice-grid,
   .format-panel,
   .mobile-flow-grid,
+  .webmail-grid,
   .print-settings-grid,
   .code-metrics {
     grid-template-columns: 1fr;

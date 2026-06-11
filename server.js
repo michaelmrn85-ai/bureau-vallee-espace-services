@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const qrcode = require("qrcode-generator");
-const { PDFDocument } = require("pdf-lib");
+const { PDFDocument, degrees } = require("pdf-lib");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3100;
@@ -441,12 +441,21 @@ async function createPreparedPdf(job, file, settings, requestId) {
       if (!embeddedPage) continue;
       const column = offset % columns;
       const row = Math.floor(offset / columns);
-      const scale = Math.min(slotWidth / embeddedPage.width, slotHeight / embeddedPage.height);
+      const forcedOrientation = settings.orientation === "portrait" || settings.orientation === "paysage";
+      const sheetIsLandscape = sheetWidth > sheetHeight;
+      const sourceIsLandscape = embeddedPage.width > embeddedPage.height;
+      const rotateToFit = pagesPerSheet === 1 && forcedOrientation && sheetIsLandscape !== sourceIsLandscape;
+      const sourceWidth = rotateToFit ? embeddedPage.height : embeddedPage.width;
+      const sourceHeight = rotateToFit ? embeddedPage.width : embeddedPage.height;
+      const scale = Math.min(slotWidth / sourceWidth, slotHeight / sourceHeight);
       const width = embeddedPage.width * scale;
       const height = embeddedPage.height * scale;
-      const x = margin + column * (slotWidth + gutter) + (slotWidth - width) / 2;
-      const y = sheetHeight - margin - (row + 1) * slotHeight - row * gutter + (slotHeight - height) / 2;
-      page.drawPage(embeddedPage, { x, y, width, height });
+      const effectiveWidth = rotateToFit ? height : width;
+      const effectiveHeight = rotateToFit ? width : height;
+      const x = margin + column * (slotWidth + gutter) + (slotWidth - effectiveWidth) / 2;
+      const y = sheetHeight - margin - (row + 1) * slotHeight - row * gutter + (slotHeight - effectiveHeight) / 2;
+      if (rotateToFit) page.drawPage(embeddedPage, { x: x + height, y, width, height, rotate: degrees(90) });
+      else page.drawPage(embeddedPage, { x, y, width, height });
     }
   }
 
@@ -974,6 +983,37 @@ app.post("/api/stations/:station/eject", (request, response) => {
     status: "queued",
     createdAt: new Date().toISOString(),
   };
+  commands.push(command);
+  writeCommands(commands);
+  response.status(201).json({ ok: true, command });
+});
+
+app.post("/api/stations/:station/commands", (request, response) => {
+  const station = stationFrom(request.params.station);
+  const type = String(request.body.type || "");
+  if (!["open-webmail", "cleanup-browser"].includes(type)) {
+    response.status(400).json({ error: "Commande non autorisee." });
+    return;
+  }
+
+  const command = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    station,
+    type,
+    status: "queued",
+    createdAt: new Date().toISOString(),
+  };
+
+  if (type === "open-webmail") {
+    const url = String(request.body.url || "");
+    if (!/^https:\/\/[a-z0-9.-]+\//i.test(url)) {
+      response.status(400).json({ error: "Adresse mail non autorisee." });
+      return;
+    }
+    command.url = url.slice(0, 300);
+  }
+
+  const commands = readCommands();
   commands.push(command);
   writeCommands(commands);
   response.status(201).json({ ok: true, command });

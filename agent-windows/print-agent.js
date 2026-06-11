@@ -63,6 +63,10 @@ function powerShellString(value) {
   return `'${String(value || "").replace(/'/g, "''")}'`;
 }
 
+function webmailProfileDir(config) {
+  return path.join(os.tmpdir(), "bureau-vallee-webmail", config.station);
+}
+
 function isBlackAndWhite(settings = {}) {
   const colorMode = String(settings.colorMode || settings.color || settings.modeCouleur || "auto")
     .toLowerCase()
@@ -158,6 +162,45 @@ async function ejectUsbDrives() {
   await runPowerShell(script);
 }
 
+async function cleanupBrowserSession(config) {
+  const profileDir = webmailProfileDir(config);
+  const script = `
+    $profile = ${powerShellString(profileDir)}
+    Get-CimInstance Win32_Process -Filter "name = 'chrome.exe'" |
+      Where-Object { $_.CommandLine -like "*$profile*" } |
+      ForEach-Object {
+        try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
+      }
+    Start-Sleep -Milliseconds 500
+    if (Test-Path $profile) {
+      Remove-Item $profile -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  `;
+  await runPowerShell(script);
+}
+
+async function openWebmail(config, url) {
+  await cleanupBrowserSession(config);
+  const profileDir = webmailProfileDir(config);
+  const chromePath = config.chromePath || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  const fallbackChromePath = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+  const script = `
+    $chrome = ${powerShellString(chromePath)}
+    if (!(Test-Path $chrome)) { $chrome = ${powerShellString(fallbackChromePath)} }
+    if (!(Test-Path $chrome)) { throw "Chrome introuvable" }
+    $profile = ${powerShellString(profileDir)}
+    New-Item -ItemType Directory -Force -Path $profile | Out-Null
+    Start-Process -FilePath $chrome -ArgumentList @(
+      "--new-window",
+      "--user-data-dir=$profile",
+      "--no-first-run",
+      "--disable-sync",
+      ${powerShellString(url)}
+    )
+  `;
+  await runPowerShell(script);
+}
+
 async function applyPrinterConfiguration(config, settings = {}) {
   const paperSize = ["A3", "A4", "A5"].includes(settings.paperSize) ? settings.paperSize : "A4";
   const color = isBlackAndWhite(settings) ? "$false" : "$true";
@@ -190,15 +233,18 @@ async function markCommandStatus(config, commandId, status, error = "") {
 }
 
 async function handleCommand(config, command) {
-  if (!command || command.type !== "eject-usb") return;
-  console.log(`[${new Date().toLocaleTimeString()}] Ejection cle USB demandee.`);
+  if (!command) return;
+  console.log(`[${new Date().toLocaleTimeString()}] Commande ${command.type}.`);
   try {
-    await ejectUsbDrives();
+    if (command.type === "eject-usb") await ejectUsbDrives();
+    else if (command.type === "open-webmail") await openWebmail(config, command.url);
+    else if (command.type === "cleanup-browser") await cleanupBrowserSession(config);
+    else return;
     await markCommandStatus(config, command.id, "done");
-    console.log("Commande d'ejection envoyee a Windows.");
+    console.log("Commande terminee.");
   } catch (error) {
     await markCommandStatus(config, command.id, "failed", error.message).catch(() => {});
-    console.error(`Erreur ejection USB: ${error.message}`);
+    console.error(`Erreur commande: ${error.message}`);
   }
 }
 

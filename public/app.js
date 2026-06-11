@@ -21,9 +21,11 @@ const choiceGrid = document.querySelector(".choice-grid");
 const formatPanel = document.querySelector(".format-panel");
 const usbPanel = document.getElementById("usb-panel");
 const mobilePanel = document.getElementById("mobile-panel");
+const webmailPanel = document.getElementById("webmail-panel");
 const usbForm = document.getElementById("usb-form");
 const usbFileInput = document.getElementById("usb-file-input");
 const usbMessage = document.getElementById("usb-message");
+const webmailMessage = document.getElementById("webmail-message");
 const clientSessionToolbar = document.getElementById("client-session-toolbar");
 const clientSessionLabel = document.getElementById("client-session-label");
 const disconnectSessionBtn = document.getElementById("disconnect-session");
@@ -45,6 +47,14 @@ let clockInterval = null;
 let sessionCloseInterval = null;
 const SESSION_SECONDS = 300;
 const SESSION_CLOSE_SECONDS = 10;
+const WEBMAILS = {
+  gmail: "https://mail.google.com/",
+  outlook: "https://outlook.live.com/mail/",
+  orange: "https://mail.orange.fr/",
+  yahoo: "https://mail.yahoo.com/",
+  laposte: "https://www.laposte.net/accueil",
+  free: "https://zimbra.free.fr/",
+};
 
 function currentStation() {
   return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
@@ -72,6 +82,11 @@ function setHomeMessage(text, tone = "") {
 function setUsbMessage(text, tone = "") {
   usbMessage.textContent = text;
   usbMessage.dataset.tone = tone;
+}
+
+function setWebmailMessage(text, tone = "") {
+  webmailMessage.textContent = text;
+  webmailMessage.dataset.tone = tone;
 }
 
 function updateHomeClock() {
@@ -125,6 +140,7 @@ function showHome() {
   filesContainer.classList.add("hidden");
   usbPanel.classList.add("hidden");
   mobilePanel.classList.add("hidden");
+  webmailPanel.classList.add("hidden");
   clientSessionToolbar.classList.add("hidden");
   document.body.classList.remove("client-session-active");
   choiceGrid.classList.remove("hidden");
@@ -132,6 +148,7 @@ function showHome() {
   setMessage("");
   setHomeMessage("");
   setUsbMessage("");
+  setWebmailMessage("");
 }
 
 function hideSessionCloseModal() {
@@ -140,19 +157,51 @@ function hideSessionCloseModal() {
   sessionCloseModal.classList.add("hidden");
 }
 
+async function queueStationCommand(type, payload = {}) {
+  const response = await fetch(`/api/stations/${currentStation()}/commands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, ...payload }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Commande impossible.");
+  return data;
+}
+
+async function cleanupWebmailSession() {
+  try {
+    await queueStationCommand("cleanup-browser");
+  } catch (error) {
+    // Cleaning is best-effort; the interface must still return to the welcome screen.
+  }
+}
+
 function showFlow(flow) {
-  startClientSession(flow === "usb" ? "Impression via cle USB" : "Impression via mobile");
+  const labels = {
+    usb: "Impression via cle USB",
+    mobile: "Impression via mobile",
+    webmail: "Navigateur web",
+  };
+  startClientSession(labels[flow] || "Impression");
   if (flow === "usb") startUsbReminder();
   else stopUsbReminder();
   choiceGrid.classList.add("hidden");
   formatPanel.classList.add("hidden");
   filesContainer.classList.add("hidden");
   filesContainer.innerHTML = "";
+  webmailPanel.classList.add("hidden");
   if (flow === "usb") {
     usbPanel.classList.remove("hidden");
     mobilePanel.classList.add("hidden");
     usbFileInput.value = "";
     setUsbMessage("");
+    return;
+  }
+  if (flow === "webmail") {
+    webmailPanel.classList.remove("hidden");
+    usbPanel.classList.add("hidden");
+    mobilePanel.classList.add("hidden");
+    setWebmailMessage("Choisissez votre boite mail. Les donnees seront nettoyees en fin de session.", "success");
     return;
   }
   mobilePanel.classList.remove("hidden");
@@ -697,6 +746,7 @@ async function deleteFileFromJob(fileId) {
 
 async function disconnectSession() {
   stopUsbReminder();
+  await cleanupWebmailSession();
   const hadFiles = Boolean(activeJob?.code);
   if (hadFiles) {
     await deleteCurrentJob("Session terminee. Vos fichiers ont ete supprimes.");
@@ -724,6 +774,18 @@ async function disconnectSession() {
       showHome();
     }
   }, 1000);
+}
+
+async function openWebmail(provider) {
+  const url = WEBMAILS[provider];
+  if (!url) return;
+  setWebmailMessage("Ouverture de la boite mail...");
+  try {
+    await queueStationCommand("open-webmail", { url });
+    setWebmailMessage("Boite mail ouverte. Pensez a terminer la session quand vous avez fini.", "success");
+  } catch (error) {
+    setWebmailMessage(error.message, "error");
+  }
 }
 
 function updateDeletionCountdown() {
@@ -924,6 +986,11 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (event.target.closest("[data-eject-usb]")) requestUsbEject();
+  const webmailButton = event.target.closest("[data-webmail]");
+  if (webmailButton) {
+    openWebmail(webmailButton.dataset.webmail);
+    return;
+  }
   if (event.target.closest("[data-show-usb-picker]")) showUsbPickerForCurrentJob();
   const previewButton = event.target.closest("[data-preview-file]");
   if (previewButton && activeJob) {
