@@ -3,257 +3,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sessions d'impression - Bureau Vallee Espace Services</title>
-  <link rel="stylesheet" href="./styles.css">
+  <title>Bureau Vallee - Impression client</title>
+  <link rel="stylesheet" href="/styles.css?v=20260611-webmail-v2">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-lockup">
-        <img class="brand-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-        <div>
-          <p class="eyebrow">Sessions d'impression</p>
-          <h1>Espace Services</h1>
-        </div>
-      </div>
-      <div class="topbar-actions">
-        <a class="ghost-btn" href="/upload">Upload mobile</a>
-        <div class="status-pill" id="status-pill">Pret</div>
-      </div>
+  <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
+    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+    <strong id="notice-screen-message"></strong>
+  </section>
+
+  <section class="session-screen hidden" id="session-screen" aria-live="polite">
+    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+    <strong id="session-screen-message"></strong>
+  </section>
+
+  <main class="shell">
+    <header class="station-welcome">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+      <h1>Bienvenue en Espace Services - <span id="station-title">Poste</span></h1>
+      <time class="home-clock" id="home-clock" datetime="">--:--</time>
     </header>
 
-    <main class="screen-stack">
-      <section class="screen screen-active" id="screen-session-open">
-        <div class="session-gate">
-          <img class="session-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-          <p class="eyebrow">Session d'impression client</p>
-          <h2>Ouverture de session</h2>
-          <p>Demarrez une nouvelle impression libre-service.</p>
-          <button class="primary-btn session-start-btn" id="start-session">Ouvrir une session</button>
+    <div class="notice-banner hidden" id="notice-banner"></div>
+
+    <section class="session-toolbar hidden" id="client-session-toolbar" aria-live="polite">
+      <div>
+        <span>Session en cours</span>
+        <strong id="client-session-label">Impression</strong>
+      </div>
+    </section>
+
+    <section class="choice-grid" aria-label="Choix du mode d'impression">
+      <button class="print-choice-card" type="button" data-flow="usb">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path d="M25 7h14v19h5a8 8 0 0 1 8 8v9a14 14 0 0 1-14 14H26a14 14 0 0 1-14-14v-9a8 8 0 0 1 8-8h5V7Z"/>
+            <path d="M29 7h6M22 31h20M25 39h14"/>
+          </svg>
+        </span>
+        <h2>Impression via cle USB</h2>
+        <p>Choisir un fichier sur votre cle.</p>
+        <div class="choice-tags">
+          <span>PDF</span>
+          <span>A4</span>
+          <span>PNG/JPEG</span>
         </div>
-      </section>
+      </button>
 
-      <section class="screen" id="screen-session-closed">
-        <div class="session-gate session-gate-closed">
-          <img class="session-logo" src="./logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-          <p class="eyebrow">Session fermee</p>
-          <h2>Merci</h2>
-          <p>Les fichiers temporaires ont ete nettoyes. La borne est prete pour le prochain client.</p>
-          <button class="primary-btn session-start-btn" id="restart-session">Nouvelle session</button>
+      <button class="print-choice-card is-mobile" type="button" data-flow="mobile">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <rect x="20" y="6" width="24" height="52" rx="6"/>
+            <path d="M29 12h6M28 50h8M27 24h10v10H27zM25 20h2M37 20h2M25 38h2M37 38h2"/>
+          </svg>
+        </span>
+        <h2>Impression via mobile</h2>
+        <p>Flasher le QR code et saisir le code obtenu.</p>
+        <div class="choice-tags">
+          <span>QR code</span>
+          <span>PDF</span>
+          <span>PNG/JPEG</span>
+          <span>Code client</span>
         </div>
-      </section>
+      </button>
 
-      <section class="screen" id="screen-home">
-        <div class="home-stage">
-          <div class="welcome-copy">
-            <p class="eyebrow">Sessions d'impression</p>
-            <h2>Choisissez vos fichiers, reglez l'impression, puis lancez le travail sur le copieur du poste.</h2>
-          </div>
-
-          <div class="qr-band">
-            <div>
-              <span>Envoyer depuis un telephone</span>
-              <strong id="upload-link-label">/upload</strong>
-            </div>
-            <div class="qr-code-card">
-              <div id="qr-code-image" class="qr-code-image" aria-label="QR code depot client"></div>
-              <span>Flashez ici</span>
-              <small id="qr-code-warning" class="qr-code-warning"></small>
-            </div>
-            <a class="ghost-btn ghost-btn-light" href="/upload" target="_blank" rel="noreferrer">Ouvrir l'upload mobile</a>
-          </div>
-
-          <div class="home-grid">
-            <button class="source-card source-card-home" data-source="code">
-              <span class="source-icon">1234</span>
-              <strong>J'ai un code</strong>
-              <small>Recuperez les fichiers envoyes depuis votre telephone ou ordinateur.</small>
-            </button>
-
-            <button class="source-card source-card-home source-card-usb" data-source="usb">
-              <span class="source-icon">USB</span>
-              <strong>J'ai une cle USB</strong>
-              <small>Selectionnez vos PDF, Word, PNG ou JPEG directement depuis la cle.</small>
-            </button>
-          </div>
+      <button class="print-choice-card is-webmail" type="button" data-flow="webmail">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <rect x="8" y="14" width="48" height="36" rx="5"/>
+            <path d="M10 18l22 17 22-17M22 39h20"/>
+          </svg>
+        </span>
+        <h2>Navigateur web</h2>
+        <p>Ouvrir uniquement une boite mail.</p>
+        <div class="choice-tags">
+          <span>Gmail</span>
+          <span>Outlook</span>
+          <span>Orange</span>
         </div>
-      </section>
+      </button>
+    </section>
 
-      <section class="screen" id="screen-source">
-        <div class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow" id="selected-source-label">Source</p>
-              <h2 id="source-title">Chargement des fichiers</h2>
-            </div>
-            <button class="ghost-btn" id="back-to-home">Accueil</button>
-          </div>
+    <section class="format-panel compact-home-info">
+      <div>
+        <p class="eyebrow">A retenir</p>
+        <h2>Impression A4 uniquement</h2>
+        <p class="format-warning">Pour vos impressions A3 ou sur papier epais, merci de vous rapprocher du comptoir.</p>
+      </div>
+      <button class="help-button" id="help-button" type="button">Aide</button>
+    </section>
 
-          <div id="code-zone" class="source-pane source-pane-hidden">
-            <div class="code-entry">
-              <label for="pickup-code">Code de retrait</label>
-              <div class="code-row">
-                <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000">
-                <button class="primary-btn primary-btn-small" id="load-code">Charger</button>
-              </div>
-              <p class="helper-text">Le code est donne apres l'envoi des fichiers depuis le telephone.</p>
-            </div>
-          </div>
+    <aside class="wifi-bubble" aria-label="Information Wi-Fi">
+      <span>Pour plus de fluidite</span>
+      <strong>Connectez-vous au Wi-Fi public</strong>
+      <small>Reseau : <b>wifi_bvpublic</b> - Mot de passe : <b>bureauvallee</b></small>
+    </aside>
+    <p class="message home-message" id="home-message"></p>
 
-          <div id="usb-zone" class="source-pane source-pane-hidden">
-            <label class="upload-zone" for="file-input">
-              <input id="file-input" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg">
-              <span class="upload-title">Touchez ici pour selectionner vos fichiers</span>
-              <span class="upload-subtitle">PDF, Word, PNG et JPEG acceptes</span>
-            </label>
-          </div>
-
-          <div class="file-toolbar">
-            <p id="file-counter">Aucun fichier selectionne</p>
-            <div class="toolbar-actions">
-              <button class="ghost-btn" id="clear-files" disabled>Vider la selection</button>
-            </div>
-          </div>
-
-          <div class="file-list" id="file-list">
-            <div class="empty-state">
-              <strong>La liste des fichiers apparaitra ici.</strong>
-              <p>Les formats courants sont acceptes et prepares en PDF avant impression.</p>
-            </div>
-          </div>
-
-          <div class="panel-actions">
-            <button class="primary-btn" id="go-to-options" disabled>Configurer l'impression</button>
-          </div>
+    <section class="panel flow-panel hidden" id="usb-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Cle USB</p>
+          <h2>Choisir votre PDF</h2>
         </div>
-      </section>
-
-      <section class="screen" id="screen-options">
-        <div class="layout-grid">
-          <div class="panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Parametrage</p>
-                <h2>Choix d'impression</h2>
-              </div>
-              <button class="ghost-btn" id="back-to-source">Retour fichiers</button>
-            </div>
-
-            <div class="form-grid">
-              <div class="field-group">
-                <label>Copieur cible</label>
-                <div class="segmented">
-                  <button class="seg-btn is-active" data-setting="printer" data-value="COPIEUR 1">COPIEUR 1</button>
-                  <button class="seg-btn" data-setting="printer" data-value="COPIEUR 2">COPIEUR 2</button>
-                </div>
-              </div>
-
-              <div class="field-group">
-                <label>Couleur</label>
-                <div class="segmented">
-                  <button class="seg-btn is-active" data-setting="color" data-value="noir-blanc">N&B</button>
-                  <button class="seg-btn" data-setting="color" data-value="couleur">Couleur</button>
-                </div>
-              </div>
-
-              <div class="field-group">
-                <label>Impression</label>
-                <div class="segmented">
-                  <button class="seg-btn is-active" data-setting="sides" data-value="recto">Recto</button>
-                  <button class="seg-btn" data-setting="sides" data-value="recto-verso">Recto verso</button>
-                </div>
-              </div>
-
-              <div class="field-group">
-                <label>Reliure recto verso</label>
-                <div class="segmented">
-                  <button class="seg-btn is-active" data-setting="duplexBinding" data-value="bord-long">Bord long</button>
-                  <button class="seg-btn" data-setting="duplexBinding" data-value="bord-court">Bord court</button>
-                </div>
-              </div>
-
-              <div class="field-group">
-                <label>Orientation</label>
-                <div class="segmented segmented-3">
-                  <button class="seg-btn is-active" data-setting="orientation" data-value="auto">Auto</button>
-                  <button class="seg-btn" data-setting="orientation" data-value="portrait">Portrait</button>
-                  <button class="seg-btn" data-setting="orientation" data-value="paysage">Paysage</button>
-                </div>
-              </div>
-
-              <div class="field-group">
-                <label for="paper-size">Taille papier</label>
-                <select id="paper-size">
-                  <option value="A4">A4</option>
-                  <option value="A3">A3</option>
-                  <option value="A5">A5</option>
-                </select>
-              </div>
-
-              <div class="field-group">
-                <label for="copies">Nombre d'exemplaires</label>
-                <input id="copies" type="number" min="1" max="999" value="1">
-              </div>
-
-              <div class="field-group field-group-wide">
-                <label for="page-range">Plage de pages</label>
-                <input id="page-range" type="text" inputmode="numeric" placeholder="Toutes les pages ou ex : 1-3,5">
-                <small class="field-hint">Laissez vide pour imprimer tout le document.</small>
-              </div>
-            </div>
-
-            <div class="live-summary" id="live-summary"></div>
-
-            <div class="panel-actions">
-              <button class="primary-btn" id="start-print">Imprimer maintenant</button>
-            </div>
-          </div>
-
-          <aside class="summary-panel">
-            <div class="summary-card">
-              <p class="eyebrow">Session</p>
-              <h3>Compteur temps reel</h3>
-              <div class="summary-metrics" id="summary-metrics"></div>
-            </div>
-
-            <div class="summary-card">
-              <p class="eyebrow">Fichiers</p>
-              <h3>Preparation</h3>
-              <div id="job-files-preview"></div>
-            </div>
-          </aside>
+        <div class="panel-actions">
+          <button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>
+          <button class="text-link" type="button" data-back-home>Changer de mode</button>
         </div>
-      </section>
+      </div>
+      <form class="usb-form" id="usb-form">
+        <label class="drop-zone">
+          <input id="usb-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,application/pdf,image/png,image/jpeg,image/heic,image/heif" multiple required>
+          <span>Choisir et charger le fichier</span>
+          <small>Selectionnez un PDF, PNG, JPG, JPEG ou HEIC sur votre cle USB. Limite : 500 Mo par fichier.</small>
+        </label>
+      </form>
+      <p class="message" id="usb-message"></p>
+    </section>
 
-      <section class="screen" id="screen-printing">
-        <div class="print-card">
-          <p class="eyebrow">Impression en cours</p>
-          <h2 id="print-title">Preparation du travail</h2>
-          <div class="progress-track">
-            <div class="progress-bar" id="progress-bar"></div>
-          </div>
-          <p class="print-detail" id="print-detail">Initialisation...</p>
-          <div class="summary-metrics" id="print-metrics"></div>
+    <section class="panel flow-panel hidden" id="mobile-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Mobile</p>
+          <h2>Envoyer depuis votre telephone</h2>
         </div>
-      </section>
-    </main>
-  </div>
+        <button class="text-link" type="button" data-back-home>Changer de mode</button>
+      </div>
+      <div class="mobile-flow-grid">
+        <div class="qr-card">
+          <img id="upload-qr" src="/qr.gif?station=poste-1" alt="QR code upload mobile">
+          <span>Flashez ici</span>
+          <strong id="upload-url">Chargement...</strong>
+        </div>
+        <div>
+          <p class="lead">Apres l'envoi sur votre telephone, saisissez le code obtenu ici.</p>
+          <form class="code-form" id="code-form">
+            <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+            <button type="submit">Charger</button>
+          </form>
+          <p class="message" id="message"></p>
+        </div>
+      </div>
+    </section>
 
-  <div class="modal-backdrop modal-hidden" id="idle-warning-modal">
-    <div class="idle-warning-card">
-      <p class="eyebrow">Session inactive</p>
-      <h2>Attention fermeture de session dans</h2>
-      <strong id="idle-countdown">15</strong>
-      <p>Votre session sera fermee automatiquement sans activite.</p>
-      <div class="idle-warning-actions">
-        <button class="ghost-btn" id="idle-close-now">Fermer maintenant</button>
-        <button class="primary-btn primary-btn-small" id="idle-continue">Continuer</button>
+    <section class="panel flow-panel hidden" id="webmail-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Navigateur web</p>
+          <h2>Choisir votre boite mail</h2>
+        </div>
+        <button class="text-link" type="button" data-back-home>Fin de session</button>
+      </div>
+      <div class="webmail-grid">
+        <button type="button" data-webmail="gmail">Gmail</button>
+        <button type="button" data-webmail="outlook">Outlook</button>
+        <button type="button" data-webmail="orange">Orange Mail</button>
+        <button type="button" data-webmail="yahoo">Yahoo Mail</button>
+        <button type="button" data-webmail="laposte">LaPoste.net</button>
+        <button type="button" data-webmail="free">Free Zimbra</button>
+      </div>
+      <p class="message" id="webmail-message"></p>
+    </section>
+
+    <section class="files hidden" id="files"></section>
+  </main>
+
+  <div class="modal hidden" id="expiration-modal" role="dialog" aria-modal="true" aria-labelledby="expiration-title">
+    <div class="modal-card">
+      <p class="eyebrow">Attention</p>
+      <h2 id="expiration-title">Suppression automatique dans <span id="expiration-countdown">30</span> secondes</h2>
+      <p>Vos fichiers vont etre supprimes automatiquement. Terminez vos impressions ou telechargez vos fichiers maintenant.</p>
+      <div class="modal-actions">
+        <button id="close-expiration-modal" type="button">J'ai compris</button>
       </div>
     </div>
   </div>
 
-  <script src="./qrcode.js"></script>
-  <script src="./station-config.js"></script>
-  <script src="./app.js"></script>
+  <div class="print-status-modal hidden" id="print-status-modal" role="status" aria-live="polite">
+    <div class="print-status-card">
+      <span class="print-status-spinner spinner" aria-hidden="true"></span>
+      <strong id="print-status-title">Impression en cours</strong>
+      <p id="print-status-detail">Merci de patienter.</p>
+    </div>
+  </div>
+
+  <div class="session-close-modal hidden" id="session-close-modal" role="status" aria-live="polite">
+    <div class="session-close-card">
+      <strong id="session-close-countdown" style="--timer-progress: 360deg">10</strong>
+      <h2>Session terminee</h2>
+      <p>Merci pour vos impressions. Veuillez vous rapprocher de la caisse.</p>
+    </div>
+  </div>
+
+  <div class="usb-eject-modal hidden" id="usb-eject-modal" role="dialog" aria-modal="true" aria-labelledby="usb-eject-title">
+    <div class="usb-eject-card">
+      <strong id="usb-eject-title">Votre cle USB peut etre ejectee</strong>
+      <p>Vous pouvez la retirer du poste.</p>
+      <button id="close-usb-eject-modal" type="button">J'ai compris</button>
+    </div>
+  </div>
+
+  <script src="/notice.js?v=20260523-print-preview"></script>
+  <script src="/session.js?v=20260523-print-preview"></script>
+  <script src="/app.js?v=20260611-webmail-v2"></script>
 </body>
 </html>

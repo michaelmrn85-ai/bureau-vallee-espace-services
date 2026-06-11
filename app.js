@@ -1,1149 +1,1026 @@
-const ADMIN_PASSWORD = "BV558";
-const STORAGE_KEY = "bv-espace-services-admin";
-const STATS_KEY = "bv-espace-services-stats";
-const SESSION_KEY = "bv-espace-services-current-session";
-const COMMAND_KEY = "bv-espace-services-admin-command";
-const IDLE_TIMEOUT_MS = 60 * 1000;
-const IDLE_WARNING_MS = 15 * 1000;
-const stationConfig = window.BV_APP_CONFIG || {};
-const stationName = stationConfig.stationName || "POSTE DEMO";
-const stationStorageId = stationName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "poste-demo";
-const stationSessionKey = `${SESSION_KEY}:${stationStorageId}`;
-const stationCommandKey = `${COMMAND_KEY}:${stationStorageId}`;
-const apiBaseUrl = stationConfig.apiBaseUrl || "";
-
-const acceptedExtensions = [".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"];
-const conversionLabels = {
-  pdf: "PDF pret",
-  doc: "Conversion Word",
-  docx: "Conversion Word",
-  png: "Conversion image",
-  jpg: "Conversion image",
-  jpeg: "Conversion image",
+const codeForm = document.getElementById("code-form");
+const pickupCode = document.getElementById("pickup-code");
+const message = document.getElementById("message");
+const homeMessage = document.getElementById("home-message");
+const filesContainer = document.getElementById("files");
+const uploadUrlLabel = document.getElementById("upload-url");
+const uploadQr = document.getElementById("upload-qr");
+const stationTitle = document.getElementById("station-title");
+const homeClock = document.getElementById("home-clock");
+const expirationModal = document.getElementById("expiration-modal");
+const expirationCountdown = document.getElementById("expiration-countdown");
+const closeExpirationModalBtn = document.getElementById("close-expiration-modal");
+const printStatusModal = document.getElementById("print-status-modal");
+const printStatusTitle = document.getElementById("print-status-title");
+const printStatusDetail = document.getElementById("print-status-detail");
+const sessionCloseModal = document.getElementById("session-close-modal");
+const sessionCloseCountdown = document.getElementById("session-close-countdown");
+const usbEjectModal = document.getElementById("usb-eject-modal");
+const closeUsbEjectModalBtn = document.getElementById("close-usb-eject-modal");
+const choiceGrid = document.querySelector(".choice-grid");
+const formatPanel = document.querySelector(".format-panel");
+const usbPanel = document.getElementById("usb-panel");
+const mobilePanel = document.getElementById("mobile-panel");
+const webmailPanel = document.getElementById("webmail-panel");
+const usbForm = document.getElementById("usb-form");
+const usbFileInput = document.getElementById("usb-file-input");
+const usbMessage = document.getElementById("usb-message");
+const webmailMessage = document.getElementById("webmail-message");
+const clientSessionToolbar = document.getElementById("client-session-toolbar");
+const clientSessionLabel = document.getElementById("client-session-label");
+const disconnectSessionBtn = document.getElementById("disconnect-session");
+const helpButton = document.getElementById("help-button");
+let currentCode = "";
+let activeJob = null;
+let deletionSeconds = 0;
+let deletionInterval = null;
+let expirationWarningShown = false;
+let printStatusInterval = null;
+let usbReminderTimer = null;
+let activePreviewFileId = "";
+let selectedPrintFileIds = new Set();
+let knownPrintableFileIds = new Set();
+let printSelectionReady = false;
+let printStatusHideTimer = null;
+let usbEjectHideTimer = null;
+let clockInterval = null;
+let sessionCloseInterval = null;
+let webmailTab = null;
+const SESSION_SECONDS = 300;
+const SESSION_CLOSE_SECONDS = 10;
+const WEBMAILS = {
+  gmail: "https://mail.google.com/",
+  outlook: "https://outlook.live.com/mail/",
+  orange: "https://mail.orange.fr/",
+  yahoo: "https://mail.yahoo.com/",
+  laposte: "https://www.laposte.net/accueil",
+  free: "https://zimbra.free.fr/",
 };
 
-const defaultAdminSettings = {
-  printer1: stationConfig.printer1 || "COPIEUR 1",
-  printer2: stationConfig.printer2 || "COPIEUR 2",
-  uploadUrl: stationConfig.uploadUrl || "/upload",
-  cleanupDelay: 3,
-  deleteAfterPrint: true,
-  remoteCleanup: true,
-};
-
-const state = {
-  source: null,
-  pickupCode: null,
-  files: [],
-  settings: {
-    printer: stationConfig.defaultPrinter || "COPIEUR 1",
-    color: "noir-blanc",
-    sides: "recto",
-    duplexBinding: "bord-long",
-    orientation: "auto",
-    paperSize: "A4",
-    pageRange: "",
-    copies: 1,
-  },
-  admin: loadAdminSettings(),
-  adminUnlocked: false,
-  stats: loadStats(),
-  sessionSale: createEmptySessionSale(),
-  printTimers: [],
-  sessionActive: false,
-  idleWarningTimer: null,
-  idleCloseTimer: null,
-  idleCountdownTimer: null,
-  idleSecondsLeft: IDLE_WARNING_MS / 1000,
-  lastAdminCommandId: null,
-};
-
-const screens = {
-  sessionOpen: document.getElementById("screen-session-open"),
-  sessionClosed: document.getElementById("screen-session-closed"),
-  home: document.getElementById("screen-home"),
-  source: document.getElementById("screen-source"),
-  options: document.getElementById("screen-options"),
-  printing: document.getElementById("screen-printing"),
-};
-
-const sourceButtons = [...document.querySelectorAll("[data-source]")];
-const startSessionBtn = document.getElementById("start-session");
-const restartSessionBtn = document.getElementById("restart-session");
-const sourceTitle = document.getElementById("source-title");
-const selectedSourceLabel = document.getElementById("selected-source-label");
-const codeZone = document.getElementById("code-zone");
-const usbZone = document.getElementById("usb-zone");
-const pickupCodeInput = document.getElementById("pickup-code");
-const loadCodeBtn = document.getElementById("load-code");
-const fileInput = document.getElementById("file-input");
-const fileList = document.getElementById("file-list");
-const fileCounter = document.getElementById("file-counter");
-const clearFilesBtn = document.getElementById("clear-files");
-const goToOptionsBtn = document.getElementById("go-to-options");
-const backToHomeBtn = document.getElementById("back-to-home");
-const backToSourceBtn = document.getElementById("back-to-source");
-const startPrintBtn = document.getElementById("start-print");
-const statusPill = document.getElementById("status-pill");
-const uploadLinkLabel = document.getElementById("upload-link-label");
-const qrCodeImage = document.getElementById("qr-code-image");
-const qrCodeWarning = document.getElementById("qr-code-warning");
-const copiesInput = document.getElementById("copies");
-const pageRangeInput = document.getElementById("page-range");
-const paperSizeSelect = document.getElementById("paper-size");
-const liveSummary = document.getElementById("live-summary");
-const summaryMetrics = document.getElementById("summary-metrics");
-const jobFilesPreview = document.getElementById("job-files-preview");
-const progressBar = document.getElementById("progress-bar");
-const printTitle = document.getElementById("print-title");
-const printDetail = document.getElementById("print-detail");
-const printMetrics = document.getElementById("print-metrics");
-
-const adminModal = document.getElementById("admin-modal");
-const adminOpenBtn = document.getElementById("admin-open");
-const adminCloseBtn = document.getElementById("admin-close");
-const adminPasswordInput = document.getElementById("admin-password");
-const adminLoginBtn = document.getElementById("admin-login");
-const adminError = document.getElementById("admin-error");
-const adminLoginBlock = document.getElementById("admin-login-block");
-const adminPanel = document.getElementById("admin-panel");
-const adminPrinter1 = document.getElementById("admin-printer-1");
-const adminPrinter2 = document.getElementById("admin-printer-2");
-const adminUploadUrl = document.getElementById("admin-upload-url");
-const adminCleanupDelay = document.getElementById("admin-cleanup-delay");
-const adminDeletePrint = document.getElementById("admin-delete-print");
-const adminRemoteCleanup = document.getElementById("admin-remote-cleanup");
-const adminSaveBtn = document.getElementById("admin-save");
-const adminLogoutBtn = document.getElementById("admin-logout");
-const adminBwPages = document.getElementById("admin-bw-pages");
-const adminColorPages = document.getElementById("admin-color-pages");
-const adminSessionCount = document.getElementById("admin-session-count");
-const adminFileCount = document.getElementById("admin-file-count");
-const adminCurrentSession = document.getElementById("admin-current-session");
-const adminCurrentDetail = document.getElementById("admin-current-detail");
-const adminCloseSessionBtn = document.getElementById("admin-close-session");
-const adminResetStatsBtn = document.getElementById("admin-reset-stats");
-const adminHistoryList = document.getElementById("admin-history-list");
-const idleWarningModal = document.getElementById("idle-warning-modal");
-const idleCountdown = document.getElementById("idle-countdown");
-const idleContinueBtn = document.getElementById("idle-continue");
-const idleCloseNowBtn = document.getElementById("idle-close-now");
-
-function loadAdminSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...defaultAdminSettings };
-    return { ...defaultAdminSettings, ...JSON.parse(raw) };
-  } catch (error) {
-    return { ...defaultAdminSettings };
-  }
+function currentStation() {
+  return window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
 }
 
-function saveAdminSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.admin));
+function stationLabel() {
+  return currentStation() === "poste-2" ? "Poste 2" : "Poste 1";
 }
 
-function createEmptyStats() {
-  return {
-    bwPages: 0,
-    colorPages: 0,
-    sessions: 0,
-    files: 0,
-    sheets: 0,
-    byPrinter: {},
-    history: [],
-  };
+function formatSize(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-function createEmptyPrinterStats() {
-  return {
-    bwPages: 0,
-    colorPages: 0,
-    sessions: 0,
-    files: 0,
-    sheets: 0,
-  };
+function setMessage(text, tone = "") {
+  message.textContent = text;
+  message.dataset.tone = tone;
 }
 
-function normalizeStats(stats) {
-  const normalized = { ...createEmptyStats(), ...stats };
-  normalized.history = Array.isArray(normalized.history) ? normalized.history : [];
-  normalized.byPrinter = normalized.byPrinter && typeof normalized.byPrinter === "object"
-    ? normalized.byPrinter
-    : {};
-
-  if (!Object.keys(normalized.byPrinter).length && normalized.history.length) {
-    normalized.history.forEach((item) => {
-      if (!item.printer) return;
-      const printerStats = normalized.byPrinter[item.printer] || createEmptyPrinterStats();
-      const pages = Number(item.pages) || 0;
-      if (item.color === "couleur") {
-        printerStats.colorPages += pages;
-      } else {
-        printerStats.bwPages += pages;
-      }
-      printerStats.sessions += 1;
-      printerStats.files += Number(item.files) || 0;
-      printerStats.sheets += Number(item.sheets) || 0;
-      normalized.byPrinter[item.printer] = printerStats;
-    });
-  }
-
-  return normalized;
+function setHomeMessage(text, tone = "") {
+  homeMessage.textContent = text;
+  homeMessage.dataset.tone = tone;
 }
 
-function createEmptySessionSale() {
-  return {
-    openedAt: null,
-    closedAt: null,
-    bwPages: 0,
-    colorPages: 0,
-    files: 0,
-    sheets: 0,
-    jobs: 0,
-    totalDueHint: "",
-    details: [],
-  };
+function setUsbMessage(text, tone = "") {
+  usbMessage.textContent = text;
+  usbMessage.dataset.tone = tone;
 }
 
-function loadStats() {
-  try {
-    const raw = localStorage.getItem(STATS_KEY);
-    if (!raw) return createEmptyStats();
-    return normalizeStats(JSON.parse(raw));
-  } catch (error) {
-    return createEmptyStats();
-  }
+function setWebmailMessage(text, tone = "") {
+  webmailMessage.textContent = text;
+  webmailMessage.dataset.tone = tone;
 }
 
-function saveStats() {
-  localStorage.setItem(STATS_KEY, JSON.stringify(state.stats));
-}
-
-function saveCurrentSessionSnapshot() {
-  const totals = computeTotals();
-  const snapshot = {
-    stationId: stationStorageId,
-    stationName,
-    active: state.sessionActive,
-    lockedPrinter: stationConfig.lockPrinter ? state.admin.printer1 : null,
-    defaultPrinter: state.admin.printer1,
-    openedAt: state.sessionSale.openedAt,
-    closedAt: state.sessionSale.closedAt,
-    source: state.source,
-    pickupCode: state.pickupCode,
-    currentFiles: totals.files,
-    currentPages: totals.totalImpressions,
-    currentSheets: totals.totalSheets,
-    files: state.sessionSale.files,
-    bwPages: state.sessionSale.bwPages,
-    colorPages: state.sessionSale.colorPages,
-    pages: state.sessionSale.bwPages + state.sessionSale.colorPages,
-    sheets: state.sessionSale.sheets,
-    jobs: state.sessionSale.jobs,
-    details: state.sessionSale.details,
-    color: state.settings.color,
-    printer: state.settings.printer,
-    paperSize: state.settings.paperSize,
-    sides: state.settings.sides,
-    duplexBinding: state.settings.duplexBinding,
-    pageRange: totals.rangeLabel,
-    updatedAt: new Date().toISOString(),
-  };
-  localStorage.setItem(stationSessionKey, JSON.stringify(snapshot));
-  localStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
-  reportStationSnapshot(snapshot);
-}
-
-async function reportStationSnapshot(snapshot) {
-  if (!apiBaseUrl) return;
-  try {
-    await fetch(`${apiBaseUrl}/api/stations/${stationStorageId}/session`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(snapshot),
-    });
-  } catch (error) {
-    console.warn("Etat poste non transmis", error);
-  }
-}
-
-function getExtension(name) {
-  const lowerName = name.toLowerCase();
-  const dotIndex = lowerName.lastIndexOf(".");
-  return dotIndex >= 0 ? lowerName.slice(dotIndex + 1) : "";
-}
-
-function isAcceptedFile(name) {
-  const lowerName = name.toLowerCase();
-  return acceptedExtensions.some((extension) => lowerName.endsWith(extension));
-}
-
-function formatBytes(bytes) {
-  if (!bytes) return "0 Ko";
-  const units = ["o", "Ko", "Mo", "Go"];
-  let size = bytes;
-  let index = 0;
-  while (size >= 1024 && index < units.length - 1) {
-    size /= 1024;
-    index += 1;
-  }
-  return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
-}
-
-function formatDateTime(value) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
+function updateHomeClock() {
+  const now = new Date();
+  const value = new Intl.DateTimeFormat("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(now);
+  homeClock.textContent = value;
+  homeClock.dateTime = now.toISOString();
 }
 
-function parsePageRange(rangeText, maxPages) {
-  const range = rangeText.trim();
-  if (!range) {
-    return {
-      valid: true,
-      count: maxPages,
-      label: "Toutes les pages",
-    };
+function startHomeClock() {
+  updateHomeClock();
+  window.clearInterval(clockInterval);
+  clockInterval = window.setInterval(updateHomeClock, 1000);
+}
+
+function stopUsbReminder() {
+  window.clearTimeout(usbReminderTimer);
+  usbReminderTimer = null;
+}
+
+function startUsbReminder() {
+  stopUsbReminder();
+  usbReminderTimer = window.setTimeout(() => {
+    setUsbMessage("N'oubliez pas votre cle USB.", "error");
+  }, 90 * 1000);
+}
+
+function startClientSession(label) {
+  clientSessionLabel.textContent = label;
+  clientSessionToolbar.classList.remove("hidden");
+  document.body.classList.add("client-session-active");
+}
+
+function showHome() {
+  stopDeletionTimer();
+  stopPrintStatusPolling();
+  stopUsbReminder();
+  hidePrintStatusModal();
+  hideSessionCloseModal();
+  activeJob = null;
+  activePreviewFileId = "";
+  selectedPrintFileIds = new Set();
+  knownPrintableFileIds = new Set();
+  printSelectionReady = false;
+  currentCode = "";
+  pickupCode.value = "";
+  filesContainer.innerHTML = "";
+  filesContainer.classList.add("hidden");
+  usbPanel.classList.add("hidden");
+  mobilePanel.classList.add("hidden");
+  webmailPanel.classList.add("hidden");
+  clientSessionToolbar.classList.add("hidden");
+  document.body.classList.remove("client-session-active");
+  choiceGrid.classList.remove("hidden");
+  formatPanel.classList.remove("hidden");
+  setMessage("");
+  setHomeMessage("");
+  setUsbMessage("");
+  setWebmailMessage("");
+}
+
+function hideSessionCloseModal() {
+  window.clearInterval(sessionCloseInterval);
+  sessionCloseInterval = null;
+  sessionCloseModal.classList.add("hidden");
+}
+
+async function queueStationCommand(type, payload = {}) {
+  const response = await fetch(`/api/stations/${currentStation()}/commands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, ...payload }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Commande impossible.");
+  return data;
+}
+
+async function cleanupWebmailSession() {
+  // Fermer l'onglet webmail ouvert cote client
+  if (webmailTab && !webmailTab.closed) {
+    webmailTab.close();
   }
+  webmailTab = null;
 
-  if (!/^\d+(\s*-\s*\d+)?(\s*,\s*\d+(\s*-\s*\d+)?)*$/.test(range)) {
-    return {
-      valid: false,
-      count: 0,
-      label: "Plage invalide",
-    };
-  }
+  // Envoi de la commande a l'agent Windows en parallele (best-effort)
+  queueStationCommand("cleanup-browser").catch(() => {});
+}
 
-  const pages = new Set();
-  for (const part of range.split(",")) {
-    const [startRaw, endRaw] = part.split("-").map((value) => Number(value.trim()));
-    const start = startRaw;
-    const end = endRaw || startRaw;
-
-    if (!start || start < 1 || end < start) {
-      return {
-        valid: false,
-        count: 0,
-        label: "Plage invalide",
-      };
-    }
-
-    for (let page = start; page <= Math.min(end, maxPages); page += 1) {
-      pages.add(page);
-    }
-  }
-
-  return {
-    valid: pages.size > 0,
-    count: pages.size,
-    label: range,
+function showFlow(flow) {
+  const labels = {
+    usb: "Impression via cle USB",
+    mobile: "Impression via mobile",
+    webmail: "Navigateur web",
   };
+  startClientSession(labels[flow] || "Impression");
+  if (flow === "usb") startUsbReminder();
+  else stopUsbReminder();
+  choiceGrid.classList.add("hidden");
+  formatPanel.classList.add("hidden");
+  filesContainer.classList.add("hidden");
+  filesContainer.innerHTML = "";
+  webmailPanel.classList.add("hidden");
+  if (flow === "usb") {
+    usbPanel.classList.remove("hidden");
+    mobilePanel.classList.add("hidden");
+    usbFileInput.value = "";
+    setUsbMessage("");
+    return;
+  }
+  if (flow === "webmail") {
+    webmailPanel.classList.remove("hidden");
+    usbPanel.classList.add("hidden");
+    mobilePanel.classList.add("hidden");
+    setWebmailMessage("Choisissez votre boite mail. Les donnees seront nettoyees en fin de session.", "success");
+    return;
+  }
+  mobilePanel.classList.remove("hidden");
+  usbPanel.classList.add("hidden");
+  pickupCode.focus();
 }
 
-function getPageCountForFile(file) {
-  return parsePageRange(state.settings.pageRange, file.pages);
+function isPdf(file) {
+  return file.extension.toLowerCase() === "pdf";
 }
 
-async function estimatePages(file) {
-  const extension = getExtension(file.name);
-  if (extension !== "pdf") return 1;
-  try {
-    const buffer = await file.arrayBuffer();
-    const text = new TextDecoder("latin1").decode(buffer);
-    const matches = text.match(/\/Type\s*\/Page\b/g);
-    return matches ? matches.length : 1;
-  } catch (error) {
-    return 1;
+function isImage(file) {
+  return ["png", "jpg", "jpeg"].includes(file.extension.toLowerCase());
+}
+
+function isPrintable(file) {
+  return Boolean(file.printable) || isPdf(file) || isImage(file);
+}
+
+function renderOption(value, label, selectedValue) {
+  return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${label}</option>`;
+}
+
+function renderPrintSettings(settings = {}) {
+  const colorMode = settings.colorMode || "noir-blanc";
+  const duplex = settings.duplex || "recto";
+  const paperSize = "A4";
+  const scaling = settings.scaling || "ajuster";
+  const orientation = settings.orientation || "auto";
+  const pageRange = settings.pageRange || "";
+  const pagesPerSheet = String(settings.pagesPerSheet || 1);
+  const copies = settings.copies || 1;
+  return `
+    <form class="print-settings" id="print-settings-form">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Reglages PDF</p>
+          <h2>Options d'impression</h2>
+        </div>
+      </div>
+      <div class="print-settings-grid">
+        <label>
+          Couleur
+          <select name="colorMode">
+            ${renderOption("noir-blanc", "Noir et blanc", colorMode)}
+            ${renderOption("couleur", "Couleur", colorMode)}
+          </select>
+        </label>
+        <label>
+          Recto / verso
+          <select name="duplex">
+            ${renderOption("recto", "Recto", duplex)}
+            ${renderOption("recto-verso-long", "Recto-verso bord long", duplex)}
+            ${renderOption("recto-verso-court", "Recto-verso bord court", duplex)}
+          </select>
+        </label>
+        <label>
+          Format papier
+          <select name="paperSize">
+            ${renderOption("A4", "A4", paperSize)}
+          </select>
+        </label>
+        <label>
+          Taille
+          <select name="scaling">
+            ${renderOption("ajuster", "Ajuster", scaling)}
+            ${renderOption("taille-reelle", "Taille reelle", scaling)}
+          </select>
+        </label>
+        <label>
+          Orientation
+          <select name="orientation">
+            ${renderOption("auto", "Auto", orientation)}
+            ${renderOption("portrait", "Portrait", orientation)}
+            ${renderOption("paysage", "Paysage", orientation)}
+          </select>
+        </label>
+        <label>
+          Plage de pages
+          <input name="pageRange" type="text" inputmode="numeric" placeholder="Ex : 1-3, 5" value="${pageRange}">
+        </label>
+        <label>
+          Pages par feuille
+          <select name="pagesPerSheet">
+            ${renderOption("1", "Normal", pagesPerSheet)}
+            ${renderOption("2", "2 fois sur une feuille", pagesPerSheet)}
+            ${renderOption("4", "4 fois sur une feuille", pagesPerSheet)}
+          </select>
+        </label>
+        <label>
+          Exemplaires
+          <input name="copies" type="number" min="1" max="99" value="${copies}">
+        </label>
+      </div>
+      <div class="print-settings-actions">
+        <button class="settings-save-button" type="submit">Appliquer les reglages</button>
+        <button class="settings-save-button main-print-button" type="button" data-print-selected>Imprimer</button>
+      </div>
+      <p class="message" id="print-settings-message"></p>
+    </form>
+  `;
+}
+
+function attachPrintSettingsForm() {
+  const form = document.getElementById("print-settings-form");
+  const settingsMessage = document.getElementById("print-settings-message");
+  if (!form || !activeJob?.code) return;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    settingsMessage.textContent = "Enregistrement...";
+    settingsMessage.dataset.tone = "";
+    try {
+      const response = await fetch(`/api/jobs/${activeJob.code}/settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Reglages impossibles a enregistrer.");
+      activeJob = payload;
+      settingsMessage.textContent = "Reglages enregistres pour le suivi caisse.";
+      settingsMessage.dataset.tone = "success";
+    } catch (error) {
+      settingsMessage.textContent = error.message;
+      settingsMessage.dataset.tone = "error";
+    }
+  });
+}
+
+async function savePrintSettings() {
+  const form = document.getElementById("print-settings-form");
+  if (!form || !activeJob?.code) return activeJob?.printSettings || {};
+  const response = await fetch(`/api/jobs/${activeJob.code}/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(Object.fromEntries(new FormData(form))),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Reglages impossibles a enregistrer.");
+  activeJob = payload;
+  return payload.printSettings;
+}
+
+function printStatusLabel(status) {
+  const labels = {
+    queued: "En attente",
+    printing: "En impression",
+    done: "Imprime",
+    failed: "Erreur",
+  };
+  return labels[status] || status;
+}
+
+function latestPrintStatus(fileId) {
+  const request = [...(activeJob?.printRequests || [])].reverse().find((item) => item.fileId === fileId);
+  return request ? printStatusLabel(request.status) : "";
+}
+
+function latestPrintRequest(job = activeJob) {
+  return [...(job?.printRequests || [])].reverse()[0] || null;
+}
+
+function hasPendingPrintRequest(job = activeJob) {
+  return (job?.printRequests || []).some((request) => ["queued", "printing"].includes(request.status));
+}
+
+function syncSelectedPrintFiles(job) {
+  const printableIds = job.files.filter(isPrintable).map((file) => file.id);
+  const printableSet = new Set(printableIds);
+  if (!printSelectionReady) {
+    selectedPrintFileIds = new Set(printableIds);
+    knownPrintableFileIds = printableSet;
+    printSelectionReady = true;
+    return;
+  }
+  selectedPrintFileIds = new Set(printableIds.filter((id) => selectedPrintFileIds.has(id)));
+  for (const id of printableIds) {
+    if (!knownPrintableFileIds.has(id)) {
+      selectedPrintFileIds.add(id);
+    }
+  }
+  knownPrintableFileIds = printableSet;
+}
+
+function refreshPrintStatuses(job = activeJob) {
+  for (const file of job?.files || []) {
+    const label = latestPrintStatus(file.id);
+    const status = document.querySelector(`[data-print-status="${file.id}"]`);
+    if (status) {
+      status.textContent = label;
+      status.classList.toggle("hidden", !label);
+    }
+  }
+  updatePrintStatusModal(job);
+}
+
+function hidePrintStatusModal() {
+  window.clearTimeout(printStatusHideTimer);
+  printStatusHideTimer = null;
+  printStatusModal.classList.add("hidden");
+}
+
+function updatePrintStatusModal(job = activeJob) {
+  const request = latestPrintRequest(job);
+  if (!request) {
+    hidePrintStatusModal();
+    return;
+  }
+
+  window.clearTimeout(printStatusHideTimer);
+  printStatusHideTimer = null;
+  printStatusModal.dataset.status = request.status;
+
+  if (request.status === "queued") {
+    printStatusTitle.textContent = "En attente";
+    printStatusDetail.textContent = "Votre impression est envoyee au copieur.";
+    printStatusModal.classList.remove("hidden");
+    return;
+  }
+
+  if (request.status === "printing") {
+    printStatusTitle.textContent = "Impression en cours";
+    printStatusDetail.textContent = "Merci de patienter.";
+    printStatusModal.classList.remove("hidden");
+    return;
+  }
+
+  if (request.status === "done") {
+    printStatusTitle.textContent = "Imprime";
+    printStatusDetail.textContent = "Merci de recuperer vos impressions et de vous rapprocher de la caisse.";
+    printStatusModal.classList.remove("hidden");
+    printStatusHideTimer = window.setTimeout(hidePrintStatusModal, 3500);
+    return;
+  }
+
+  if (request.status === "failed") {
+    printStatusTitle.textContent = "Erreur d'impression";
+    printStatusDetail.textContent = "Merci de demander de l'aide a un vendeur.";
+    printStatusModal.classList.remove("hidden");
   }
 }
 
-function showScreen(name) {
-  Object.values(screens).forEach((screen) => screen.classList.remove("screen-active"));
-  screens[name].classList.add("screen-active");
+function stopPrintStatusPolling() {
+  window.clearInterval(printStatusInterval);
+  printStatusInterval = null;
 }
 
-function hideIdleWarning() {
-  idleWarningModal.classList.add("modal-hidden");
-  if (state.idleCountdownTimer) clearInterval(state.idleCountdownTimer);
-  state.idleCountdownTimer = null;
+function startPrintStatusPolling() {
+  stopPrintStatusPolling();
+  if (!activeJob?.code || !hasPendingPrintRequest(activeJob)) return;
+  printStatusInterval = window.setInterval(async () => {
+    try {
+      const response = await fetch(`/api/jobs/${activeJob.code}?station=${currentStation()}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Suivi indisponible.");
+      activeJob = payload;
+      refreshPrintStatuses(payload);
+      if (!hasPendingPrintRequest(payload)) stopPrintStatusPolling();
+    } catch (error) {
+      stopPrintStatusPolling();
+      setMessage(error.message, "error");
+    }
+  }, 2200);
 }
 
-function clearIdleTimers() {
-  if (state.idleWarningTimer) clearTimeout(state.idleWarningTimer);
-  if (state.idleCloseTimer) clearTimeout(state.idleCloseTimer);
-  if (state.idleCountdownTimer) clearInterval(state.idleCountdownTimer);
-  state.idleWarningTimer = null;
-  state.idleCloseTimer = null;
-  state.idleCountdownTimer = null;
+function firstPreviewFile(job) {
+  return job.files.find((file) => file.id === activePreviewFileId && (isPdf(file) || isImage(file)))
+    || job.files.find((file) => isPdf(file) || isImage(file));
 }
 
-function isAdminModalOpen() {
-  return Boolean(adminModal && !adminModal.classList.contains("modal-hidden"));
+function renderFilePreview(file) {
+  if (!file) {
+    return `
+      <section class="pdf-preview-panel empty-preview">
+        <div>
+          <p class="eyebrow">Apercu</p>
+          <h2>Aucun apercu direct</h2>
+          <p>Les fichiers Word doivent etre traites au comptoir.</p>
+        </div>
+      </section>
+    `;
+  }
+  if (isImage(file)) {
+    return `
+      <section class="pdf-preview-panel image-preview-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Apercu image</p>
+            <h2>${file.originalName}</h2>
+          </div>
+        </div>
+        <div class="image-preview-frame">
+          <img src="${file.viewUrl}" alt="Apercu du fichier ${file.originalName}">
+        </div>
+      </section>
+    `;
+  }
+  return `
+    <section class="pdf-preview-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Apercu PDF</p>
+          <h2>${file.originalName}</h2>
+        </div>
+      </div>
+      <iframe src="${file.viewUrl}#toolbar=0&navpanes=0" title="Apercu du fichier PDF ${file.originalName}"></iframe>
+    </section>
+  `;
 }
 
-function showIdleWarning() {
-  if (!state.sessionActive || isAdminModalOpen() || screens.printing.classList.contains("screen-active")) return;
-  state.idleSecondsLeft = IDLE_WARNING_MS / 1000;
-  idleCountdown.textContent = String(state.idleSecondsLeft);
-  idleWarningModal.classList.remove("modal-hidden");
+async function sendPrintRequest(fileId, settings) {
+  const response = await fetch(`/api/jobs/${activeJob.code}/print`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileId, settings }),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Impression impossible.");
+  activeJob = payload.job;
+  return payload;
+}
 
-  state.idleCountdownTimer = setInterval(() => {
-    state.idleSecondsLeft -= 1;
-    idleCountdown.textContent = String(Math.max(0, state.idleSecondsLeft));
+async function requestUsbEject() {
+  const notify = usbPanel.classList.contains("hidden") ? setMessage : setUsbMessage;
+  notify("Ejection de la cle USB...");
+  try {
+    const response = await fetch(`/api/stations/${currentStation()}/eject`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Ejection impossible.");
+    notify("Votre cle USB peut etre ejectee. Vous pouvez la retirer.", "success");
+    window.clearTimeout(usbEjectHideTimer);
+    usbEjectModal.classList.remove("hidden");
+    usbEjectHideTimer = window.setTimeout(() => {
+      usbEjectModal.classList.add("hidden");
+    }, 10000);
+  } catch (error) {
+    notify(error.message, "error");
+  }
+}
+
+async function requestHelp() {
+  if (!helpButton) return;
+  helpButton.disabled = true;
+  helpButton.textContent = "Aide demandee";
+  setHomeMessage("Un vendeur va venir vous aider.", "success");
+  try {
+    const response = await fetch("/api/help", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ station: currentStation() }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Demande d'aide impossible.");
+  } catch (error) {
+    helpButton.disabled = false;
+    helpButton.textContent = "Aide";
+    setHomeMessage(error.message, "error");
+  }
+}
+
+function showUsbPickerForCurrentJob() {
+  if (!activeJob?.code) return;
+  stopPrintStatusPolling();
+  filesContainer.classList.add("hidden");
+  usbPanel.classList.remove("hidden");
+  mobilePanel.classList.add("hidden");
+  usbFileInput.value = "";
+  setUsbMessage("Selectionnez un ou plusieurs fichiers a ajouter a cette session.", "success");
+  startUsbReminder();
+}
+
+function attachPrintButtons() {
+  document.querySelectorAll("[data-print-file]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!activeJob?.code) return;
+      const fileId = button.dataset.printFile;
+      const settingsMessage = document.getElementById("print-settings-message");
+      button.disabled = true;
+      button.classList.add("is-busy");
+      button.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>Impression en cours</span>`;
+      try {
+        const settings = await savePrintSettings();
+        await sendPrintRequest(fileId, settings);
+        updatePrintStatusModal(activeJob);
+        if (settingsMessage) {
+          settingsMessage.textContent = "Impression en cours. Merci de patienter.";
+          settingsMessage.dataset.tone = "success";
+        }
+        button.disabled = false;
+        button.classList.remove("is-busy");
+        button.textContent = "Imprimer";
+        refreshPrintStatuses(activeJob);
+        startPrintStatusPolling();
+      } catch (error) {
+        button.disabled = false;
+        button.classList.remove("is-busy");
+        button.textContent = "Imprimer";
+        if (settingsMessage) {
+          settingsMessage.textContent = error.message;
+          settingsMessage.dataset.tone = "error";
+        } else {
+          setMessage(error.message, "error");
+        }
+      }
+    });
+  });
+
+  const selectedButton = document.querySelector("[data-print-selected]");
+  if (selectedButton) {
+    selectedButton.addEventListener("click", async () => {
+      if (!activeJob?.code) return;
+      const selectedFileIds = [...document.querySelectorAll("[data-print-select]:checked")].map((input) => input.value);
+      const settingsMessage = document.getElementById("print-settings-message");
+      if (!selectedFileIds.length) {
+        if (settingsMessage) {
+          settingsMessage.textContent = "Selectionnez au moins un fichier.";
+          settingsMessage.dataset.tone = "error";
+        }
+        return;
+      }
+      selectedButton.disabled = true;
+      selectedButton.classList.add("is-busy");
+      selectedButton.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>Impression en cours</span>`;
+      try {
+        const settings = await savePrintSettings();
+        for (const fileId of selectedFileIds) {
+          await sendPrintRequest(fileId, settings);
+        }
+        updatePrintStatusModal(activeJob);
+        if (settingsMessage) {
+          settingsMessage.textContent = `${selectedFileIds.length} fichier(s) en cours d'impression. Merci de patienter.`;
+          settingsMessage.dataset.tone = "success";
+        }
+        selectedButton.disabled = false;
+        selectedButton.classList.remove("is-busy");
+        selectedButton.textContent = "Imprimer";
+        refreshPrintStatuses(activeJob);
+        startPrintStatusPolling();
+      } catch (error) {
+        selectedButton.disabled = false;
+        selectedButton.classList.remove("is-busy");
+        selectedButton.textContent = "Imprimer";
+        if (settingsMessage) {
+          settingsMessage.textContent = error.message;
+          settingsMessage.dataset.tone = "error";
+        } else {
+          setMessage(error.message, "error");
+        }
+      }
+    });
+  }
+}
+
+async function uploadUsbFile() {
+  const files = [...usbFileInput.files];
+  if (!files.length) {
+    setUsbMessage("Choisissez au moins un fichier.", "error");
+    return;
+  }
+  const unsupportedFile = files.find((file) => !/\.(pdf|png|jpe?g|heic|heif|webp)$/i.test(file.name));
+  if (unsupportedFile) {
+    setUsbMessage("Formats acceptes : PDF, PNG, JPG, JPEG, HEIC et WebP.", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.set("station", currentStation());
+  formData.set("printMode", "noir-blanc");
+  formData.set("customerName", "Cle USB");
+  for (const file of files) {
+    formData.append("files", file);
+  }
+  setUsbMessage("Chargement du fichier...");
+
+  try {
+    const endpoint = activeJob?.code ? `/api/jobs/${activeJob.code}/files` : "/api/jobs";
+    const response = await fetch(endpoint, {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
+    setUsbMessage(activeJob?.code ? "Fichier ajoute a la session." : "Fichier charge.", "success");
+    renderJob(payload);
+  } catch (error) {
+    setUsbMessage(error.message, "error");
+  }
+}
+
+function stopDeletionTimer() {
+  window.clearInterval(deletionInterval);
+  deletionInterval = null;
+  deletionSeconds = 0;
+  expirationWarningShown = false;
+  expirationModal.classList.add("hidden");
+}
+
+async function deleteCurrentJob(finalMessage) {
+  if (!activeJob?.code) return;
+  const code = activeJob.code;
+  stopDeletionTimer();
+  stopPrintStatusPolling();
+  hidePrintStatusModal();
+  try {
+    await fetch(`/api/jobs/${code}`, { method: "DELETE" });
+  } catch (error) {
+    // The visual flow still resets even if the file was already removed.
+  }
+  activeJob = null;
+  selectedPrintFileIds = new Set();
+  knownPrintableFileIds = new Set();
+  printSelectionReady = false;
+  activePreviewFileId = "";
+  currentCode = "";
+  filesContainer.innerHTML = "";
+  filesContainer.classList.add("hidden");
+  pickupCode.value = "";
+  setMessage(finalMessage, "success");
+}
+
+async function deleteFileFromJob(fileId) {
+  if (!activeJob?.code || !fileId) return;
+  setMessage("Suppression du fichier...");
+  try {
+    const response = await fetch(`/api/jobs/${activeJob.code}/files/${fileId}`, { method: "DELETE" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Suppression impossible.");
+    selectedPrintFileIds.delete(fileId);
+    knownPrintableFileIds.delete(fileId);
+    if (activePreviewFileId === fileId) activePreviewFileId = "";
+    if (payload.files?.length) {
+      renderJob(payload, false);
+      setMessage("Fichier supprime.", "success");
+      return;
+    }
+    showHome();
+    setHomeMessage("Tous les fichiers ont ete supprimes.", "success");
+  } catch (error) {
+    setMessage(error.message, "error");
+  }
+}
+
+async function disconnectSession() {
+  stopUsbReminder();
+  await cleanupWebmailSession();
+  const hadFiles = Boolean(activeJob?.code);
+  if (hadFiles) {
+    await deleteCurrentJob("Session terminee. Vos fichiers ont ete supprimes.");
+  }
+  if (!hadFiles) {
+    showHome();
+    return;
+  }
+  let remaining = SESSION_CLOSE_SECONDS;
+  const updateCloseCountdown = () => {
+    const progress = Math.max(0, Math.min(1, remaining / SESSION_CLOSE_SECONDS));
+    sessionCloseCountdown.textContent = String(remaining);
+    sessionCloseCountdown.style.setProperty("--timer-progress", `${progress * 360}deg`);
+  };
+
+  hideSessionCloseModal();
+  sessionCloseModal.classList.remove("hidden");
+  updateCloseCountdown();
+
+  sessionCloseInterval = window.setInterval(() => {
+    remaining -= 1;
+    updateCloseCountdown();
+    if (remaining <= 0) {
+      hideSessionCloseModal();
+      showHome();
+    }
   }, 1000);
 }
 
-function resetIdleTimer() {
-  if (!state.sessionActive || isAdminModalOpen() || screens.printing.classList.contains("screen-active")) return;
-  clearIdleTimers();
-  hideIdleWarning();
-  state.idleWarningTimer = setTimeout(showIdleWarning, IDLE_TIMEOUT_MS - IDLE_WARNING_MS);
-  state.idleCloseTimer = setTimeout(() => {
-    closeCurrentSession("Session fermee automatiquement", true);
-  }, IDLE_TIMEOUT_MS);
+async function openWebmail(provider) {
+  const url = WEBMAILS[provider];
+  if (!url) return;
+  setWebmailMessage("Ouverture de la boite mail...");
+
+  // Fermer l'onglet precedent si deja ouvert
+  if (webmailTab && !webmailTab.closed) {
+    webmailTab.close();
+  }
+
+  // Ouverture directe dans le navigateur
+  webmailTab = window.open(url, "bv-webmail");
+
+  if (!webmailTab) {
+    setWebmailMessage("Le navigateur a bloque l'ouverture. Autorisez les popups pour ce site.", "error");
+    return;
+  }
+
+  setWebmailMessage("Boite mail ouverte. Cliquez sur "Fin de session" quand vous avez fini.", "success");
+
+  // Envoi de la commande a l'agent Windows en parallele (best-effort)
+  queueStationCommand("open-webmail", { url }).catch(() => {});
 }
 
-function hasActiveSession() {
-  return Boolean(state.sessionActive);
-}
-
-function updateStatus(text, tone = "neutral") {
-  statusPill.textContent = text;
-  statusPill.dataset.tone = tone;
-}
-
-function resolveUploadUrl() {
-  try {
-    return new URL(state.admin.uploadUrl, window.location.href).href;
-  } catch (error) {
-    return state.admin.uploadUrl || "/upload";
+function updateDeletionCountdown() {
+  const countdownLabel = document.getElementById("deletion-countdown");
+  if (countdownLabel) {
+    const minutes = Math.floor(Math.max(0, deletionSeconds) / 60);
+    const seconds = String(Math.max(0, deletionSeconds) % 60).padStart(2, "0");
+    const progress = Math.max(0, Math.min(1, deletionSeconds / SESSION_SECONDS));
+    countdownLabel.textContent = `${minutes}:${seconds}`;
+    countdownLabel.style.setProperty("--timer-progress", `${progress * 360}deg`);
+    countdownLabel.classList.toggle("is-urgent", deletionSeconds <= 30);
+  }
+  if (expirationCountdown) {
+    expirationCountdown.textContent = String(Math.max(0, deletionSeconds));
   }
 }
 
-function applyAdminSettings() {
-  const printerButtons = [...document.querySelectorAll('.seg-btn[data-setting="printer"]')];
-  const uploadUrl = resolveUploadUrl();
-  uploadLinkLabel.textContent = uploadUrl;
+function startDeletionTimer() {
+  stopDeletionTimer();
+  deletionSeconds = SESSION_SECONDS;
+  updateDeletionCountdown();
 
-  const isWebUrl = /^https?:\/\//i.test(uploadUrl);
-  if (!isWebUrl) {
-    qrCodeImage.textContent = "URL web requise";
-    qrCodeImage.title = "";
-    qrCodeWarning.textContent = "Configurez l'adresse Render dans l'admin.";
-  } else {
-    qrCodeWarning.textContent = "";
-  }
+  deletionInterval = window.setInterval(() => {
+    deletionSeconds -= 1;
+    updateDeletionCountdown();
 
-  const qrFactory = window.qrcode || (typeof qrcode === "function" ? qrcode : null);
-  if (isWebUrl && qrFactory) {
-    try {
-      const qr = qrFactory(0, "M");
-      qr.addData(uploadUrl);
-      qr.make();
-      qrCodeImage.innerHTML = qr.createSvgTag({
-        cellSize: 7,
-        margin: 5,
-        alt: "QR code depot client",
-      });
-    } catch (error) {
-      qrCodeImage.textContent = "QR indisponible";
-      qrCodeImage.title = "";
+    if (deletionSeconds <= 30 && !expirationWarningShown) {
+      expirationWarningShown = true;
+      expirationModal.classList.remove("hidden");
     }
-  } else if (isWebUrl) {
-    qrCodeImage.textContent = "QR indisponible";
-    qrCodeImage.title = "";
-  }
 
-  printerButtons[0].dataset.value = state.admin.printer1;
-  printerButtons[0].textContent = state.admin.printer1;
-  printerButtons[1].dataset.value = state.admin.printer2;
-  printerButtons[1].textContent = state.admin.printer2;
-
-  if (stationConfig.lockPrinter) {
-    state.settings.printer = state.admin.printer1;
-  } else if (![state.admin.printer1, state.admin.printer2].includes(state.settings.printer)) {
-    state.settings.printer = state.admin.printer1;
-  }
-
-  printerButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.value === state.settings.printer);
-    button.disabled = Boolean(stationConfig.lockPrinter);
-    button.classList.toggle("hidden", Boolean(stationConfig.lockPrinter) && button.dataset.value !== state.settings.printer);
-  });
+    if (deletionSeconds <= 0) {
+      disconnectSession();
+    }
+  }, 1000);
 }
 
-function renderSourcePane() {
-  const isCode = state.source === "code";
-  selectedSourceLabel.textContent = isCode ? "Source : code de retrait" : "Source : cle USB";
-  sourceTitle.textContent = isCode ? "Recuperer les fichiers envoyes" : "Selection depuis une cle USB";
-  codeZone.classList.toggle("source-pane-hidden", !isCode);
-  usbZone.classList.toggle("source-pane-hidden", isCode);
+async function loadConfig() {
+  stationTitle.textContent = stationLabel();
+  try {
+    const response = await fetch(`/api/config?station=${currentStation()}`);
+    const config = await response.json();
+    uploadUrlLabel.textContent = config.uploadUrl;
+    uploadQr.src = config.qrUrl;
+  } catch (error) {
+    uploadUrlLabel.textContent = `https://bureau-vallee-espace-services.onrender.com/upload?station=${currentStation()}`;
+    uploadQr.src = `/qr.gif?station=${currentStation()}`;
+  }
 }
 
-function emptyFileListMarkup() {
-  return `
-    <div class="empty-state">
-      <strong>La liste des fichiers apparaitra ici.</strong>
-      <p>Les formats courants sont acceptes et prepares en PDF avant impression.</p>
+function renderJob(job, resetTimer = true) {
+  activeJob = job;
+  if (!job.files.length) {
+    filesContainer.innerHTML = "";
+    filesContainer.classList.add("hidden");
+    setMessage("Aucun fichier dans ce depot.", "error");
+    return;
+  }
+
+  usbPanel.classList.add("hidden");
+  mobilePanel.classList.add("hidden");
+  filesContainer.classList.remove("hidden");
+  setMessage(`${job.files.length} fichier(s) disponible(s) pour le code ${job.code}.`, "success");
+  const printableFiles = job.files.filter(isPrintable);
+  const hasPrintable = printableFiles.length > 0;
+  const previewFile = firstPreviewFile(job);
+  syncSelectedPrintFiles(job);
+  activePreviewFileId = previewFile?.id || "";
+  filesContainer.innerHTML = `
+    <div class="job-head">
+      <div class="session-timer">
+        <span>Fin session</span>
+        <strong id="deletion-countdown" style="--timer-progress: 360deg">5:00</strong>
+      </div>
+      <div>
+        <span>Code ${job.code}</span>
+        <strong>${job.customerName || "Client"}</strong>
+      </div>
+      <div class="panel-actions">
+        ${job.customerName === "Cle USB" ? `
+          <button class="text-link" type="button" data-show-usb-picker>Ajouter depuis la cle USB</button>
+          <button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>
+        ` : ""}
+        <button class="text-link end-session-button" type="button" data-end-session>Fin de session</button>
+      </div>
+    </div>
+    <div class="job-workspace">
+      <aside class="file-list-panel">
+        <div class="file-list-heading">
+          <span>Fichiers</span>
+          <strong>${job.files.length}</strong>
+        </div>
+        <div class="file-strip">
+          ${job.files.map((file) => `
+            <article class="file-card">
+              ${isPrintable(file) ? `<label class="print-select"><input type="checkbox" data-print-select value="${file.id}"${selectedPrintFileIds.has(file.id) ? " checked" : ""}><span>Selection</span></label>` : ""}
+              <div class="file-main">
+                <strong>${file.originalName}</strong>
+                <small>${file.extension.toUpperCase()} - ${formatSize(file.size)} - ${file.pages || 1} page(s)</small>
+              </div>
+              <div class="file-actions">
+                <button class="file-remove-button" type="button" data-delete-file="${file.id}" title="Supprimer ce fichier">X</button>
+                ${(isPdf(file) || isImage(file)) ? `<button class="preview-button" type="button" data-preview-file="${file.id}">${activePreviewFileId === file.id ? "Affiche" : "Voir"}</button>` : ""}
+                ${!isPrintable(file) ? `<span class="counter-pill">Au comptoir</span>` : ""}
+                <span class="counter-pill${latestPrintStatus(file.id) ? "" : " hidden"}" data-print-status="${file.id}">${latestPrintStatus(file.id)}</span>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      </aside>
+      <main class="document-stage">
+        ${renderFilePreview(previewFile)}
+      </main>
+      <aside class="job-controls">
+        ${hasPrintable ? renderPrintSettings(job.printSettings) : `
+          <div class="counter-notice">
+            <strong>Impression au comptoir</strong>
+            <span>Les fichiers Word doivent etre presentes a l'equipe Bureau Vallee.</span>
+          </div>
+        `}
+        ${printableFiles.length > 1 ? `
+          <div class="counter-notice">
+            <strong>Apercu</strong>
+            <span>Cochez un ou plusieurs fichiers. Le bouton Imprimer lance tous les fichiers selectionnes.</span>
+          </div>
+        ` : ""}
+      </aside>
     </div>
   `;
+  attachPrintSettingsForm();
+  attachPrintButtons();
+
+  if (resetTimer) startDeletionTimer();
+  else updateDeletionCountdown();
+  startPrintStatusPolling();
 }
 
-function renderFileList() {
-  if (!state.files.length) {
-    fileList.innerHTML = emptyFileListMarkup();
-    fileCounter.textContent = "Aucun fichier selectionne";
-    clearFilesBtn.disabled = true;
-    goToOptionsBtn.disabled = true;
-    return;
-  }
-
-  fileCounter.textContent = `${state.files.length} fichier(s) selectionne(s)`;
-  clearFilesBtn.disabled = false;
-  goToOptionsBtn.disabled = false;
-
-  fileList.innerHTML = state.files
-    .map((item) => `
-      <div class="file-row">
-        <div class="file-meta">
-          <strong>${item.name}</strong>
-          <small>${formatBytes(item.size)} - ${item.originLabel}</small>
-        </div>
-        <div>
-          <small>Pages</small>
-          <input class="pages-input" type="number" min="1" value="${item.pages}" data-pages-id="${item.id}">
-        </div>
-        <div>
-          <small>Preparation</small>
-          <strong>${conversionLabels[item.extension] || "Pret"}</strong>
-        </div>
-        <button class="danger-btn" data-remove-id="${item.id}">Retirer</button>
-      </div>
-    `)
-    .join("");
-}
-
-function computeTotals() {
-  const copies = Math.max(1, Number(state.settings.copies) || 1);
-  const rangeResults = state.files.map(getPageCountForFile);
-  const rangeValid = rangeResults.every((result) => result.valid);
-  const totalPagesSource = rangeValid
-    ? rangeResults.reduce((sum, item) => sum + item.count, 0)
-    : 0;
-  const totalImpressions = totalPagesSource * copies;
-  const totalSheets = rangeValid
-    ? rangeResults.reduce((sum, item) => {
-        const perCopy = state.settings.sides === "recto-verso" ? Math.ceil(item.count / 2) : item.count;
-        return sum + perCopy * copies;
-      }, 0)
-    : 0;
-
-  return {
-    files: state.files.length,
-    rangeValid,
-    rangeLabel: state.settings.pageRange.trim() || "Toutes les pages",
-    totalPagesSource,
-    totalImpressions,
-    totalSheets,
-  };
-}
-
-function renderOptions() {
-  const totals = computeTotals();
-  const stationLabel = stationConfig.stationName ? `${stationConfig.stationName} - ` : "";
-  liveSummary.innerHTML = `
-    <p>
-      ${totals.files} fichier(s), ${totals.totalPagesSource} page(s),
-      ${totals.totalImpressions} impression(s), ${totals.totalSheets} feuille(s),
-      destination <strong>${stationLabel}${state.settings.printer}</strong>.
-      Plage : <strong>${totals.rangeValid ? totals.rangeLabel : "invalide"}</strong>.
-    </p>
-  `;
-
-  summaryMetrics.innerHTML = `
-    <div class="metric"><span>Fichiers</span><strong>${totals.files}</strong></div>
-    <div class="metric"><span>Pages</span><strong>${totals.totalPagesSource}</strong></div>
-    <div class="metric"><span>Impressions</span><strong>${totals.totalImpressions}</strong></div>
-    <div class="metric"><span>Feuilles</span><strong>${totals.totalSheets}</strong></div>
-  `;
-
-  jobFilesPreview.innerHTML = state.files
-    .map((item) => `
-      <div class="summary-file-row">
-        <div>
-          <strong>${item.name}</strong>
-          <small>${getPageCountForFile(item).count || 0}/${item.pages} page(s) - ${conversionLabels[item.extension] || "Pret"}</small>
-        </div>
-        <strong>${item.extension.toUpperCase()}</strong>
-      </div>
-    `)
-    .join("");
-}
-
-function renderAdminStats() {
-  saveCurrentSessionSnapshot();
-  if (!adminBwPages) return;
-
-  adminBwPages.textContent = String(state.stats.bwPages);
-  adminColorPages.textContent = String(state.stats.colorPages);
-  adminSessionCount.textContent = String(state.stats.sessions);
-  adminFileCount.textContent = String(state.stats.files);
-
-  if (hasActiveSession()) {
-    const totals = computeTotals();
-    const colorLabel = state.settings.color === "couleur" ? "couleur" : "N&B";
-    adminCurrentSession.textContent = `${totals.files} fichier(s), ${totals.totalImpressions} page(s) ${colorLabel}`;
-    adminCurrentDetail.textContent = `${state.settings.printer} - ${state.settings.paperSize} - ${state.settings.sides}${state.settings.sides === "recto-verso" ? ` ${state.settings.duplexBinding}` : ""} - ${totals.rangeLabel}`;
-    adminCloseSessionBtn.disabled = false;
-  } else {
-    adminCurrentSession.textContent = "Aucune session active";
-    adminCurrentDetail.textContent = "La borne est disponible.";
-    adminCloseSessionBtn.disabled = true;
-  }
-
-  if (!state.stats.history.length) {
-    adminHistoryList.innerHTML = `
-      <div class="empty-state admin-empty-state">
-        <strong>Aucune impression enregistree.</strong>
-        <p>Les prochaines impressions apparaitront ici.</p>
-      </div>
-    `;
-    return;
-  }
-
-  adminHistoryList.innerHTML = state.stats.history
-    .slice(0, 8)
-    .map((item) => `
-      <div class="admin-history-row">
-        <div>
-          <strong>${formatDateTime(item.date)} - ${item.color === "couleur" ? "Couleur" : "N&B"}</strong>
-          <small>${item.files} fichier(s), ${item.pages} page(s), ${item.sheets} feuille(s) - ${item.printer} - ${item.pageRange || "Toutes les pages"}</small>
-        </div>
-        <span>${item.sourceLabel}</span>
-      </div>
-    `)
-    .join("");
-}
-
-async function buildLocalRecord(file, origin = "usb") {
-  if (!isAcceptedFile(file.name)) {
-    throw new Error(`${file.name} n'est pas un format accepte.`);
-  }
-
-  const extension = getExtension(file.name);
-  const pages = await estimatePages(file);
-  return {
-    id: crypto.randomUUID(),
-    name: file.name,
-    size: file.size,
-    pages: Math.max(1, pages),
-    extension,
-    origin,
-    originLabel: origin === "usb" ? "Cle USB" : "Depot client",
-    file,
-  };
-}
-
-function buildRemoteRecord(file) {
-  return {
-    id: file.id,
-    name: file.originalName,
-    size: file.size,
-    pages: 1,
-    extension: file.extension,
-    origin: "remote",
-    originLabel: `Code ${state.pickupCode}`,
-    downloadUrl: file.downloadUrl,
-  };
-}
-
-async function handleLocalFiles(selectedFiles) {
-  try {
-    const records = await Promise.all([...selectedFiles].map((file) => buildLocalRecord(file, "usb")));
-    state.pickupCode = null;
-    state.files = records;
-    renderFileList();
-    renderOptions();
-    renderAdminStats();
-    updateStatus("Fichiers verifies", "success");
-  } catch (error) {
-    updateStatus("Format refuse");
-    alert(error.message);
-  }
-}
-
-async function loadPickupCode() {
-  const code = pickupCodeInput.value.trim();
+codeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const code = pickupCode.value.trim();
   if (!/^\d{4}$/.test(code)) {
-    alert("Entrez le code a 4 chiffres.");
+    setMessage("Entrez le code a 4 chiffres du client.", "error");
     return;
   }
 
-  updateStatus("Recherche du code", "busy");
-  loadCodeBtn.disabled = true;
+  currentCode = code;
+  setMessage("Recherche des fichiers...");
+  filesContainer.innerHTML = "";
 
   try {
-    const response = await fetch(`/api/jobs/${code}`);
+    const response = await fetch(`/api/jobs/${code}?station=${currentStation()}`);
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Code introuvable.");
-
-    state.pickupCode = code;
-    state.files = payload.files.map(buildRemoteRecord);
-    renderFileList();
-    renderOptions();
-    renderAdminStats();
-    updateStatus("Depot charge", "success");
+    renderJob(payload);
   } catch (error) {
-    alert(error.message);
-    updateStatus("Code introuvable");
-  } finally {
-    loadCodeBtn.disabled = false;
+    activeJob = null;
+    stopDeletionTimer();
+    stopPrintStatusPolling();
+    setMessage(error.message, "error");
   }
-}
-
-function openAdminModal() {
-  if (!adminModal) return;
-  clearIdleTimers();
-  hideIdleWarning();
-  adminModal.classList.remove("modal-hidden");
-  adminPasswordInput.value = "";
-  adminError.textContent = "";
-  renderAdminState();
-}
-
-function closeAdminModal() {
-  if (!adminModal) return;
-  adminModal.classList.add("modal-hidden");
-  resetIdleTimer();
-}
-
-function renderAdminState() {
-  if (!adminLoginBlock) return;
-  adminLoginBlock.classList.toggle("hidden", state.adminUnlocked);
-  adminPanel.classList.toggle("hidden", !state.adminUnlocked);
-
-  adminPrinter1.value = state.admin.printer1;
-  adminPrinter2.value = state.admin.printer2;
-  adminUploadUrl.value = state.admin.uploadUrl;
-  adminCleanupDelay.value = String(state.admin.cleanupDelay);
-  adminDeletePrint.checked = state.admin.deleteAfterPrint;
-  adminRemoteCleanup.checked = state.admin.remoteCleanup;
-
-  const printerLocked = Boolean(stationConfig.lockPrinter);
-  adminPrinter1.disabled = printerLocked;
-  adminPrinter2.disabled = printerLocked;
-  renderAdminStats();
-}
-
-function resetSettings() {
-  state.settings = {
-    printer: state.admin.printer1,
-    color: "noir-blanc",
-    sides: "recto",
-    duplexBinding: "bord-long",
-    orientation: "auto",
-    paperSize: "A4",
-    pageRange: "",
-    copies: 1,
-  };
-  copiesInput.value = "1";
-  pageRangeInput.value = "";
-  paperSizeSelect.value = "A4";
-
-  document.querySelectorAll(".seg-btn").forEach((button) => {
-    const shouldBeActive =
-      (button.dataset.setting === "color" && button.dataset.value === "noir-blanc") ||
-      (button.dataset.setting === "sides" && button.dataset.value === "recto") ||
-      (button.dataset.setting === "duplexBinding" && button.dataset.value === "bord-long") ||
-      (button.dataset.setting === "orientation" && button.dataset.value === "auto") ||
-      (button.dataset.setting === "printer" && button.dataset.value === state.admin.printer1);
-    button.classList.toggle("is-active", shouldBeActive);
-  });
-}
-
-function resetSession() {
-  clearPrintTimers();
-  state.source = null;
-  state.pickupCode = null;
-  state.files = [];
-  fileInput.value = "";
-  pickupCodeInput.value = "";
-  resetSettings();
-  renderSourcePane();
-  renderFileList();
-  renderOptions();
-  applyAdminSettings();
-  updateStatus("Pret");
-  showScreen("home");
-  renderAdminStats();
-  resetIdleTimer();
-}
-
-function clearPrintTimers() {
-  state.printTimers.forEach((timer) => clearTimeout(timer));
-  state.printTimers = [];
-}
-
-function openClientSession() {
-  state.sessionActive = true;
-  state.sessionSale = createEmptySessionSale();
-  state.sessionSale.openedAt = new Date().toISOString();
-  resetSession();
-  updateStatus("Session ouverte", "success");
-}
-
-function closeCurrentSession(reason = "Session fermee", showClosedScreen = true) {
-  clearPrintTimers();
-  clearIdleTimers();
-  hideIdleWarning();
-  cleanupRemoteJob();
-  state.sessionActive = false;
-  state.sessionSale.closedAt = new Date().toISOString();
-  state.source = null;
-  state.pickupCode = null;
-  state.files = [];
-  fileInput.value = "";
-  pickupCodeInput.value = "";
-  progressBar.style.width = "0";
-  printTitle.textContent = "Preparation du travail";
-  printDetail.textContent = "Initialisation...";
-  resetSettings();
-  renderSourcePane();
-  renderFileList();
-  renderOptions();
-  applyAdminSettings();
-  updateStatus(reason, "success");
-  showScreen(showClosedScreen ? "sessionClosed" : "sessionOpen");
-  renderAdminStats();
-}
-
-async function cleanupRemoteJob() {
-  if (!state.pickupCode || !state.admin.remoteCleanup) return;
-  try {
-    await fetch(`/api/jobs/${state.pickupCode}`, { method: "DELETE" });
-  } catch (error) {
-    console.warn("Nettoyage distant impossible", error);
-  }
-}
-
-function registerCompletedPrint(totals) {
-  const printedPages = totals.totalImpressions;
-  const sourceLabel = state.pickupCode ? `Code ${state.pickupCode}` : "Cle USB";
-  const entry = {
-    date: new Date().toISOString(),
-    color: state.settings.color,
-    sides: state.settings.sides,
-    duplexBinding: state.settings.duplexBinding,
-    pageRange: totals.rangeLabel,
-    pages: printedPages,
-    sheets: totals.totalSheets,
-    files: totals.files,
-    printer: state.settings.printer,
-    sourceLabel,
-  };
-
-  if (state.settings.color === "couleur") {
-    state.stats.colorPages += printedPages;
-    state.sessionSale.colorPages += printedPages;
-  } else {
-    state.stats.bwPages += printedPages;
-    state.sessionSale.bwPages += printedPages;
-  }
-
-  state.stats.sessions += 1;
-  state.stats.files += totals.files;
-  state.stats.sheets += totals.totalSheets;
-  state.stats.history = [entry, ...state.stats.history].slice(0, 30);
-
-  const printerStats = state.stats.byPrinter[state.settings.printer] || createEmptyPrinterStats();
-  if (state.settings.color === "couleur") {
-    printerStats.colorPages += printedPages;
-  } else {
-    printerStats.bwPages += printedPages;
-  }
-  printerStats.sessions += 1;
-  printerStats.files += totals.files;
-  printerStats.sheets += totals.totalSheets;
-  state.stats.byPrinter[state.settings.printer] = printerStats;
-
-  state.sessionSale.files += totals.files;
-  state.sessionSale.sheets += totals.totalSheets;
-  state.sessionSale.jobs += 1;
-  state.sessionSale.details = [entry, ...state.sessionSale.details].slice(0, 10);
-
-  saveStats();
-  renderAdminStats();
-}
-
-sourceButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    if (!state.sessionActive) return;
-    state.source = button.dataset.source;
-    renderSourcePane();
-    updateStatus(state.source === "code" ? "Code de retrait" : "Cle USB", "busy");
-    showScreen("source");
-    if (state.source === "code") pickupCodeInput.focus();
-    resetIdleTimer();
-  });
 });
 
-startSessionBtn.addEventListener("click", openClientSession);
-restartSessionBtn.addEventListener("click", openClientSession);
-
-loadCodeBtn.addEventListener("click", loadPickupCode);
-pickupCodeInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") loadPickupCode();
+closeExpirationModalBtn.addEventListener("click", () => {
+  expirationModal.classList.add("hidden");
 });
 
-fileInput.addEventListener("change", async (event) => {
-  if (!event.target.files?.length) return;
-  updateStatus("Analyse des fichiers", "busy");
-  await handleLocalFiles(event.target.files);
+closeUsbEjectModalBtn.addEventListener("click", () => {
+  window.clearTimeout(usbEjectHideTimer);
+  usbEjectModal.classList.add("hidden");
 });
 
-fileList.addEventListener("input", (event) => {
-  const id = event.target.dataset.pagesId;
-  if (!id) return;
-  const fileRecord = state.files.find((item) => item.id === id);
-  if (!fileRecord) return;
-  fileRecord.pages = Math.max(1, Number(event.target.value) || 1);
-  renderOptions();
-  renderAdminStats();
+document.querySelectorAll("[data-flow]").forEach((button) => {
+  button.addEventListener("click", () => showFlow(button.dataset.flow));
 });
 
-fileList.addEventListener("click", (event) => {
-  const id = event.target.dataset.removeId;
-  if (!id) return;
-  state.files = state.files.filter((item) => item.id !== id);
-  renderFileList();
-  renderOptions();
-  renderAdminStats();
+document.querySelectorAll("[data-back-home]").forEach((button) => {
+  button.addEventListener("click", disconnectSession);
 });
 
-clearFilesBtn.addEventListener("click", () => {
-  state.files = [];
-  state.pickupCode = null;
-  fileInput.value = "";
-  pickupCodeInput.value = "";
-  renderFileList();
-  renderOptions();
-  updateStatus("Selection videe");
-  renderAdminStats();
+if (disconnectSessionBtn) disconnectSessionBtn.addEventListener("click", disconnectSession);
+if (helpButton) helpButton.addEventListener("click", requestHelp);
+
+usbForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  uploadUsbFile();
 });
 
-goToOptionsBtn.addEventListener("click", () => {
-  if (!state.files.length) return;
-  renderOptions();
-  showScreen("options");
-});
+usbFileInput.addEventListener("change", uploadUsbFile);
 
-backToHomeBtn.addEventListener("click", resetSession);
-backToSourceBtn.addEventListener("click", () => showScreen("source"));
-
-document.querySelectorAll(".seg-btn").forEach((button) => {
-  button.addEventListener("click", () => {
-    const { setting, value } = button.dataset;
-    if (setting === "printer" && stationConfig.lockPrinter) return;
-    state.settings[setting] = value;
-    document.querySelectorAll(`.seg-btn[data-setting="${setting}"]`).forEach((other) => other.classList.remove("is-active"));
-    button.classList.add("is-active");
-    renderOptions();
-    renderAdminStats();
-  });
-});
-
-paperSizeSelect.addEventListener("change", () => {
-  state.settings.paperSize = paperSizeSelect.value;
-  renderOptions();
-  renderAdminStats();
-});
-
-copiesInput.addEventListener("input", () => {
-  state.settings.copies = Math.max(1, Number(copiesInput.value) || 1);
-  renderOptions();
-  renderAdminStats();
-});
-
-pageRangeInput.addEventListener("input", () => {
-  state.settings.pageRange = pageRangeInput.value.trim();
-  renderOptions();
-  renderAdminStats();
-});
-
-startPrintBtn.addEventListener("click", () => {
-  if (!state.files.length) return;
-
-  const totals = computeTotals();
-  if (!totals.rangeValid) {
-    alert("La plage de pages est invalide. Exemple accepte : 1-3,5,8-10.");
-    updateStatus("Plage invalide");
+document.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-file]");
+  if (deleteButton) {
+    deleteFileFromJob(deleteButton.dataset.deleteFile);
     return;
   }
-  updateStatus("Envoi au copieur", "busy");
-  progressBar.style.width = "0";
-  showScreen("printing");
-
-  printMetrics.innerHTML = `
-    <div class="metric"><span>Copieur</span><strong>${state.settings.printer}</strong></div>
-    <div class="metric"><span>Impressions</span><strong>${totals.totalImpressions}</strong></div>
-    <div class="metric"><span>Feuilles</span><strong>${totals.totalSheets}</strong></div>
-    <div class="metric"><span>Format</span><strong>${state.settings.paperSize}</strong></div>
-    <div class="metric"><span>Plage</span><strong>${totals.rangeLabel}</strong></div>
-  `;
-
-  const hasConversion = state.files.some((file) => file.extension !== "pdf");
-  const steps = [
-    { progress: 12, title: "Verification des fichiers", detail: "Controle des formats acceptes." },
-    { progress: 34, title: hasConversion ? "Conversion en PDF" : "PDF pret", detail: hasConversion ? "Preparation Word et images avant impression." : "Aucune conversion necessaire." },
-    { progress: 56, title: "Application des reglages", detail: `${state.settings.color}, ${state.settings.sides}, ${state.settings.sides === "recto-verso" ? state.settings.duplexBinding : "sans reliure"}, ${state.settings.orientation}.` },
-    { progress: 78, title: "Transmission au copieur", detail: `Envoi vers ${state.settings.printer}.` },
-    { progress: 100, title: "Impression terminee", detail: "Nettoyage automatique des fichiers." },
-  ];
-
-  steps.forEach((step, index) => {
-    const timer = setTimeout(async () => {
-      progressBar.style.width = `${step.progress}%`;
-      printTitle.textContent = step.title;
-      printDetail.textContent = step.detail;
-
-      if (index === steps.length - 1) {
-        registerCompletedPrint(totals);
-        if (state.admin.deleteAfterPrint) {
-          await cleanupRemoteJob();
-          state.files = [];
-        }
-        updateStatus("Fichiers supprimes", "success");
-        const resetTimer = setTimeout(resetSession, Number(state.admin.cleanupDelay) * 1000);
-        state.printTimers.push(resetTimer);
-      }
-    }, index * 1300);
-    state.printTimers.push(timer);
-  });
-});
-
-if (adminOpenBtn) adminOpenBtn.addEventListener("click", openAdminModal);
-if (adminCloseBtn) adminCloseBtn.addEventListener("click", closeAdminModal);
-if (adminModal) {
-  adminModal.addEventListener("click", (event) => {
-    if (event.target === adminModal) closeAdminModal();
-  });
-}
-
-if (adminLoginBtn) adminLoginBtn.addEventListener("click", () => {
-  if (adminPasswordInput.value === ADMIN_PASSWORD) {
-    state.adminUnlocked = true;
-    adminError.textContent = "";
-    renderAdminState();
-  } else {
-    adminError.textContent = "Mot de passe incorrect.";
+  if (event.target.closest("[data-end-session]")) {
+    disconnectSession();
+    return;
+  }
+  if (event.target.closest("[data-eject-usb]")) requestUsbEject();
+  const webmailButton = event.target.closest("[data-webmail]");
+  if (webmailButton) {
+    openWebmail(webmailButton.dataset.webmail);
+    return;
+  }
+  if (event.target.closest("[data-show-usb-picker]")) showUsbPickerForCurrentJob();
+  const previewButton = event.target.closest("[data-preview-file]");
+  if (previewButton && activeJob) {
+    activePreviewFileId = previewButton.dataset.previewFile;
+    renderJob(activeJob, false);
   }
 });
 
-if (adminLogoutBtn) adminLogoutBtn.addEventListener("click", () => {
-  state.adminUnlocked = false;
-  renderAdminState();
+document.addEventListener("change", (event) => {
+  const checkbox = event.target.closest("[data-print-select]");
+  if (!checkbox) return;
+  if (checkbox.checked) selectedPrintFileIds.add(checkbox.value);
+  else selectedPrintFileIds.delete(checkbox.value);
 });
 
-if (adminCloseSessionBtn) adminCloseSessionBtn.addEventListener("click", () => {
-  closeCurrentSession("Session fermee");
-});
-
-idleContinueBtn.addEventListener("click", resetIdleTimer);
-idleCloseNowBtn.addEventListener("click", () => {
-  closeCurrentSession("Session fermee");
-});
-
-if (adminResetStatsBtn) adminResetStatsBtn.addEventListener("click", () => {
-  const shouldReset = confirm("Remettre les compteurs et l'historique a zero ?");
-  if (!shouldReset) return;
-  state.stats = createEmptyStats();
-  saveStats();
-  renderAdminStats();
-  updateStatus("Compteurs remis a zero", "success");
-});
-
-if (adminSaveBtn) adminSaveBtn.addEventListener("click", () => {
-  state.admin = {
-    printer1: stationConfig.lockPrinter
-      ? (stationConfig.defaultPrinter || adminPrinter1.value.trim() || "COPIEUR 1")
-      : (adminPrinter1.value.trim() || "COPIEUR 1"),
-    printer2: stationConfig.lockPrinter
-      ? (stationConfig.secondaryPrinter || adminPrinter2.value.trim() || "COPIEUR 2")
-      : (adminPrinter2.value.trim() || "COPIEUR 2"),
-    uploadUrl: adminUploadUrl.value.trim() || "/upload",
-    cleanupDelay: Number(adminCleanupDelay.value) || 3,
-    deleteAfterPrint: adminDeletePrint.checked,
-    remoteCleanup: adminRemoteCleanup.checked,
-  };
-  saveAdminSettings();
-  applyAdminSettings();
-  renderOptions();
-  renderAdminStats();
-  closeAdminModal();
-  updateStatus("Reglages enregistres", "success");
-});
-
-["pointerdown", "keydown", "input", "change"].forEach((eventName) => {
-  document.addEventListener(eventName, (event) => {
-    if (!state.sessionActive) return;
-    if (event.target.closest("#admin-modal")) return;
-    if (event.target.closest("#idle-warning-modal")) return;
-    resetIdleTimer();
-  }, true);
-});
-
-function handleAdminCommand(rawCommand) {
-  if (!rawCommand) return;
-  try {
-    const command = JSON.parse(rawCommand);
-    if (!command.id || command.id === state.lastAdminCommandId) return;
-    state.lastAdminCommandId = command.id;
-
-    if (command.type === "close-session") {
-      closeCurrentSession("Session fermee par admin");
-    }
-  } catch (error) {
-    console.warn("Commande admin ignoree", error);
-  }
-}
-
-window.addEventListener("storage", (event) => {
-  if (event.key === stationCommandKey || event.key === COMMAND_KEY) {
-    handleAdminCommand(event.newValue);
-  }
-  if (event.key === STORAGE_KEY) {
-    state.admin = loadAdminSettings();
-    applyAdminSettings();
-    renderOptions();
-    renderAdminStats();
-  }
-});
-
-setInterval(() => {
-  handleAdminCommand(localStorage.getItem(stationCommandKey));
-  handleAdminCommand(localStorage.getItem(COMMAND_KEY));
-}, 1000);
-
-async function pollRemoteCommand() {
-  if (!apiBaseUrl) return;
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/stations/${stationStorageId}/command`);
-    if (!response.ok) return;
-    handleAdminCommand(JSON.stringify(await response.json()));
-  } catch (error) {
-    console.warn("Commande distante indisponible", error);
-  }
-}
-
-setInterval(pollRemoteCommand, 1500);
-
-applyAdminSettings();
-renderFileList();
-renderOptions();
-renderAdminStats();
-updateStatus("Pret");
-showScreen("sessionOpen");
+loadConfig();
+startHomeClock();
