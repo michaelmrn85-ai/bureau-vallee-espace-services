@@ -1019,6 +1019,16 @@ app.post("/api/stations/:station/commands", (request, response) => {
   response.status(201).json({ ok: true, command });
 });
 
+app.get("/api/stations/:station/commands/:commandId", (request, response) => {
+  const station = stationFrom(request.params.station);
+  const command = readCommands().find((item) => item.id === request.params.commandId && item.station === station);
+  if (!command) {
+    response.status(404).json({ error: "Commande introuvable." });
+    return;
+  }
+  response.json({ command });
+});
+
 app.get("/api/print-agent/commands/next", (request, response) => {
   if (!requirePrintAgent(request, response)) return;
   const station = stationFrom(request.query.station);

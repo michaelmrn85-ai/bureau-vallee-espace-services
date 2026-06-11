@@ -45,7 +45,6 @@ let printStatusHideTimer = null;
 let usbEjectHideTimer = null;
 let clockInterval = null;
 let sessionCloseInterval = null;
-let webmailTab = null;
 const SESSION_SECONDS = 300;
 const SESSION_CLOSE_SECONDS = 10;
 const WEBMAILS = {
@@ -170,14 +169,11 @@ async function queueStationCommand(type, payload = {}) {
 }
 
 async function cleanupWebmailSession() {
-  // Fermer l'onglet webmail ouvert cote client
-  if (webmailTab && !webmailTab.closed) {
-    webmailTab.close();
+  try {
+    await queueStationCommand("cleanup-browser");
+  } catch (error) {
+    // Cleaning is best-effort; the interface must still return to the welcome screen.
   }
-  webmailTab = null;
-
-  // Envoi de la commande a l'agent Windows en parallele (best-effort)
-  queueStationCommand("cleanup-browser").catch(() => {});
 }
 
 function showFlow(flow) {
@@ -783,25 +779,13 @@ async function disconnectSession() {
 async function openWebmail(provider) {
   const url = WEBMAILS[provider];
   if (!url) return;
-  setWebmailMessage("Ouverture de la boite mail...");
-
-  // Fermer l'onglet precedent si deja ouvert
-  if (webmailTab && !webmailTab.closed) {
-    webmailTab.close();
+  const browserWindow = window.open(url, "_blank");
+  setWebmailMessage("Boite mail ouverte. Pensez a terminer la session quand vous avez fini.", "success");
+  try {
+    await queueStationCommand("open-webmail", { url });
+  } catch (error) {
+    if (!browserWindow) setWebmailMessage("Le navigateur n'a pas pu s'ouvrir. Reessayez ou demandez de l'aide.", "error");
   }
-
-  // Ouverture directe dans le navigateur
-  webmailTab = window.open(url, "bv-webmail");
-
-  if (!webmailTab) {
-    setWebmailMessage("Le navigateur a bloque l'ouverture. Autorisez les popups pour ce site.", "error");
-    return;
-  }
-
-  setWebmailMessage("Boite mail ouverte. Cliquez sur "Fin de session" quand vous avez fini.", "success");
-
-  // Envoi de la commande a l'agent Windows en parallele (best-effort)
-  queueStationCommand("open-webmail", { url }).catch(() => {});
 }
 
 function updateDeletionCountdown() {
