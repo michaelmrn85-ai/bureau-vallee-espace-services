@@ -50,6 +50,14 @@ const defaultPrintSettings = {
   copies: 1,
 };
 const DEFAULT_SESSION_MESSAGE = "Mise a jour ou grande serie d'impressions en cours.";
+const ALLOWED_WEBMAIL_URLS = new Set([
+  "https://mail.google.com/",
+  "https://outlook.live.com/mail/",
+  "https://mail.orange.fr/",
+  "https://mail.yahoo.com/",
+  "https://www.laposte.net/accueil",
+  "https://zimbra.free.fr/",
+]);
 
 function isDirectPrintableExtension(extension) {
   return [".pdf", ".png", ".jpg", ".jpeg"].includes(String(extension || "").toLowerCase());
@@ -1006,7 +1014,7 @@ app.post("/api/stations/:station/commands", (request, response) => {
 
   if (type === "open-webmail") {
     const url = String(request.body.url || "");
-    if (!/^https:\/\/[a-z0-9.-]+\//i.test(url)) {
+    if (!ALLOWED_WEBMAIL_URLS.has(url)) {
       response.status(400).json({ error: "Adresse mail non autorisee." });
       return;
     }

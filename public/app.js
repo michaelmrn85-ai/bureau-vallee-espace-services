@@ -176,6 +176,18 @@ async function cleanupWebmailSession() {
   }
 }
 
+async function waitForStationCommand(commandId, timeoutMs = 8000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const response = await fetch(`/api/stations/${currentStation()}/commands/${commandId}`);
+    const payload = await response.json();
+    if (!response.ok) return { status: "missing" };
+    if (payload.command?.status === "done" || payload.command?.status === "failed") return payload.command;
+  }
+  return { status: "timeout" };
+}
+
 function showFlow(flow) {
   const labels = {
     usb: "Impression via cle USB",
@@ -779,12 +791,18 @@ async function disconnectSession() {
 async function openWebmail(provider) {
   const url = WEBMAILS[provider];
   if (!url) return;
-  const browserWindow = window.open(url, "_blank");
-  setWebmailMessage("Boite mail ouverte. Pensez a terminer la session quand vous avez fini.", "success");
+  setWebmailMessage("Ouverture du navigateur securise...");
   try {
-    await queueStationCommand("open-webmail", { url });
+    const payload = await queueStationCommand("open-webmail", { url });
+    const command = await waitForStationCommand(payload.command?.id);
+    if (command.status === "done") {
+      setWebmailMessage("Boite mail ouverte dans le navigateur securise. Terminez la session quand vous avez fini.", "success");
+      return;
+    }
+    if (command.status === "failed") throw new Error(command.error || "Ouverture impossible.");
+    throw new Error("Le logiciel du poste ne repond pas. Appelez un vendeur.");
   } catch (error) {
-    if (!browserWindow) setWebmailMessage("Le navigateur n'a pas pu s'ouvrir. Reessayez ou demandez de l'aide.", "error");
+    setWebmailMessage(error.message, "error");
   }
 }
 

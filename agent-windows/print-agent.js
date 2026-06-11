@@ -191,11 +191,12 @@ async function openWebmail(config, url) {
     $profile = ${powerShellString(profileDir)}
     New-Item -ItemType Directory -Force -Path $profile | Out-Null
     Start-Process -FilePath $chrome -ArgumentList @(
-      "--new-window",
+      "--app=${url}",
       "--user-data-dir=$profile",
       "--no-first-run",
       "--disable-sync",
-      ${powerShellString(url)}
+      "--disable-translate",
+      "--disable-features=Translate"
     )
   `;
   await runPowerShell(script);
