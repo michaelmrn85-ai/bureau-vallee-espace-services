@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bureau Vallee - Impression client</title>
+  <link rel="stylesheet" href="/styles.css?v=20260611-webmail-v2">
+</head>
+<body>
+  <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
+    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+    <strong id="notice-screen-message"></strong>
+  </section>
+
+  <section class="session-screen hidden" id="session-screen" aria-live="polite">
+    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+    <strong id="session-screen-message"></strong>
+  </section>
+
+  <main class="shell">
+    <header class="station-welcome">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+      <h1>Bienvenue en Espace Services - <span id="station-title">Poste</span></h1>
+      <time class="home-clock" id="home-clock" datetime="">--:--</time>
+    </header>
+
+    <div class="notice-banner hidden" id="notice-banner"></div>
+
+    <section class="session-toolbar hidden" id="client-session-toolbar" aria-live="polite">
+      <div>
+        <span>Session en cours</span>
+        <strong id="client-session-label">Impression</strong>
+      </div>
+    </section>
+
+    <section class="choice-grid" aria-label="Choix du mode d'impression">
+      <button class="print-choice-card" type="button" data-flow="usb">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path d="M25 7h14v19h5a8 8 0 0 1 8 8v9a14 14 0 0 1-14 14H26a14 14 0 0 1-14-14v-9a8 8 0 0 1 8-8h5V7Z"/>
+            <path d="M29 7h6M22 31h20M25 39h14"/>
+          </svg>
+        </span>
+        <h2>Impression via cle USB</h2>
+        <p>Choisir un fichier sur votre cle.</p>
+        <div class="choice-tags">
+          <span>PDF</span>
+          <span>A4</span>
+          <span>PNG/JPEG</span>
+        </div>
+      </button>
+
+      <button class="print-choice-card is-mobile" type="button" data-flow="mobile">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <rect x="20" y="6" width="24" height="52" rx="6"/>
+            <path d="M29 12h6M28 50h8M27 24h10v10H27zM25 20h2M37 20h2M25 38h2M37 38h2"/>
+          </svg>
+        </span>
+        <h2>Impression via mobile</h2>
+        <p>Flasher le QR code et saisir le code obtenu.</p>
+        <div class="choice-tags">
+          <span>QR code</span>
+          <span>PDF</span>
+          <span>PNG/JPEG</span>
+          <span>Code client</span>
+        </div>
+      </button>
+
+      <button class="print-choice-card is-webmail" type="button" data-flow="webmail">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <rect x="8" y="14" width="48" height="36" rx="5"/>
+            <path d="M10 18l22 17 22-17M22 39h20"/>
+          </svg>
+        </span>
+        <h2>Navigateur web</h2>
+        <p>Ouvrir uniquement une boite mail.</p>
+        <div class="choice-tags">
+          <span>Gmail</span>
+          <span>Outlook</span>
+          <span>Orange</span>
+        </div>
+      </button>
+    </section>
+
+    <section class="format-panel compact-home-info">
+      <div>
+        <p class="eyebrow">A retenir</p>
+        <h2>Impression A4 uniquement</h2>
+        <p class="format-warning">Pour vos impressions A3 ou sur papier epais, merci de vous rapprocher du comptoir.</p>
+      </div>
+      <button class="help-button" id="help-button" type="button">Aide</button>
+    </section>
+
+    <aside class="wifi-bubble" aria-label="Information Wi-Fi">
+      <span>Pour plus de fluidite</span>
+      <strong>Connectez-vous au Wi-Fi public</strong>
+      <small>Reseau : <b>wifi_bvpublic</b> - Mot de passe : <b>bureauvallee</b></small>
+    </aside>
+    <p class="message home-message" id="home-message"></p>
+
+    <section class="panel flow-panel hidden" id="usb-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Cle USB</p>
+          <h2>Choisir votre PDF</h2>
+        </div>
+        <div class="panel-actions">
+          <button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>
+          <button class="text-link" type="button" data-back-home>Changer de mode</button>
+        </div>
+      </div>
+      <form class="usb-form" id="usb-form">
+        <label class="drop-zone">
+          <input id="usb-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,application/pdf,image/png,image/jpeg,image/heic,image/heif" multiple required>
+          <span>Choisir et charger le fichier</span>
+          <small>Selectionnez un PDF, PNG, JPG, JPEG ou HEIC sur votre cle USB. Limite : 500 Mo par fichier.</small>
+        </label>
+      </form>
+      <p class="message" id="usb-message"></p>
+    </section>
+
+    <section class="panel flow-panel hidden" id="mobile-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Mobile</p>
+          <h2>Envoyer depuis votre telephone</h2>
+        </div>
+        <button class="text-link" type="button" data-back-home>Changer de mode</button>
+      </div>
+      <div class="mobile-flow-grid">
+        <div class="qr-card">
+          <img id="upload-qr" src="/qr.gif?station=poste-1" alt="QR code upload mobile">
+          <span>Flashez ici</span>
+          <strong id="upload-url">Chargement...</strong>
+        </div>
+        <div>
+          <p class="lead">Apres l'envoi sur votre telephone, saisissez le code obtenu ici.</p>
+          <form class="code-form" id="code-form">
+            <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+            <button type="submit">Charger</button>
+          </form>
+          <p class="message" id="message"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel flow-panel hidden" id="webmail-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Navigateur web</p>
+          <h2>Choisir votre boite mail</h2>
+        </div>
+        <button class="text-link" type="button" data-back-home>Fin de session</button>
+      </div>
+      <div class="webmail-grid">
+        <button type="button" data-webmail="gmail">Gmail</button>
+        <button type="button" data-webmail="outlook">Outlook</button>
+        <button type="button" data-webmail="orange">Orange Mail</button>
+        <button type="button" data-webmail="yahoo">Yahoo Mail</button>
+        <button type="button" data-webmail="laposte">LaPoste.net</button>
+        <button type="button" data-webmail="free">Free Zimbra</button>
+      </div>
+      <p class="message" id="webmail-message"></p>
+    </section>
+
+    <section class="files hidden" id="files"></section>
+  </main>
+
+  <div class="modal hidden" id="expiration-modal" role="dialog" aria-modal="true" aria-labelledby="expiration-title">
+    <div class="modal-card">
+      <p class="eyebrow">Attention</p>
+      <h2 id="expiration-title">Suppression automatique dans <span id="expiration-countdown">30</span> secondes</h2>
+      <p>Vos fichiers vont etre supprimes automatiquement. Terminez vos impressions ou telechargez vos fichiers maintenant.</p>
+      <div class="modal-actions">
+        <button id="close-expiration-modal" type="button">J'ai compris</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="print-status-modal hidden" id="print-status-modal" role="status" aria-live="polite">
+    <div class="print-status-card">
+      <span class="print-status-spinner spinner" aria-hidden="true"></span>
+      <strong id="print-status-title">Impression en cours</strong>
+      <p id="print-status-detail">Merci de patienter.</p>
+    </div>
+  </div>
+
+  <div class="session-close-modal hidden" id="session-close-modal" role="status" aria-live="polite">
+    <div class="session-close-card">
+      <strong id="session-close-countdown" style="--timer-progress: 360deg">10</strong>
+      <h2>Session terminee</h2>
+      <p>Merci pour vos impressions. Veuillez vous rapprocher de la caisse.</p>
+    </div>
+  </div>
+
+  <div class="usb-eject-modal hidden" id="usb-eject-modal" role="dialog" aria-modal="true" aria-labelledby="usb-eject-title">
+    <div class="usb-eject-card">
+      <strong id="usb-eject-title">Votre cle USB peut etre ejectee</strong>
+      <p>Vous pouvez la retirer du poste.</p>
+      <button id="close-usb-eject-modal" type="button">J'ai compris</button>
+    </div>
+  </div>
+
+  <script src="/notice.js?v=20260523-print-preview"></script>
+  <script src="/session.js?v=20260523-print-preview"></script>
+  <script src="/app.js?v=20260611-webmail-v2"></script>
+</body>
+</html>
