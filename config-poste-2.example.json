@@ -1,9 +1,0 @@
-{
-  "baseUrl": "https://bureau-vallee-espace-services.onrender.com",
-  "station": "poste-2",
-  "token": "bureau-vallee-agent",
-  "printerName": "NOM EXACT DU COPIEUR POSTE 2",
-  "sumatraPath": "C:\\Program Files\\SumatraPDF\\SumatraPDF.exe",
-  "pollMs": 2500,
-  "keepPrintedFiles": false
-}
