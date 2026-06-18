@@ -843,15 +843,15 @@ function startMailWatcher() {
         if (!mid || processedSet.has(mid)) continue;
 
         try {
-          // Infos déjà dans la liste
           const fromAddress = String(msg.fromAddress || msg.sender || '');
-          const hasAttachment = String(msg.hasAttachment) === '1';
-          console.log('[mail] Traitement ' + mid + ' de ' + fromAddress + ' PJ:' + hasAttachment);
+          const folderId = String(msg.folderId || '');
+          console.log('[mail] Traitement ' + mid + ' de ' + fromAddress + ' folderId:' + folderId);
 
-          // Récupérer les pièces jointes via le bon endpoint
-          const attResult = await zohoFetch(`/accounts/${accountId}/messages/${mid}/attachmentinfo`);
-          console.log('[mail] attachments: ' + JSON.stringify(attResult).slice(0, 400));
-          const attachments = Array.isArray(attResult.data) ? attResult.data : [];
+          // Récupérer les pièces jointes (inclure inline aussi car Gmail envoie souvent en inline)
+          const attResult = await zohoFetch(`/accounts/${accountId}/folders/${folderId}/messages/${mid}/attachmentinfo?includeInline=true`);
+          console.log('[mail] attachments: ' + JSON.stringify(attResult).slice(0, 500));
+          const attData = attResult.data || {};
+          const attachments = [...(Array.isArray(attData.attachments) ? attData.attachments : []), ...(Array.isArray(attData.inline) ? attData.inline : [])];
 
           if (!attachments.length) {
             console.log('[mail] Pas de PJ pour ' + mid);
@@ -885,7 +885,7 @@ function startMailWatcher() {
               }
 
               // Télécharger le fichier
-              const dlUrl = new URL(`https://mail.zoho.eu/api/accounts/${accountId}/messages/${mid}/attachments/${attId}`);
+              const dlUrl = new URL(`https://mail.zoho.eu/api/accounts/${accountId}/folders/${folderId}/messages/${mid}/attachments/${attId}`);
               const fileBuffer = await new Promise((resolve, reject) => {
                 const req = https.request({ hostname: dlUrl.hostname, path: dlUrl.pathname + dlUrl.search, headers: { 'Authorization': 'Zoho-oauthtoken ' + token } }, (res) => {
                   const chunks = [];
