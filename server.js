@@ -828,8 +828,10 @@ function startMailWatcher() {
 
       // Récupérer les mails non lus
       const result = await zohoFetch(`/accounts/${accountId}/messages/search?searchKey=isUnread:true&sortorder=false&limit=20`);
+      console.log('[mail] Zoho search result: ' + JSON.stringify(result).slice(0, 400));
       const messages = result.data || [];
       mailRuntimeStatus.mailboxExists = messages.length;
+      console.log('[mail] Mails non lus: ' + messages.length);
 
       const processedIds = readProcessedMailIds();
       const processedSet = new Set(processedIds);
