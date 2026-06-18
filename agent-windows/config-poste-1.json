@@ -3,7 +3,8 @@
   "station": "poste-1",
   "token": "bureau-vallee-agent",
   "printerName": "Copieur 1",
-  "sumatraPath": "C:\\Users\\zone service\\AppData\\Local\\SumatraPDF\\SumatraPDF.exe",
+  "a3PrinterName": "Copieur 1 A3",
+  "sumatraPath": "C:\\Users\\ES 1\\AppData\\Local\\SumatraPDF\\SumatraPDF.exe",
   "pollMs": 2500,
   "keepPrintedFiles": false
 }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-doc-warning">
+  <link rel="stylesheet" href="/modern.css?v=20260618-home-compact">
 </head>
 <body>
   <main class="home-screen" id="home-screen">
@@ -31,7 +31,7 @@
               <path d="M25 44h14"/>
             </svg>
           </span>
-          <strong>Impression Clé USB</strong>
+          <strong>Impression via clé USB</strong>
           <small>Insérez votre clé USB puis sélectionnez vos fichiers.</small>
         </button>
 
@@ -44,14 +44,14 @@
               <path d="M24 20h6v6h-6v-6Zm14 0h6v6h-6v-6ZM24 34h6v6h-6v-6Zm14 8h6v6h-6v-6Zm-2-8h4v4h-4v-4Z"/>
             </svg>
           </span>
-          <strong>Impression via QRCode</strong>
+          <strong>Impression via QR Code</strong>
           <small>Scannez le QR code avec votre téléphone pour envoyer vos fichiers.</small>
         </button>
       </div>
 
       <p class="status-message" id="status-message"></p>
-      <p class="home-warning">Les fichiers Word/DOC/DOCX ne sont pas acceptés par ce logiciel. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
-      <input class="hidden" id="usb-files" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp">
+      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptés sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
+      <input class="hidden" id="usb-files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp">
     </section>
   </main>
 
@@ -64,6 +64,7 @@
       </div>
       <div class="print-header-actions">
         <button class="add-button" id="add-more-files" type="button">+ Ajouter des fichiers</button>
+        <button class="eject-button" id="eject-usb" type="button">Éjecter clé USB</button>
         <button class="end-button" id="end-session" type="button">Fin de session</button>
       </div>
     </header>
@@ -180,6 +181,6 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-a3"></script>
+  <script src="/modern-app.js?v=20260618-eject-usb"></script>
 </body>
 </html>

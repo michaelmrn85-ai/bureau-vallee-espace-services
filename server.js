@@ -24,11 +24,9 @@ const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_PAGES = 500;
-const allowedExtensions = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
+const allowedExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
 const mimeExtensions = {
   "application/pdf": ".pdf",
-  "application/msword": ".doc",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
   "image/png": ".png",
   "image/jpeg": ".jpg",
   "image/jpg": ".jpg",
@@ -79,7 +77,7 @@ const upload = multer({
   fileFilter(request, file, callback) {
     const extension = extensionFromUpload(file);
     if (!allowedExtensions.has(extension)) {
-      callback(new Error("Format non accepte. PDF, Word, PNG, JPEG, HEIC et WebP uniquement."));
+      callback(new Error("Format non accepte. PDF, PNG, JPEG, HEIC et WebP uniquement. Pour Word, DOC ou DOCX, rapprochez-vous d'un vendeur ou d'une vendeuse."));
       return;
     }
     callback(null, true);

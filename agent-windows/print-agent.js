@@ -14,7 +14,6 @@ function readConfig() {
   if (!config.station) throw new Error("station manquant dans la configuration.");
   if (!config.token) throw new Error("token manquant dans la configuration.");
   if (!config.printerName) throw new Error("printerName manquant dans la configuration.");
-  if (!config.sumatraPath) throw new Error("sumatraPath manquant dans la configuration.");
   return {
     pollMs: 2500,
     keepPrintedFiles: false,
@@ -104,9 +103,31 @@ function duplexMode(settings = {}) {
 
 function printerNameForRequest(config, settings = {}) {
   if (settings.paperSize === "A3") {
+    if (config.a3PrinterName) return config.a3PrinterName;
     return config.station === "poste-2" ? "Copieur 2 A3" : "Copieur 1 A3";
   }
   return config.printerName;
+}
+
+function existingFile(filePath) {
+  return Boolean(filePath) && fs.existsSync(filePath);
+}
+
+function resolveSumatraPath(config) {
+  const localAppData = process.env.LOCALAPPDATA || "";
+  const programFiles = process.env.ProgramFiles || "C:\\Program Files";
+  const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  const userProfile = process.env.USERPROFILE || os.homedir();
+  const candidates = [
+    config.sumatraPath,
+    path.join(localAppData, "SumatraPDF", "SumatraPDF.exe"),
+    path.join(userProfile, "AppData", "Local", "SumatraPDF", "SumatraPDF.exe"),
+    path.join(programFiles, "SumatraPDF", "SumatraPDF.exe"),
+    path.join(programFilesX86, "SumatraPDF", "SumatraPDF.exe"),
+  ];
+  const foundPath = candidates.find(existingFile);
+  if (foundPath) return foundPath;
+  return config.sumatraPath || "SumatraPDF.exe";
 }
 
 async function api(config, route, options = {}) {
@@ -132,6 +153,7 @@ async function downloadFile(url, targetPath) {
 function runSumatra(config, filePath, settings) {
   return new Promise((resolve, reject) => {
     const printerName = printerNameForRequest(config, settings);
+    const sumatraPath = resolveSumatraPath(config);
     const args = [
       "-silent",
       "-print-settings",
@@ -140,12 +162,18 @@ function runSumatra(config, filePath, settings) {
       printerName,
       filePath,
     ];
-    const child = spawn(config.sumatraPath, args, { windowsHide: true });
+    const child = spawn(sumatraPath, args, { windowsHide: true });
     let stderr = "";
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
-    child.on("error", reject);
+    child.on("error", (error) => {
+      if (error.code === "ENOENT") {
+        reject(new Error(`SumatraPDF introuvable. Chemin teste: ${sumatraPath}. Installez SumatraPDF ou corrigez sumatraPath dans la configuration du poste.`));
+        return;
+      }
+      reject(error);
+    });
     child.on("close", (code) => {
       if (code === 0) resolve();
       else reject(new Error(stderr || `SumatraPDF a retourne le code ${code}`));
@@ -284,9 +312,6 @@ async function handleRequest(config, request) {
       await applyPrinterConfiguration(config, request.settings);
       console.log(`Configuration pilote: ${request.settings.paperSize || "A4"} / ${duplexMode(request.settings)}`);
     } catch (error) {
-      if (request.settings?.paperSize === "A3") {
-        throw new Error(`Configuration A3 impossible dans le pilote Windows: ${error.message}`);
-      }
       console.warn(`Configuration pilote ignoree: ${error.message}`);
     }
     await runSumatra(config, filePath, request.settings);

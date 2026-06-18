@@ -25,6 +25,7 @@ const closeInfo = document.getElementById("close-info");
 const infoOk = document.getElementById("info-ok");
 const backHome = document.getElementById("back-home");
 const addMoreFiles = document.getElementById("add-more-files");
+const ejectUsbButton = document.getElementById("eject-usb");
 const endSessionButton = document.getElementById("end-session");
 const copiesInput = document.getElementById("copies");
 const pageRangeInput = document.getElementById("page-range");
@@ -300,6 +301,36 @@ async function deleteFile(fileId) {
   }
 }
 
+async function waitForUsbEject(commandId) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 12000) {
+    const response = await fetch(`/api/stations/${station}/commands/${commandId}`);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Commande introuvable.");
+    if (payload.command?.status === "done") return;
+    if (payload.command?.status === "failed") throw new Error(payload.command.error || "Ejection impossible.");
+    await new Promise((resolve) => window.setTimeout(resolve, 900));
+  }
+  throw new Error("La confirmation de l'ejection prend plus de temps que prevu.");
+}
+
+async function ejectUsb() {
+  showLoading(true, "Ejection de la cle USB", "Le poste demande a Windows d'ejecter la cle en securite.");
+  ejectUsbButton.disabled = true;
+  try {
+    const response = await fetch(`/api/stations/${station}/eject`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Ejection impossible.");
+    await waitForUsbEject(payload.command.id);
+    showInfo("Cle USB ejectee", "Ejection confirmee. Vous pouvez retirer la cle USB.");
+  } catch (error) {
+    showInfo("Ejection USB", error.message || "Impossible de confirmer l'ejection de la cle USB.");
+  } finally {
+    ejectUsbButton.disabled = false;
+    showLoading(false);
+  }
+}
+
 async function printSelectedFile() {
   if (!currentJob?.code || !selectedFileId) {
     setPrintStatus("Selectionnez un document.", "error");
@@ -378,6 +409,7 @@ documentList.addEventListener("click", (event) => {
 printButton.addEventListener("click", printSelectedFile);
 backHome.addEventListener("click", showHomeScreen);
 addMoreFiles.addEventListener("click", () => usbFiles.click());
+ejectUsbButton.addEventListener("click", ejectUsb);
 closeQr.addEventListener("click", () => qrModal.classList.add("hidden"));
 loadCode.addEventListener("click", loadJobFromCode);
 qrCodeInput.addEventListener("keydown", (event) => {
