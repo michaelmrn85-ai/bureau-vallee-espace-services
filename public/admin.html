@@ -4,34 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Bureau Vallee Espace Services</title>
-  <link rel="stylesheet" href="/styles.css?v=20260608-admin-upload">
+  <link rel="stylesheet" href="/styles.css?v=20260618-admin-dashboard">
 </head>
-<body>
-  <main class="shell admin-shell">
-    <header class="brand-header brand-header-row">
-      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-      <div class="station-links">
-        <a class="text-link" href="/poste-1">Poste 1</a>
-        <a class="text-link" href="/poste-2">Poste 2</a>
+<body class="admin-body">
+  <aside class="admin-sidebar">
+    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+    <nav aria-label="Navigation admin">
+      <a class="is-active" href="/admin">Tableau de bord</a>
+      <a href="/poste-1">Poste 1</a>
+      <a href="/poste-2">Poste 2</a>
+      <button id="open-admin-upload" type="button">QR comptoir</button>
+    </nav>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar">
+      <div>
+        <h1>Tableau de bord</h1>
+        <p>Vue d'ensemble des postes d'impression et des impressions par client.</p>
+      </div>
+      <div class="admin-topbar-actions">
+        <span class="admin-date-pill">Aujourd'hui</span>
+        <button id="refresh-codes" type="button">Actualiser</button>
       </div>
     </header>
 
-    <section class="panel admin-dashboard-panel">
-      <div class="panel-heading panel-heading-row">
-        <div>
-          <p class="eyebrow">Administration</p>
-          <h1 class="page-title">Tableau de bord</h1>
-        </div>
-        <div class="admin-heading-actions">
-          <button id="open-admin-upload" type="button">QR code comptoir</button>
-          <button id="refresh-codes" type="button">Actualiser</button>
-        </div>
-      </div>
+    <p class="message admin-message" id="codes-message"></p>
 
-      <p class="message" id="codes-message"></p>
-      <section class="station-dashboard" id="station-dashboard" aria-live="polite"></section>
-      <section class="admin-upload-list" id="admin-upload-list" aria-live="polite"></section>
+    <section class="admin-summary-grid" id="admin-summary" aria-live="polite"></section>
+
+    <section class="admin-report-card">
+      <div class="admin-report-heading">
+        <div>
+          <h2>Impressions par poste et par client</h2>
+          <p>Compteurs reels N&B, couleur et total copies.</p>
+        </div>
+        <button type="button" class="admin-export-button">Exporter</button>
+      </div>
+      <div class="admin-table-wrap" id="station-report-table" aria-live="polite"></div>
     </section>
+
+    <section class="admin-station-control" id="station-dashboard" aria-live="polite"></section>
+    <section class="admin-upload-list" id="admin-upload-list" aria-live="polite"></section>
   </main>
 
   <div class="admin-upload-modal hidden" id="admin-upload-modal" role="dialog" aria-modal="true" aria-labelledby="admin-upload-title">
@@ -44,6 +58,6 @@
       <small>Les fichiers apparaitront dans le tableau de bord admin.</small>
     </div>
   </div>
-  <script src="/admin.js?v=20260608-admin-upload"></script>
+  <script src="/admin.js?v=20260618-admin-dashboard"></script>
 </body>
 </html>
