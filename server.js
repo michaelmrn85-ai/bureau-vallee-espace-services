@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -19,6 +19,10 @@ const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
 const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
+const MAIL_ADDRESSES = {
+  "poste-1": process.env.MAIL_ADDRESS_POSTE_1 || "copieur1@bureau-vallee.local",
+  "poste-2": process.env.MAIL_ADDRESS_POSTE_2 || "copieur2@bureau-vallee.local",
+};
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
@@ -708,6 +712,10 @@ function uploadUrl(station = "poste-1", mode = "", extras = {}, baseUrl = PUBLIC
   if (clientId) params.set("clientId", clientId);
   if (civility) params.set("civility", civility);
   if (extras.printCard === "1") params.set("printCard", "1");
+  const code = String(extras.code || "").replace(/\D/g, "").slice(0, 4);
+  if (code.length === 4) params.set("code", code);
+  const source = String(extras.source || "").trim().slice(0, 30);
+  if (source) params.set("source", source);
   return `${String(baseUrl || PUBLIC_BASE_URL).replace(/\/$/, "")}/upload?${params.toString()}`;
 }
 
@@ -805,6 +813,8 @@ app.get("/api/config", (request, response) => {
   response.json({
     uploadUrl: uploadUrl(station, "", request.query, baseUrl),
     qrUrl: `/qr.gif?station=${station}`,
+    mailAddress: MAIL_ADDRESSES[station],
+    mailAddresses: MAIL_ADDRESSES,
     stationLinks: {
       "poste-1": `${baseUrl}/poste-1`,
       "poste-2": `${baseUrl}/poste-2`,
@@ -1333,3 +1343,4 @@ setInterval(cleanupExpiredJobs, 5 * 60 * 1000);
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+

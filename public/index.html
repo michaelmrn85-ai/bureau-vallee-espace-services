@@ -1,15 +1,15 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-home-centered">
+  <link rel="stylesheet" href="/modern.css?v=20260618-mail-qr-add">
 </head>
 <body>
   <main class="home-screen" id="home-screen">
     <header class="brand-header">
-      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau VallÃ©e">
       <div>
         <p>Espace Services</p>
         <h1 id="brand-title">Poste Espace Services</h1>
@@ -19,9 +19,9 @@
     <section class="welcome-panel">
       <p class="station" id="station-label">Poste d'impression</p>
       <h2>Comment souhaitez-vous envoyer vos documents ?</h2>
-      <p class="lead">Choisissez une option pour commencer. Vos fichiers seront préparés avant impression afin d'éviter les erreurs.</p>
+      <p class="lead">Choisissez une option pour commencer. Vos fichiers seront prÃ©parÃ©s avant impression afin d'Ã©viter les erreurs.</p>
 
-      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptés sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
+      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptÃ©s sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
 
       <div class="choice-grid">
         <button class="choice-card usb" id="usb-button" type="button">
@@ -33,8 +33,8 @@
               <path d="M25 44h14"/>
             </svg>
           </span>
-          <strong>Impression via clé USB</strong>
-          <small>Insérez votre clé USB puis sélectionnez vos fichiers.</small>
+          <strong>Impression via clÃ© USB</strong>
+          <small>InsÃ©rez votre clÃ© USB puis sÃ©lectionnez vos fichiers.</small>
         </button>
 
         <button class="choice-card qr" id="qr-button" type="button">
@@ -47,7 +47,19 @@
             </svg>
           </span>
           <strong>Impression via QR Code</strong>
-          <small>Scannez le QR code avec votre téléphone pour envoyer vos fichiers.</small>
+          <small>Scannez le QR code avec votre tÃ©lÃ©phone pour envoyer vos fichiers.</small>
+        </button>
+
+        <button class="choice-card mail" id="mail-button" type="button">
+          <span class="choice-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <rect x="8" y="14" width="48" height="36" rx="5"/>
+              <path d="M10 18l22 18 22-18"/>
+              <path d="M18 46h28"/>
+            </svg>
+          </span>
+          <strong>Envoi de fichiers par mail</strong>
+          <small>Envoyez vos pieces jointes a l'adresse du poste, puis ouvrez le dossier recu.</small>
         </button>
       </div>
 
@@ -59,13 +71,13 @@
   <main class="print-screen hidden" id="print-screen">
     <header class="print-header">
       <div>
-        <button class="back-button" id="back-home" type="button">← Accueil</button>
+        <button class="back-button" id="back-home" type="button">â† Accueil</button>
         <p id="job-code">Code dossier</p>
-        <h1>Préparer l'impression</h1>
+        <h1>PrÃ©parer l'impression</h1>
       </div>
       <div class="print-header-actions">
         <button class="add-button" id="add-more-files" type="button">+ Ajouter des fichiers</button>
-        <button class="eject-button" id="eject-usb" type="button">Éjecter clé USB</button>
+        <button class="eject-button" id="eject-usb" type="button">Ã‰jecter clÃ© USB</button>
         <button class="end-button" id="end-session" type="button">Fin de session</button>
       </div>
     </header>
@@ -83,9 +95,9 @@
         <h2>Configuration</h2>
         <label>Imprimante
           <select id="printer">
-            <option>Imprimante par défaut</option>
+            <option>Imprimante par dÃ©faut</option>
             <option>Poste 1 - Copieur accueil</option>
-            <option>Poste 2 - Copieur étage</option>
+            <option>Poste 2 - Copieur Ã©tage</option>
           </select>
         </label>
 
@@ -111,21 +123,21 @@
           <input id="copies" type="number" min="1" max="99" value="1">
         </label>
 
-        <label>Pages à imprimer
+        <label>Pages Ã  imprimer
           <input id="page-range" placeholder="Toutes les pages">
         </label>
 
-        <button class="print-button" id="print-button" type="button">Imprimer la sélection</button>
+        <button class="print-button" id="print-button" type="button">Imprimer la sÃ©lection</button>
         <p class="status-message" id="print-status"></p>
       </section>
 
       <section class="preview-panel">
         <div class="panel-title">
-          <h2>Aperçu</h2>
+          <h2>AperÃ§u</h2>
           <span id="preview-pages">1 / 1</span>
         </div>
         <div class="preview-box" id="preview-box">
-          <p>Sélectionnez un document.</p>
+          <p>SÃ©lectionnez un document.</p>
         </div>
       </section>
     </section>
@@ -133,19 +145,39 @@
 
   <div class="modal hidden" id="qr-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <button class="close-button" id="close-qr" type="button" aria-label="Fermer">×</button>
-      <h2>Envoyer depuis votre téléphone</h2>
-      <p>Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers.</p>
+      <button class="close-button" id="close-qr" type="button" aria-label="Fermer">Ã—</button>
+      <h2>Envoyer depuis votre tÃ©lÃ©phone</h2>
+      <p>Scannez ce QR code avec votre tÃ©lÃ©phone, puis ajoutez vos fichiers.</p>
       <img id="qr-image" alt="QR code pour envoyer des fichiers">
       <div class="url-box">
         <input id="upload-url" readonly>
         <button id="copy-url" type="button">Copier</button>
       </div>
       <div class="code-box">
-        <label for="qr-code-input">Code reçu sur le téléphone</label>
+        <label for="qr-code-input">Code reÃ§u sur le tÃ©lÃ©phone</label>
         <div>
           <input id="qr-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
           <button id="load-code" type="button">Ouvrir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="mail-modal" role="dialog" aria-modal="true">
+    <div class="modal-card mail-card">
+      <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
+      <h2>Envoyer par mail</h2>
+      <p>Envoyez ou transferez vos fichiers en piece jointe a cette adresse, puis saisissez le code dossier recu.</p>
+      <div class="mail-address-box">
+        <span>Adresse du poste</span>
+        <strong id="mail-address">poste@bureau-vallee.local</strong>
+        <button id="copy-mail" type="button">Copier</button>
+      </div>
+      <div class="code-box">
+        <label for="mail-code-input">Code dossier recu par mail</label>
+        <div>
+          <input id="mail-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
+          <button id="load-mail-code" type="button">Ouvrir</button>
         </div>
       </div>
     </div>
@@ -155,9 +187,9 @@
     <div class="modal-card print-progress-card">
       <div class="loader" aria-hidden="true"></div>
       <h2>Impression en cours</h2>
-      <p>Merci de patienter, vos documents sont envoyés au copieur.</p>
+      <p>Merci de patienter, vos documents sont envoyÃ©s au copieur.</p>
       <ol class="print-steps" id="print-steps">
-        <li data-step="prepare">Préparation du document</li>
+        <li data-step="prepare">PrÃ©paration du document</li>
         <li data-step="server">Envoi au serveur</li>
         <li data-step="queue">Mise en file d'attente</li>
         <li data-step="printer">Transmission au copieur</li>
@@ -169,19 +201,20 @@
     <div class="modal-card print-progress-card">
       <div class="loader" aria-hidden="true"></div>
       <h2 id="loading-title">Recherche en cours</h2>
-      <p id="loading-text">Le serveur prépare votre demande.</p>
+      <p id="loading-text">Le serveur prÃ©pare votre demande.</p>
     </div>
   </div>
 
   <div class="modal hidden" id="info-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <button class="close-button" id="close-info" type="button" aria-label="Fermer">×</button>
+      <button class="close-button" id="close-info" type="button" aria-label="Fermer">Ã—</button>
       <h2 id="info-title">Information</h2>
       <p id="info-text">Message</p>
       <button class="modal-action" id="info-ok" type="button">OK</button>
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-mobile-upload-url"></script>
+  <script src="/modern-app.js?v=20260618-mail-qr-add"></script>
 </body>
 </html>
+

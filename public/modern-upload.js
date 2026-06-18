@@ -1,4 +1,4 @@
-const uploadForm = document.getElementById("upload-form");
+﻿const uploadForm = document.getElementById("upload-form");
 const filesInput = document.getElementById("files-input");
 const selectedFiles = document.getElementById("selected-files");
 const result = document.getElementById("result");
@@ -21,6 +21,15 @@ function cleanName(value) {
 
 function currentStation() {
   return params().get("station") === "poste-2" ? "poste-2" : "poste-1";
+}
+
+function existingJobCode() {
+  const code = String(params().get("code") || "").replace(/\D/g, "").slice(0, 4);
+  return code.length === 4 ? code : "";
+}
+
+function uploadSource() {
+  return params().get("source") === "mail" ? "mail" : "qr";
 }
 
 function setUploadMessage(text, tone = "") {
@@ -46,9 +55,19 @@ function setupIdentity() {
     customerNameInput.value = customerName;
     mobileGreeting.textContent = `Bonjour ${customerName}${clientId.length === 5 ? ` - ID ${clientId}` : ""}`;
   }
+  const code = existingJobCode();
+  if (code) {
+    uploadLead.textContent = "Ajoutez vos fichiers. Ils seront ajoutes au dossier deja ouvert sur le poste.";
+    resultHelp.textContent = "Vos nouveaux fichiers sont transmis au poste.";
+  }
+  if (uploadSource() === "mail") {
+    uploadLead.textContent = code
+      ? "Ajoutez les pieces jointes recues par mail au dossier deja ouvert sur le poste."
+      : "Ajoutez les pieces jointes recues par mail. Un code dossier sera cree pour les ouvrir sur le poste.";
+  }
   if (query.get("mode") === "admin") {
-    uploadLead.textContent = "Envoyez vos fichiers au comptoir Bureau Vallée.";
-    resultHelp.textContent = "Merci. Vos fichiers sont bien envoyés au comptoir.";
+    uploadLead.textContent = "Envoyez vos fichiers au comptoir Bureau Vallee.";
+    resultHelp.textContent = "Merci. Vos fichiers sont bien envoyes au comptoir.";
   }
 }
 
@@ -65,7 +84,7 @@ async function sendUpload() {
   const clientId = String(query.get("clientId") || "").replace(/\D/g, "").slice(0, 5);
   formData.set("station", currentStation());
   formData.set("printMode", "noir-blanc");
-  formData.set("source", "qr");
+  formData.set("source", uploadSource());
   if (customerName) formData.set("customerName", customerName);
   if (clientId.length === 5) formData.set("clientId", clientId);
   if (query.get("printCard") === "1") formData.set("printCard", "1");
@@ -78,14 +97,16 @@ async function sendUpload() {
   setUploadMessage("");
   result.classList.add("hidden");
   try {
-    const response = await fetch("/api/jobs", { method: "POST", body: formData });
+    const code = existingJobCode();
+    const endpoint = code ? `/api/jobs/${code}/files` : "/api/jobs";
+    const response = await fetch(endpoint, { method: "POST", body: formData });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Envoi impossible.");
     resultCode.textContent = payload.code;
     result.classList.remove("hidden");
     uploadForm.reset();
     selectedFiles.innerHTML = "";
-    setUploadMessage("Fichiers envoyés.", "success");
+    setUploadMessage("Fichiers envoyÃ©s.", "success");
   } catch (error) {
     setUploadMessage(error.message, "error");
   } finally {
@@ -104,3 +125,5 @@ uploadForm.addEventListener("submit", (event) => {
 });
 
 setupIdentity();
+
+

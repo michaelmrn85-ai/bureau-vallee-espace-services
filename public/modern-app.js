@@ -1,10 +1,11 @@
-const station = window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
+﻿const station = window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
 const brandTitle = document.getElementById("brand-title");
 const stationLabel = document.getElementById("station-label");
 const homeScreen = document.getElementById("home-screen");
 const printScreen = document.getElementById("print-screen");
 const usbButton = document.getElementById("usb-button");
 const qrButton = document.getElementById("qr-button");
+const mailButton = document.getElementById("mail-button");
 const usbFiles = document.getElementById("usb-files");
 const statusMessage = document.getElementById("status-message");
 const jobCode = document.getElementById("job-code");
@@ -37,11 +38,19 @@ const qrCodeInput = document.getElementById("qr-code-input");
 const loadCode = document.getElementById("load-code");
 const closeQr = document.getElementById("close-qr");
 const copyUrl = document.getElementById("copy-url");
+const mailModal = document.getElementById("mail-modal");
+const closeMail = document.getElementById("close-mail");
+const mailAddress = document.getElementById("mail-address");
+const copyMail = document.getElementById("copy-mail");
+const mailCodeInput = document.getElementById("mail-code-input");
+const loadMailCode = document.getElementById("load-mail-code");
 
 let currentJob = null;
 let selectedFileId = "";
+let selectedFileIds = new Set();
 let inactivityTimer = null;
 let sessionCloseTimer = null;
+let jobRefreshTimer = null;
 let inactivityVisible = false;
 
 function stationName() {
@@ -115,16 +124,51 @@ function wakeSession() {
 function showPrintScreen() {
   homeScreen.classList.add("hidden");
   printScreen.classList.remove("hidden");
+  startJobRefresh();
   resetInactivityTimer();
 }
 
 function showHomeScreen() {
   printScreen.classList.add("hidden");
   homeScreen.classList.remove("hidden");
+  stopJobRefresh();
   window.clearTimeout(inactivityTimer);
   window.clearTimeout(sessionCloseTimer);
 }
 
+function jobFileSignature(job) {
+  return (job?.files || []).map((file) => `${file.id}:${file.originalName}:${file.size}`).join("|");
+}
+
+async function refreshCurrentJob() {
+  if (!currentJob?.code || printScreen.classList.contains("hidden")) return;
+  try {
+    const beforeIds = new Set(currentJob.files.map((file) => file.id));
+    const beforeSignature = jobFileSignature(currentJob);
+    const response = await fetch(`/api/jobs/${currentJob.code}?station=${station}`);
+    const payload = await response.json();
+    if (!response.ok) return;
+    const afterSignature = jobFileSignature(payload);
+    if (beforeSignature === afterSignature) return;
+    payload.files.forEach((file) => {
+      if (!beforeIds.has(file.id)) selectedFileIds.add(file.id);
+    });
+    selectedFileId = payload.files.find((file) => !beforeIds.has(file.id))?.id || selectedFileId;
+    renderJob(payload);
+    setPrintStatus("Nouveaux fichiers ajoutes a la session.", "success");
+  } catch (error) {
+    // Le rafraichissement est silencieux pour ne pas deranger le client.
+  }
+}
+
+function startJobRefresh() {
+  window.clearInterval(jobRefreshTimer);
+  jobRefreshTimer = window.setInterval(refreshCurrentJob, 3000);
+}
+
+function stopJobRefresh() {
+  window.clearInterval(jobRefreshTimer);
+}
 function extension(file) {
   const value = String(file?.extension || "").toLowerCase();
   return value.startsWith(".") ? value : `.${value}`;
@@ -160,10 +204,13 @@ function renderPreview(file) {
 function renderJob(job) {
   currentJob = job;
   selectedFileId = job.files.some((file) => file.id === selectedFileId) ? selectedFileId : job.files[0]?.id || "";
+  const validFileIds = new Set(job.files.map((file) => file.id));
+  selectedFileIds = new Set([...selectedFileIds].filter((fileId) => validFileIds.has(fileId)));
   jobCode.textContent = `Code dossier ${job.code}`;
-  documentCount.textContent = String(job.files.length);
+  documentCount.textContent = `${selectedFileIds.size}/${job.files.length}`;
   documentList.innerHTML = job.files.length ? job.files.map((file) => `
-    <article class="document-item ${file.id === selectedFileId ? "active" : ""}" data-file-id="${file.id}">
+    <article class="document-item ${file.id === selectedFileId ? "active" : ""} ${selectedFileIds.has(file.id) ? "selected" : ""}" data-file-id="${file.id}">
+      <input class="select-file" type="checkbox" data-select-file="${file.id}" ${selectedFileIds.has(file.id) ? "checked" : ""} aria-label="Selectionner ${file.originalName}">
       <span>${fileLabel(file)}</span>
       <strong>${file.originalName}</strong>
       <small>${(file.size / 1024 / 1024).toFixed(1)} Mo - ${file.pages || 1} page(s)</small>
@@ -187,12 +234,14 @@ function printSettings() {
   };
 }
 
-function qrParams() {
-  return new URLSearchParams({ station, source: "qr" }).toString();
+function qrParams(source = "qr") {
+  const params = new URLSearchParams({ station, source });
+  if (currentJob?.code) params.set("code", currentJob.code);
+  return params.toString();
 }
 
 async function openQrModal() {
-  const params = qrParams();
+  const params = qrParams("qr");
   qrImage.src = `/qr.svg?${params}&t=${Date.now()}`;
   uploadUrl.value = "Preparation du lien...";
   qrCodeInput.value = "";
@@ -207,8 +256,22 @@ async function openQrModal() {
   }
 }
 
-async function loadJobFromCode() {
-  const code = String(qrCodeInput.value || "").replace(/\D/g, "").slice(0, 4);
+async function openMailModal() {
+  mailCodeInput.value = "";
+  mailAddress.textContent = station === "poste-2" ? "copieur2@bureau-vallee.local" : "copieur1@bureau-vallee.local";
+  mailModal.classList.remove("hidden");
+  setStatus("Envoyez vos pieces jointes par mail, puis ouvrez le code dossier recu.", "success");
+  try {
+    const params = qrParams("mail");
+    const response = await fetch(`/api/config?${params}`);
+    const payload = await response.json();
+    if (payload.mailAddress) mailAddress.textContent = payload.mailAddress;
+  } catch (error) {
+    // L'adresse locale par defaut reste affichee.
+  }
+}
+async function loadJobFromCode(inputElement = qrCodeInput) {
+  const code = String(inputElement.value || "").replace(/\D/g, "").slice(0, 4);
   if (code.length !== 4) {
     showInfo("Code invalide", "Entrez le code a 4 chiffres affiche sur le telephone.");
     return;
@@ -220,7 +283,9 @@ async function loadJobFromCode() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Code introuvable.");
     selectedFileId = payload.files[0]?.id || "";
+    selectedFileIds = new Set(payload.files.map((file) => file.id));
     qrModal.classList.add("hidden");
+    mailModal.classList.add("hidden");
     renderJob(payload);
     showInfo("Dossier ouvert", "Vos fichiers sont disponibles sur le poste.");
   } catch (error) {
@@ -250,6 +315,7 @@ async function uploadUsbFiles(files) {
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
     setStatus(`Fichiers recus. Code dossier : ${payload.code}`, "success");
     selectedFileId = payload.files[0]?.id || "";
+    selectedFileIds = new Set(payload.files.map((file) => file.id));
     renderJob(payload);
     showInfo("Fichiers recus", "Vos documents sont prets. Verifiez l'apercu et les options avant d'imprimer.");
   } catch (error) {
@@ -259,6 +325,7 @@ async function uploadUsbFiles(files) {
     showLoading(false);
     usbButton.disabled = false;
     qrButton.disabled = false;
+    mailButton.disabled = false;
     usbFiles.value = "";
   }
 }
@@ -279,7 +346,11 @@ async function addFilesToCurrentJob(files) {
     const response = await fetch(`/api/jobs/${currentJob.code}/files`, { method: "POST", body: formData });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Ajout impossible.");
+    const previousFileIds = new Set(currentJob.files.map((file) => file.id));
     selectedFileId = payload.files[payload.files.length - 1]?.id || selectedFileId;
+    payload.files.forEach((file) => {
+      if (!previousFileIds.has(file.id)) selectedFileIds.add(file.id);
+    });
     setPrintStatus("Fichiers ajoutes.", "success");
     renderJob(payload);
     showInfo("Fichiers ajoutes", "Les nouveaux documents sont disponibles dans la liste.");
@@ -298,6 +369,7 @@ async function deleteFile(fileId) {
     const response = await fetch(`/api/jobs/${currentJob.code}/files/${fileId}`, { method: "DELETE" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Suppression impossible.");
+    selectedFileIds.delete(fileId);
     if (selectedFileId === fileId) selectedFileId = payload.files[0]?.id || "";
     renderJob(payload);
     showInfo("Fichier supprime", "Le document a ete retire de la session.");
@@ -338,10 +410,11 @@ async function ejectUsb() {
   }
 }
 
-async function printSelectedFile() {
-  if (!currentJob?.code || !selectedFileId) {
-    setPrintStatus("Selectionnez un document.", "error");
-    showInfo("Aucun document", "Selectionnez un document avant d'imprimer.");
+async function printSelectedFiles() {
+  const fileIds = [...selectedFileIds].filter((fileId) => currentJob?.files?.some((file) => file.id === fileId));
+  if (!currentJob?.code || !fileIds.length) {
+    setPrintStatus("Selectionnez au moins un document.", "error");
+    showInfo("Aucun document", "Selectionnez au moins un document avant d'imprimer.");
     return;
   }
   setPrintStatus("Envoi au copieur...");
@@ -350,19 +423,23 @@ async function printSelectedFile() {
   try {
     await new Promise((resolve) => window.setTimeout(resolve, 250));
     setPrintStep("server");
-    const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileId: selectedFileId, settings: printSettings() }),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Impression impossible.");
+    let payload = null;
+    const settings = printSettings();
+    for (const fileId of fileIds) {
+      const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId, settings }),
+      });
+      payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Impression impossible.");
+    }
     setPrintStep("queue");
     currentJob = payload.job;
     await new Promise((resolve) => window.setTimeout(resolve, 450));
     setPrintStep("printer");
-    setPrintStatus("Impression envoyee au copieur.", "success");
-    showInfo("Impression envoyee", "Vos documents ont ete transmis au copieur.");
+    setPrintStatus(`${fileIds.length} document(s) envoye(s) au copieur.`, "success");
+    showInfo("Impression envoyee", `${fileIds.length} document(s) ont ete transmis au copieur.`);
   } catch (error) {
     setPrintStatus(error.message || "Impression impossible.", "error");
     showInfo("Erreur", error.message || "Impression impossible.");
@@ -379,6 +456,7 @@ async function endSession(isAutomatic = false) {
     if (currentJob?.code) await fetch(`/api/jobs/${currentJob.code}`, { method: "DELETE" });
     currentJob = null;
     selectedFileId = "";
+    selectedFileIds = new Set();
     renderPreview(null);
     documentList.innerHTML = "";
     documentCount.textContent = "0";
@@ -396,6 +474,7 @@ stationLabel.textContent = stationName();
 
 usbButton.addEventListener("click", () => usbFiles.click());
 qrButton.addEventListener("click", openQrModal);
+mailButton.addEventListener("click", openMailModal);
 
 usbFiles.addEventListener("change", () => {
   if (currentJob?.code && !printScreen.classList.contains("hidden")) addFilesToCurrentJob([...usbFiles.files]);
@@ -408,20 +487,39 @@ documentList.addEventListener("click", (event) => {
     deleteFile(deleteButton.dataset.deleteFile);
     return;
   }
+  const selectInput = event.target.closest("[data-select-file]");
+  if (selectInput) {
+    const fileId = selectInput.dataset.selectFile;
+    if (selectInput.checked) selectedFileIds.add(fileId);
+    else selectedFileIds.delete(fileId);
+    selectedFileId = fileId;
+    renderJob(currentJob);
+    return;
+  }
   const item = event.target.closest("[data-file-id]");
   if (!item || !currentJob) return;
   selectedFileId = item.dataset.fileId;
   renderJob(currentJob);
 });
 
-printButton.addEventListener("click", printSelectedFile);
+printButton.addEventListener("click", printSelectedFiles);
 backHome.addEventListener("click", showHomeScreen);
 addMoreFiles.addEventListener("click", () => usbFiles.click());
 ejectUsbButton.addEventListener("click", ejectUsb);
 closeQr.addEventListener("click", () => qrModal.classList.add("hidden"));
-loadCode.addEventListener("click", loadJobFromCode);
+loadCode.addEventListener("click", () => loadJobFromCode(qrCodeInput));
 qrCodeInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") loadJobFromCode();
+  if (event.key === "Enter") loadJobFromCode(qrCodeInput);
+});
+
+closeMail.addEventListener("click", () => mailModal.classList.add("hidden"));
+loadMailCode.addEventListener("click", () => loadJobFromCode(mailCodeInput));
+mailCodeInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") loadJobFromCode(mailCodeInput);
+});
+copyMail.addEventListener("click", async () => {
+  await navigator.clipboard?.writeText(mailAddress.textContent);
+  showInfo("Adresse copiee", "L adresse mail du poste a ete copiee.");
 });
 
 copyUrl.addEventListener("click", async () => {
@@ -446,3 +544,5 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
