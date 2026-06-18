@@ -1,6 +1,7 @@
 ﻿const station = window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
 const brandTitle = document.getElementById("brand-title");
 const stationLabel = document.getElementById("station-label");
+const digitalClock = document.getElementById("digital-clock");
 const homeScreen = document.getElementById("home-screen");
 const printScreen = document.getElementById("print-screen");
 const usbButton = document.getElementById("usb-button");
@@ -44,6 +45,7 @@ const mailAddress = document.getElementById("mail-address");
 const copyMail = document.getElementById("copy-mail");
 const mailCodeInput = document.getElementById("mail-code-input");
 const loadMailCode = document.getElementById("load-mail-code");
+const mailWaitTimer = document.getElementById("mail-wait-timer");
 
 const MAX_FILES_PER_UPLOAD = 5;
 
@@ -54,9 +56,46 @@ let inactivityTimer = null;
 let sessionCloseTimer = null;
 let jobRefreshTimer = null;
 let inactivityVisible = false;
+let clockInterval = null;
+let mailWaitInterval = null;
+let mailWaitStartedAt = 0;
 
 function stationName() {
   return station === "poste-2" ? "Poste 2" : "Poste 1";
+}
+
+function formatClock(date = new Date()) {
+  return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatElapsed(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function startDigitalClock() {
+  if (!digitalClock || clockInterval) return;
+  digitalClock.textContent = formatClock();
+  clockInterval = setInterval(() => {
+    digitalClock.textContent = formatClock();
+  }, 1000);
+}
+
+function startMailWaitTimer() {
+  if (!mailWaitTimer) return;
+  clearInterval(mailWaitInterval);
+  mailWaitStartedAt = Date.now();
+  mailWaitTimer.textContent = "00:00";
+  mailWaitInterval = setInterval(() => {
+    mailWaitTimer.textContent = formatElapsed(Date.now() - mailWaitStartedAt);
+  }, 1000);
+}
+
+function stopMailWaitTimer() {
+  clearInterval(mailWaitInterval);
+  mailWaitInterval = null;
 }
 
 function setStatus(message, tone = "") {
@@ -260,8 +299,9 @@ async function openQrModal() {
 
 async function openMailModal() {
   mailCodeInput.value = "";
-  mailAddress.textContent = "es.bvm@outlook.fr";
+  mailAddress.textContent = "kiosk.es@zohomail.eu";
   mailModal.classList.remove("hidden");
+  startMailWaitTimer();
   setStatus("Envoyez vos pieces jointes par mail, puis ouvrez le code dossier recu.", "success");
   try {
     const params = qrParams("mail");
@@ -483,6 +523,7 @@ async function endSession(isAutomatic = false) {
 
 brandTitle.textContent = `${stationName()} - Espace Services`;
 stationLabel.textContent = stationName();
+startDigitalClock();
 
 usbButton.addEventListener("click", () => usbFiles.click());
 qrButton.addEventListener("click", openQrModal);
@@ -524,7 +565,10 @@ qrCodeInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadJobFromCode(qrCodeInput);
 });
 
-closeMail.addEventListener("click", () => mailModal.classList.add("hidden"));
+closeMail.addEventListener("click", () => {
+  mailModal.classList.add("hidden");
+  stopMailWaitTimer();
+});
 loadMailCode.addEventListener("click", () => loadJobFromCode(mailCodeInput));
 mailCodeInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadJobFromCode(mailCodeInput);

@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-upload-limit">
+  <link rel="stylesheet" href="/modern.css?v=20260618-client-polish">
 </head>
 <body>
-  <main class="home-screen" id="home-screen">
+  <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
+<main class="home-screen" id="home-screen">
     <header class="brand-header">
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
       <div>
@@ -27,10 +28,13 @@
         <button class="choice-card usb" id="usb-button" type="button">
           <span class="choice-icon" aria-hidden="true">
             <svg viewBox="0 0 64 64" role="img">
-              <path d="M24 4h16v10h6v15H18V14h6V4Z"/>
-              <path d="M17 29h30v27a4 4 0 0 1-4 4H21a4 4 0 0 1-4-4V29Z"/>
-              <path d="M32 38v12"/>
-              <path d="M25 44h14"/>
+              <rect class="icon-fill" x="18" y="24" width="28" height="30" rx="6"/>
+              <path d="M25 24V12h14v12"/>
+              <path d="M28 12V6h8v6"/>
+              <path d="M32 34v12"/>
+              <path d="M24 40h16"/>
+              <path d="M40 40l5-5"/>
+              <circle cx="47" cy="33" r="3"/>
             </svg>
           </span>
           <strong>Impression via clé USB</strong>
@@ -40,10 +44,11 @@
         <button class="choice-card qr" id="qr-button" type="button">
           <span class="choice-icon" aria-hidden="true">
             <svg viewBox="0 0 64 64" role="img">
-              <rect x="19" y="4" width="26" height="56" rx="5"/>
-              <path d="M27 10h10"/>
-              <path d="M25 50h14"/>
-              <path d="M24 20h6v6h-6v-6Zm14 0h6v6h-6v-6ZM24 34h6v6h-6v-6Zm14 8h6v6h-6v-6Zm-2-8h4v4h-4v-4Z"/>
+              <path d="M16 10h12M10 16V28M48 10H36M54 16v12M16 54h12M10 48V36M48 54H36M54 48V36"/>
+              <rect class="solid" x="18" y="18" width="9" height="9" rx="1"/>
+              <rect class="solid" x="37" y="18" width="9" height="9" rx="1"/>
+              <rect class="solid" x="18" y="37" width="9" height="9" rx="1"/>
+              <path d="M36 36h5v5h5v6h-9v-5h-5v-6h4Z"/>
             </svg>
           </span>
           <strong>Impression via QR Code</strong>
@@ -53,13 +58,14 @@
         <button class="choice-card mail" id="mail-button" type="button">
           <span class="choice-icon" aria-hidden="true">
             <svg viewBox="0 0 64 64" role="img">
-              <rect x="8" y="14" width="48" height="36" rx="5"/>
-              <path d="M10 18l22 18 22-18"/>
-              <path d="M18 46h28"/>
+              <rect class="icon-fill" x="10" y="18" width="44" height="30" rx="6"/>
+              <path d="M12 22l20 16 20-16"/>
+              <path d="M42 38l6 6 6-6"/>
+              <path d="M48 26v18"/>
             </svg>
           </span>
           <strong>Envoi de fichiers par mail</strong>
-          <small>Envoyez vos pieces jointes a l'adresse du poste, puis ouvrez le dossier recu.</small>
+          <small>Envoyez vos pièces jointes à l'adresse du poste, puis ouvrez le dossier reçu.</small>
         </button>
       </div>
 
@@ -93,15 +99,7 @@
 
       <section class="settings-panel">
         <h2>Configuration</h2>
-        <label>Imprimante
-          <select id="printer">
-            <option>Imprimante par défaut</option>
-            <option>Poste 1 - Copieur accueil</option>
-            <option>Poste 2 - Copieur étage</option>
-          </select>
-        </label>
-
-        <div class="setting-group">
+<div class="setting-group">
           <strong>Format papier</strong>
           <label><input name="paperSize" type="radio" value="A4" checked> A4</label>
           <label><input name="paperSize" type="radio" value="A3"> A3</label>
@@ -170,11 +168,15 @@
       <p>Envoyez ou transferez vos fichiers en piece jointe a cette adresse, puis saisissez le code dossier recu. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
       <div class="mail-address-box">
         <span>Adresse du poste</span>
-        <strong id="mail-address">es.bvm@outlook.fr</strong>
+        <strong id="mail-address">kiosk.es@zohomail.eu</strong>
         <button id="copy-mail" type="button">Copier</button>
       </div>
+      <div class="mail-wait-box">
+        <span>Temps d'attente du code</span>
+        <strong id="mail-wait-timer">00:00</strong>
+      </div>
       <div class="code-box">
-        <label for="mail-code-input">Code dossier recu par mail</label>
+        <label for="mail-code-input">Code dossier reçu par mail</label>
         <div>
           <input id="mail-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
           <button id="load-mail-code" type="button">Ouvrir</button>
@@ -214,7 +216,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-mail-address"></script>
+  <script src="/modern-app.js?v=20260618-client-polish"></script>
 </body>
 </html>
 

@@ -54,19 +54,28 @@ https://bureau-vallee-espace-services.onrender.com/upload
 ```
 
 
-## Reception par mail Outlook
+## Reception par mail Zoho
 
-Le bouton "Envoi par mail" utilise l'adresse `es.bvm@outlook.fr`.
-Pour activer la lecture automatique des pieces jointes, definir les variables d'environnement :
+Le bouton "Envoi par mail" utilise l'adresse `kiosk.es@zohomail.eu` ou la valeur de `MAIL_ADDRESS`.
+La lecture des mails passe par l'API HTTP Zoho Mail en OAuth2, ce qui evite les blocages IMAP/SMTP sur Render.
+
+Variables d'environnement Render :
 
 ```
 MAIL_POLLING_ENABLED=1
-MAIL_ADDRESS=es.bvm@outlook.fr
-MAIL_PASSWORD=mot_de_passe_ou_mot_de_passe_application
-MAIL_IMAP_HOST=outlook.office365.com
-MAIL_IMAP_PORT=993
-MAIL_SMTP_HOST=smtp-mail.outlook.com
-MAIL_SMTP_PORT=587
+MAIL_ADDRESS=kiosk.es@zohomail.eu
+ZOHO_CLIENT_ID=...
+ZOHO_CLIENT_SECRET=...
+ZOHO_REFRESH_TOKEN=...
 ```
 
-Le serveur lit les mails non lus, accepte 5 pieces jointes maximum, cree un code dossier, puis repond au client avec ce code.
+Scopes OAuth2 necessaires :
+
+```
+ZohoMail.accounts.READ
+ZohoMail.messages.READ
+ZohoMail.messages.UPDATE
+ZohoMail.messages.CREATE
+```
+
+Le serveur interroge Zoho toutes les 30 secondes, recupere les pieces jointes des mails non lus, cree un code dossier, marque le mail comme lu, puis repond au client avec le code.
