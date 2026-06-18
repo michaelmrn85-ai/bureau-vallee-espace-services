@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message client - Bureau Vallee</title>
+  <link rel="stylesheet" href="/styles.css?v=20260523-print-preview">
+</head>
+<body>
+  <main class="shell">
+    <header class="brand-header brand-header-row">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+      <a class="text-link" href="/">Retour impression</a>
+    </header>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <p class="eyebrow">Affichage client</p>
+        <h1 class="page-title">Message en grand</h1>
+        <p class="lead">Choisissez un message pret ou ecrivez un message personnalise. Il apparaitra sur les pages clients.</p>
+      </div>
+
+      <div class="preset-grid">
+        <button type="button" data-preset="Nous vous retrouvons demain des 9h">Nous vous retrouvons demain des 9h</button>
+        <button type="button" data-preset="Nous vous retrouvons des lundi 9h">Nous vous retrouvons des lundi 9h</button>
+        <button type="button" data-preset="Impression HS">Impression HS</button>
+        <button type="button" data-preset="Grande serie d'impression en cours">Grande serie d'impression en cours</button>
+      </div>
+
+      <label>
+        Message personnalise
+        <textarea id="notice-message" maxlength="160" rows="4" placeholder="Votre message..."></textarea>
+      </label>
+
+      <div class="modal-actions">
+        <button id="activate-notice" type="button">Afficher le message</button>
+        <button class="danger" id="disable-notice" type="button">Desactiver</button>
+      </div>
+      <p class="message" id="notice-admin-message"></p>
+    </section>
+  </main>
+  <script src="/message.js"></script>
+</body>
+</html>
