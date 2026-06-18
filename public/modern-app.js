@@ -191,14 +191,20 @@ function qrParams() {
   return new URLSearchParams({ station, source: "qr" }).toString();
 }
 
-function openQrModal() {
+async function openQrModal() {
   const params = qrParams();
-  const url = `${window.location.origin}/upload?${params}`;
   qrImage.src = `/qr.svg?${params}&t=${Date.now()}`;
-  uploadUrl.value = url;
+  uploadUrl.value = "Preparation du lien...";
   qrCodeInput.value = "";
   qrModal.classList.remove("hidden");
   setStatus("Scannez le QR code pour envoyer vos documents.", "success");
+  try {
+    const response = await fetch(`/api/config?${params}`);
+    const payload = await response.json();
+    uploadUrl.value = payload.uploadUrl || `${window.location.origin}/upload?${params}`;
+  } catch (error) {
+    uploadUrl.value = `${window.location.origin}/upload?${params}`;
+  }
 }
 
 async function loadJobFromCode() {

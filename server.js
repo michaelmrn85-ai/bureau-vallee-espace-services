@@ -1,5 +1,6 @@
 const express = require("express");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const multer = require("multer");
 const qrcode = require("qrcode-generator");
@@ -9,6 +10,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3100;
 const RENDER_BASE_URL = "https://bureau-vallee-espace-services.onrender.com";
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || RENDER_BASE_URL).replace(/\/$/, "");
+const HAS_PUBLIC_BASE_URL = Boolean(process.env.PUBLIC_BASE_URL);
 const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || "bureau-vallee-agent";
 const DATA_DIR = path.join(__dirname, "data");
 const JOBS_DIR = path.join(DATA_DIR, "jobs");
@@ -671,7 +673,28 @@ function createZipBuffer(entries) {
   return Buffer.concat([...localParts, centralDirectory, endRecord]);
 }
 
-function uploadUrl(station = "poste-1", mode = "", extras = {}) {
+function firstLanAddress() {
+  for (const addresses of Object.values(os.networkInterfaces())) {
+    for (const address of addresses || []) {
+      if (address.family === "IPv4" && !address.internal) return address.address;
+    }
+  }
+  return "";
+}
+
+function requestBaseUrl(request) {
+  const host = String(request.get("host") || "").toLowerCase();
+  const isLocalHost = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  if (HAS_PUBLIC_BASE_URL && (!isLocalHost || !PUBLIC_BASE_URL.includes("onrender.com"))) return PUBLIC_BASE_URL;
+  if (host && !host.startsWith("localhost") && !host.startsWith("127.0.0.1")) {
+    const protocol = request.get("x-forwarded-proto") || request.protocol || "http";
+    return `${protocol}://${request.get("host")}`.replace(/\/$/, "");
+  }
+  const lanAddress = firstLanAddress();
+  return lanAddress ? `http://${lanAddress}:${PORT}` : `http://localhost:${PORT}`;
+}
+
+function uploadUrl(station = "poste-1", mode = "", extras = {}, baseUrl = PUBLIC_BASE_URL) {
   const params = new URLSearchParams();
   if (mode === "admin") {
     params.set("mode", "admin");
@@ -685,7 +708,7 @@ function uploadUrl(station = "poste-1", mode = "", extras = {}) {
   if (clientId) params.set("clientId", clientId);
   if (civility) params.set("civility", civility);
   if (extras.printCard === "1") params.set("printCard", "1");
-  return `${PUBLIC_BASE_URL}/upload?${params.toString()}`;
+  return `${String(baseUrl || PUBLIC_BASE_URL).replace(/\/$/, "")}/upload?${params.toString()}`;
 }
 
 function readNotice() {
@@ -762,14 +785,14 @@ app.get("/admin", (request, response) => {
 
 app.get("/qr.svg", (request, response) => {
   const qr = qrcode(0, "M");
-  qr.addData(uploadUrl(request.query.station, request.query.mode, request.query));
+  qr.addData(uploadUrl(request.query.station, request.query.mode, request.query, requestBaseUrl(request)));
   qr.make();
   response.type("image/svg+xml").send(qr.createSvgTag({ cellSize: 8, margin: 4 }));
 });
 
 app.get("/qr.gif", (request, response) => {
   const qr = qrcode(0, "M");
-  qr.addData(uploadUrl(request.query.station, request.query.mode, request.query));
+  qr.addData(uploadUrl(request.query.station, request.query.mode, request.query, requestBaseUrl(request)));
   qr.make();
   const dataUrl = qr.createDataURL(8, 4);
   const base64 = dataUrl.replace(/^data:image\/gif;base64,/, "");
@@ -778,12 +801,13 @@ app.get("/qr.gif", (request, response) => {
 
 app.get("/api/config", (request, response) => {
   const station = stationFrom(request.query.station);
+  const baseUrl = requestBaseUrl(request);
   response.json({
-    uploadUrl: uploadUrl(station),
+    uploadUrl: uploadUrl(station, "", request.query, baseUrl),
     qrUrl: `/qr.gif?station=${station}`,
     stationLinks: {
-      "poste-1": `${PUBLIC_BASE_URL}/poste-1`,
-      "poste-2": `${PUBLIC_BASE_URL}/poste-2`,
+      "poste-1": `${baseUrl}/poste-1`,
+      "poste-2": `${baseUrl}/poste-2`,
     },
   });
 });
