@@ -618,18 +618,22 @@ function mailTextForReject(reason) {
 
 async function sendMailReply(nodemailer, to, subject, text) {
   if (!to) throw new Error("Adresse expediteur introuvable.");
-  const accessToken = await zohoGetToken();
-  const transporter = nodemailer.createTransport({
-    host: process.env.MAIL_SMTP_HOST || MAIL_SMTP_HOST,
-    port: Number(process.env.MAIL_SMTP_PORT) || MAIL_SMTP_PORT,
-    secure: process.env.MAIL_SMTP_SECURE === "1",
-    auth: {
-      type: "OAuth2",
-      user: MAIL_ADDRESS,
-      accessToken,
+  const accountId = await zohoGetAccountId();
+  console.log('[mail] Envoi reponse a ' + to);
+  const result = await zohoFetch(`/accounts/${accountId}/messages`, {
+    method: 'POST',
+    body: {
+      fromAddress: MAIL_ADDRESS,
+      toAddress: to,
+      subject,
+      content: text,
+      mailFormat: 'plaintext',
     },
   });
-  await transporter.sendMail({ from: MAIL_ADDRESS, to, subject, text });
+  console.log('[mail] Resultat envoi: ' + JSON.stringify(result).slice(0, 200));
+  if (result.status?.code !== 200 && result.status?.code !== 201) {
+    throw new Error('Zoho send error: ' + JSON.stringify(result).slice(0, 200));
+  }
 }
 
 async function createMailJob(parsedMail) {
@@ -893,9 +897,11 @@ function startMailWatcher() {
                   res.on('data', (c) => chunks.push(c));
                   res.on('end', () => resolve(Buffer.concat(chunks)));
                 });
+                req.setTimeout(60000, () => { req.destroy(); reject(new Error('Timeout telechargement PJ')); });
                 req.on('error', reject);
                 req.end();
               });
+              console.log('[mail] PJ telechargee: ' + originalname + ' ' + fileBuffer.length + ' octets');
 
               const tmpPath = path.join(TMP_DIR, 'mail-' + Date.now() + '-' + attId + ext);
               fs.writeFileSync(tmpPath, fileBuffer);
