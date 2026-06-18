@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/modern.css?v=20260618-reset-home">
 </head>
 <body>
-  <main class="home-screen">
+  <main class="home-screen" id="home-screen">
     <header class="brand-header">
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
       <div>
@@ -40,6 +40,71 @@
     </section>
   </main>
 
+  <main class="print-screen hidden" id="print-screen">
+    <header class="print-header">
+      <div>
+        <button class="back-button" id="back-home" type="button">← Accueil</button>
+        <p id="job-code">Code dossier</p>
+        <h1>Préparer l'impression</h1>
+      </div>
+      <button class="add-button" id="add-more-files" type="button">+ Ajouter des fichiers</button>
+    </header>
+
+    <section class="print-layout">
+      <aside class="doc-panel">
+        <div class="panel-title">
+          <h2>Documents</h2>
+          <span id="document-count">0</span>
+        </div>
+        <div class="document-list" id="document-list"></div>
+      </aside>
+
+      <section class="settings-panel">
+        <h2>Configuration</h2>
+        <label>Imprimante
+          <select id="printer">
+            <option>Imprimante par défaut</option>
+            <option>Poste 1 - Copieur accueil</option>
+            <option>Poste 2 - Copieur étage</option>
+          </select>
+        </label>
+
+        <div class="setting-group">
+          <strong>Couleur</strong>
+          <label><input name="colorMode" type="radio" value="noir-blanc" checked> Noir et blanc</label>
+          <label><input name="colorMode" type="radio" value="couleur"> Couleur</label>
+        </div>
+
+        <div class="setting-group">
+          <strong>Recto / verso</strong>
+          <label><input name="duplex" type="radio" value="recto" checked> Recto</label>
+          <label><input name="duplex" type="radio" value="recto-verso-long"> Recto verso</label>
+        </div>
+
+        <label>Nombre d'exemplaires
+          <input id="copies" type="number" min="1" max="99" value="1">
+        </label>
+
+        <label>Pages à imprimer
+          <input id="page-range" placeholder="Toutes les pages">
+        </label>
+
+        <button class="print-button" id="print-button" type="button">Imprimer la sélection</button>
+        <p class="status-message" id="print-status"></p>
+      </section>
+
+      <section class="preview-panel">
+        <div class="panel-title">
+          <h2>Aperçu</h2>
+          <span id="preview-pages">1 / 1</span>
+        </div>
+        <div class="preview-box" id="preview-box">
+          <p>Sélectionnez un document.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
   <div class="modal hidden" id="qr-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="close-button" id="close-qr" type="button" aria-label="Fermer">×</button>
@@ -53,6 +118,6 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-reset-home"></script>
+  <script src="/modern-app.js?v=20260618-print-workspace"></script>
 </body>
 </html>

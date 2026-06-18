@@ -1,14 +1,29 @@
 const station = window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
 const stationLabel = document.getElementById("station-label");
+const homeScreen = document.getElementById("home-screen");
+const printScreen = document.getElementById("print-screen");
 const usbButton = document.getElementById("usb-button");
 const qrButton = document.getElementById("qr-button");
 const usbFiles = document.getElementById("usb-files");
 const statusMessage = document.getElementById("status-message");
+const jobCode = document.getElementById("job-code");
+const documentCount = document.getElementById("document-count");
+const documentList = document.getElementById("document-list");
+const previewBox = document.getElementById("preview-box");
+const previewPages = document.getElementById("preview-pages");
+const printButton = document.getElementById("print-button");
+const printStatus = document.getElementById("print-status");
+const backHome = document.getElementById("back-home");
+const addMoreFiles = document.getElementById("add-more-files");
+const copiesInput = document.getElementById("copies");
+const pageRangeInput = document.getElementById("page-range");
 const qrModal = document.getElementById("qr-modal");
 const qrImage = document.getElementById("qr-image");
 const uploadUrl = document.getElementById("upload-url");
 const closeQr = document.getElementById("close-qr");
 const copyUrl = document.getElementById("copy-url");
+let currentJob = null;
+let selectedFileId = "";
 
 function stationName() {
   return station === "poste-2" ? "Poste 2" : "Poste 1";
@@ -17,6 +32,82 @@ function stationName() {
 function setStatus(message, tone = "") {
   statusMessage.textContent = message;
   statusMessage.dataset.tone = tone;
+}
+
+function setPrintStatus(message, tone = "") {
+  printStatus.textContent = message;
+  printStatus.dataset.tone = tone;
+}
+
+function showPrintScreen() {
+  homeScreen.classList.add("hidden");
+  printScreen.classList.remove("hidden");
+}
+
+function showHomeScreen() {
+  printScreen.classList.add("hidden");
+  homeScreen.classList.remove("hidden");
+}
+
+function extension(file) {
+  const value = String(file?.extension || "").toLowerCase();
+  return value.startsWith(".") ? value : `.${value}`;
+}
+
+function fileLabel(file) {
+  return extension(file).replace(".", "").toUpperCase() || "DOC";
+}
+
+function renderPreview(file) {
+  if (!file) {
+    previewPages.textContent = "1 / 1";
+    previewBox.innerHTML = "<p>Sélectionnez un document.</p>";
+    return;
+  }
+
+  previewPages.textContent = `1 / ${file.pages || 1}`;
+  const ext = extension(file);
+  if (ext === ".pdf") {
+    previewBox.innerHTML = `<iframe src="${file.viewUrl}" title="${file.originalName}"></iframe>`;
+  } else if ([".png", ".jpg", ".jpeg", ".webp"].includes(ext)) {
+    previewBox.innerHTML = `<img src="${file.viewUrl}" alt="${file.originalName}">`;
+  } else {
+    previewBox.innerHTML = `
+      <div class="preview-fallback">
+        <strong>${file.originalName}</strong>
+        <p>Ce format ne peut pas être prévisualisé ici. Il reste dans la liste pour traitement.</p>
+      </div>
+    `;
+  }
+}
+
+function renderJob(job) {
+  currentJob = job;
+  selectedFileId = selectedFileId || job.files[0]?.id || "";
+  jobCode.textContent = `Code dossier ${job.code}`;
+  documentCount.textContent = String(job.files.length);
+  documentList.innerHTML = job.files.map((file) => `
+    <button class="document-item ${file.id === selectedFileId ? "active" : ""}" type="button" data-file-id="${file.id}">
+      <span>${fileLabel(file)}</span>
+      <strong>${file.originalName}</strong>
+      <small>${(file.size / 1024 / 1024).toFixed(1)} Mo · ${file.pages || 1} page(s)</small>
+    </button>
+  `).join("");
+  renderPreview(job.files.find((file) => file.id === selectedFileId) || job.files[0]);
+  showPrintScreen();
+}
+
+function printSettings() {
+  return {
+    colorMode: document.querySelector("input[name='colorMode']:checked")?.value || "noir-blanc",
+    duplex: document.querySelector("input[name='duplex']:checked")?.value || "recto",
+    paperSize: "A4",
+    scaling: "ajuster",
+    orientation: "auto",
+    pageRange: pageRangeInput.value.trim(),
+    pagesPerSheet: 1,
+    copies: Math.max(1, Number.parseInt(copiesInput.value, 10) || 1),
+  };
 }
 
 function qrParams() {
@@ -56,6 +147,8 @@ async function uploadUsbFiles(files) {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
     setStatus(`Fichiers reçus. Code dossier : ${payload.code}`, "success");
+    selectedFileId = payload.files[0]?.id || "";
+    renderJob(payload);
   } catch (error) {
     setStatus(error.message, "error");
   } finally {
@@ -63,6 +156,49 @@ async function uploadUsbFiles(files) {
     qrButton.disabled = false;
     usbFiles.value = "";
   }
+}
+
+async function addFilesToCurrentJob(files) {
+  if (!currentJob?.code) {
+    await uploadUsbFiles(files);
+    return;
+  }
+  if (!files.length) return;
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  setPrintStatus("Ajout des fichiers...");
+  const response = await fetch(`/api/jobs/${currentJob.code}/files`, {
+    method: "POST",
+    body: formData,
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    setPrintStatus(payload.error || "Ajout impossible.", "error");
+    return;
+  }
+  selectedFileId = payload.files[payload.files.length - 1]?.id || selectedFileId;
+  setPrintStatus("Fichiers ajoutés.", "success");
+  renderJob(payload);
+}
+
+async function printSelectedFile() {
+  if (!currentJob?.code || !selectedFileId) {
+    setPrintStatus("Sélectionnez un document.", "error");
+    return;
+  }
+  setPrintStatus("Envoi au copieur...");
+  const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileId: selectedFileId, settings: printSettings() }),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    setPrintStatus(payload.error || "Impression impossible.", "error");
+    return;
+  }
+  currentJob = payload.job;
+  setPrintStatus("Impression envoyée au copieur.", "success");
 }
 
 stationLabel.textContent = stationName();
@@ -74,7 +210,26 @@ usbButton.addEventListener("click", () => {
 qrButton.addEventListener("click", openQrModal);
 
 usbFiles.addEventListener("change", () => {
-  uploadUsbFiles([...usbFiles.files]);
+  if (currentJob?.code && !printScreen.classList.contains("hidden")) {
+    addFilesToCurrentJob([...usbFiles.files]);
+  } else {
+    uploadUsbFiles([...usbFiles.files]);
+  }
+});
+
+documentList.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-file-id]");
+  if (!item || !currentJob) return;
+  selectedFileId = item.dataset.fileId;
+  renderJob(currentJob);
+});
+
+printButton.addEventListener("click", printSelectedFile);
+
+backHome.addEventListener("click", showHomeScreen);
+
+addMoreFiles.addEventListener("click", () => {
+  usbFiles.click();
 });
 
 closeQr.addEventListener("click", () => {

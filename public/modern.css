@@ -251,6 +251,232 @@ button {
   font-weight: 800;
 }
 
+.print-screen {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 34px;
+  overflow: hidden;
+}
+
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.print-header p {
+  margin: 10px 0 4px;
+  color: var(--blue);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.print-header h1 {
+  margin: 0;
+  font-size: 38px;
+}
+
+.back-button,
+.add-button {
+  min-height: 46px;
+  border: 1px solid #9fc7ff;
+  border-radius: 7px;
+  padding: 0 18px;
+  background: #fff;
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.print-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 340px 360px minmax(420px, 1fr);
+  gap: 18px;
+}
+
+.doc-panel,
+.settings-panel,
+.preview-panel {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 16px 44px rgba(7, 20, 47, .06);
+}
+
+.doc-panel,
+.preview-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.settings-panel {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 24px;
+  overflow: auto;
+}
+
+.settings-panel h2,
+.panel-title h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-title span {
+  min-width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.document-list {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.document-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  grid-template-areas:
+    "type name"
+    "type meta";
+  gap: 4px 14px;
+  width: 100%;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.document-item.active {
+  border-color: #78b4ff;
+  background: #f0f7ff;
+}
+
+.document-item span {
+  grid-area: type;
+  width: 46px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.document-item strong {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+}
+
+.document-item small {
+  grid-area: meta;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.settings-panel label,
+.setting-group {
+  display: grid;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.settings-panel select,
+.settings-panel input[type="number"],
+.settings-panel input[type="text"],
+.settings-panel input:not([type]) {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 14px;
+  background: #fff;
+}
+
+.setting-group {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.setting-group label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.print-button {
+  min-height: 54px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 900;
+}
+
+.preview-box {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  margin: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #eef3f9;
+  overflow: hidden;
+}
+
+.preview-box iframe,
+.preview-box img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+  background: #fff;
+}
+
+.preview-fallback {
+  max-width: 360px;
+  text-align: center;
+}
+
+.preview-fallback strong {
+  display: block;
+  margin-bottom: 10px;
+}
+
 @media (max-width: 900px) {
   .home-screen {
     padding: 24px;
@@ -277,6 +503,16 @@ button {
   }
 
   .choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .print-screen {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .print-layout {
     grid-template-columns: 1fr;
   }
 }
