@@ -150,12 +150,25 @@ button {
   border-radius: 22px;
   background: var(--blue);
   color: #fff;
-  font-size: 28px;
-  font-weight: 900;
 }
 
 .choice-card.qr .choice-icon {
   background: var(--green);
+}
+
+.choice-icon svg {
+  width: 58px;
+  height: 58px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.choice-icon svg path:first-child,
+.choice-icon svg rect {
+  fill: rgba(255, 255, 255, .18);
 }
 
 .choice-card strong {

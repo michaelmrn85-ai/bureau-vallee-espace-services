@@ -225,7 +225,7 @@ function sanitizePrintSettings(input = {}) {
   const settings = {
     colorMode: input.colorMode === "couleur" ? "couleur" : "noir-blanc",
     duplex: ["recto", "recto-verso-long", "recto-verso-court"].includes(input.duplex) ? input.duplex : "recto",
-    paperSize: "A4",
+    paperSize: ["A3", "A4"].includes(input.paperSize) ? input.paperSize : "A4",
     scaling: input.scaling === "taille-reelle" ? "taille-reelle" : "ajuster",
     orientation: ["auto", "portrait", "paysage"].includes(input.orientation) ? input.orientation : "auto",
     pageRange: String(input.pageRange || "").replace(/[^\d,\-\s]/g, "").slice(0, 40).trim(),

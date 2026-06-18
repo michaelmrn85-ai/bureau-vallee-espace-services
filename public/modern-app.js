@@ -176,7 +176,7 @@ function printSettings() {
   return {
     colorMode: document.querySelector("input[name='colorMode']:checked")?.value || "noir-blanc",
     duplex: document.querySelector("input[name='duplex']:checked")?.value || "recto",
-    paperSize: "A4",
+    paperSize: document.querySelector("input[name='paperSize']:checked")?.value || "A4",
     scaling: "ajuster",
     orientation: "auto",
     pageRange: pageRangeInput.value.trim(),

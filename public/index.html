@@ -23,13 +23,27 @@
 
       <div class="choice-grid">
         <button class="choice-card usb" id="usb-button" type="button">
-          <span class="choice-icon">USB</span>
+          <span class="choice-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <path d="M24 4h16v10h6v15H18V14h6V4Z"/>
+              <path d="M17 29h30v27a4 4 0 0 1-4 4H21a4 4 0 0 1-4-4V29Z"/>
+              <path d="M32 38v12"/>
+              <path d="M25 44h14"/>
+            </svg>
+          </span>
           <strong>Impression Clé USB</strong>
           <small>Insérez votre clé USB puis sélectionnez vos fichiers.</small>
         </button>
 
         <button class="choice-card qr" id="qr-button" type="button">
-          <span class="choice-icon">QR</span>
+          <span class="choice-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <rect x="19" y="4" width="26" height="56" rx="5"/>
+              <path d="M27 10h10"/>
+              <path d="M25 50h14"/>
+              <path d="M24 20h6v6h-6v-6Zm14 0h6v6h-6v-6ZM24 34h6v6h-6v-6Zm14 8h6v6h-6v-6Zm-2-8h4v4h-4v-4Z"/>
+            </svg>
+          </span>
           <strong>Impression via QRCode</strong>
           <small>Scannez le QR code avec votre téléphone pour envoyer vos fichiers.</small>
         </button>
@@ -71,6 +85,12 @@
             <option>Poste 2 - Copieur étage</option>
           </select>
         </label>
+
+        <div class="setting-group">
+          <strong>Format papier</strong>
+          <label><input name="paperSize" type="radio" value="A4" checked> A4</label>
+          <label><input name="paperSize" type="radio" value="A3"> A3</label>
+        </div>
 
         <div class="setting-group">
           <strong>Couleur</strong>
@@ -159,6 +179,6 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-session-print-steps"></script>
+  <script src="/modern-app.js?v=20260618-a3"></script>
 </body>
 </html>

@@ -102,6 +102,13 @@ function duplexMode(settings = {}) {
   return "OneSided";
 }
 
+function printerNameForRequest(config, settings = {}) {
+  if (settings.paperSize === "A3") {
+    return config.station === "poste-2" ? "Copieur 2 A3" : "Copieur 1 A3";
+  }
+  return config.printerName;
+}
+
 async function api(config, route, options = {}) {
   const response = await fetch(`${config.baseUrl}${route}`, {
     ...options,
@@ -124,12 +131,13 @@ async function downloadFile(url, targetPath) {
 
 function runSumatra(config, filePath, settings) {
   return new Promise((resolve, reject) => {
+    const printerName = printerNameForRequest(config, settings);
     const args = [
       "-silent",
       "-print-settings",
       printSettings(settings),
       "-print-to",
-      config.printerName,
+      printerName,
       filePath,
     ];
     const child = spawn(config.sumatraPath, args, { windowsHide: true });
@@ -218,9 +226,10 @@ async function applyPrinterConfiguration(config, settings = {}) {
   const paperSize = ["A3", "A4", "A5"].includes(settings.paperSize) ? settings.paperSize : "A4";
   const color = isBlackAndWhite(settings) ? "$false" : "$true";
   const duplex = duplexMode(settings);
+  const printerName = printerNameForRequest(config, settings);
   const script = `
     try {
-      Set-PrintConfiguration -PrinterName ${powerShellString(config.printerName)} -PaperSize ${paperSize} -Color ${color} -DuplexingMode ${duplex} -ErrorAction Stop
+      Set-PrintConfiguration -PrinterName ${powerShellString(printerName)} -PaperSize ${paperSize} -Color ${color} -DuplexingMode ${duplex} -ErrorAction Stop
     } catch {
       Write-Error $_.Exception.Message
       exit 1
@@ -268,6 +277,7 @@ async function handleRequest(config, request) {
   const filePath = path.join(workDir, `${request.code}-${request.requestId}-${safeName(request.printFileName || request.fileName)}`);
   console.log(`[${new Date().toLocaleTimeString()}] Impression ${request.code} - ${request.fileName}`);
   console.log(`Reglages: ${request.settingsLabel}`);
+  console.log(`Copieur cible: ${printerNameForRequest(config, request.settings)}`);
   try {
     await downloadFile(request.fileUrl, filePath);
     try {
