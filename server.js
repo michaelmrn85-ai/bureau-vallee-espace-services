@@ -20,7 +20,7 @@ const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
-const HISTORY_TTL_MS = 3 * 60 * 1000;
+const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_PAGES = 500;
@@ -532,7 +532,7 @@ async function createPreparedPdf(job, file, settings, requestId) {
 function sessionCounters(job, files) {
   const counts = { bwPages: 0, colorPages: 0, totalPages: 0 };
   const fileById = new Map(files.map((file) => [file.id, file]));
-  const requests = (job.printRequests || []).filter((request) => request.status === "done");
+  const requests = (job.printRequests || []).filter((request) => request.status !== "failed");
 
   for (const request of requests) {
     const file = fileById.get(request.fileId);
