@@ -791,9 +791,14 @@ async function zohoFetch(path, options = {}) {
 async function zohoGetAccountId() {
   if (zohoAccountId) return zohoAccountId;
   const result = await zohoFetch("/accounts");
-  const account = (result.data || []).find((a) => a.primaryEmailAddress === MAIL_ADDRESS) || result.data?.[0];
-  if (!account) throw new Error("Compte Zoho introuvable pour " + MAIL_ADDRESS);
-  zohoAccountId = account.accountId;
+  console.log("[mail] Zoho accounts: " + JSON.stringify(result).slice(0, 500));
+  const accounts = result.data || result.accounts || [];
+  const account = accounts.find((a) =>
+    (a.primaryEmailAddress || a.mailAddress || a.emailAddress || "").toLowerCase() === MAIL_ADDRESS.toLowerCase()
+  ) || accounts[0];
+  if (!account) throw new Error("Compte Zoho introuvable - reponse: " + JSON.stringify(result).slice(0, 300));
+  zohoAccountId = String(account.accountId || account.id || account.zuid || "");
+  console.log("[mail] Zoho accountId: " + zohoAccountId);
   return zohoAccountId;
 }
 
