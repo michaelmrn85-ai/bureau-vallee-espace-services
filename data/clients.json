@@ -1,0 +1,10 @@
+[
+  {
+    "id": "36829",
+    "customerName": "Test Client ID",
+    "civility": "monsieur",
+    "printCard": true,
+    "createdAt": "2026-06-18T01:34:57.873Z",
+    "updatedAt": "2026-06-18T01:34:57.888Z"
+  }
+]
