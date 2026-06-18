@@ -3,151 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Impression facile</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-home">
+  <title>Bureau Vallée - Espace Services</title>
+  <link rel="stylesheet" href="/modern.css?v=20260618-reset-home">
 </head>
-<body data-app="kiosk">
-  <div class="window-shell">
-    <header class="titlebar">
-      <div class="app-mark" aria-hidden="true">▣</div>
-      <strong>Impression facile</strong>
-      <div class="window-controls" aria-hidden="true"><span>−</span><span>□</span><span>×</span></div>
+<body>
+  <main class="home-screen">
+    <header class="brand-header">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
+      <div>
+        <p>Espace Services</p>
+        <h1>Impression facile</h1>
+      </div>
     </header>
 
-    <div class="app-layout">
-      <aside class="sidebar">
-        <nav class="nav-stack" aria-label="Navigation poste">
-          <button class="nav-item active" data-nav="home" type="button"><span>⌂</span>Accueil</button>
-          <button class="nav-item" data-action="usb" type="button"><span>▣</span>Impression clé USB</button>
-          <button class="nav-item" data-action="qr" type="button"><span>▦</span>Impressions via QR Code</button>
-          <button class="nav-item" data-action="phone" type="button"><span>⇱</span>Envoyer depuis mon téléphone</button>
-          <button class="nav-item" data-action="lookup" type="button"><span>▤</span>Mes impressions</button>
-          <button class="nav-item" data-action="history" type="button"><span>◷</span>Historique</button>
-        </nav>
-        <nav class="nav-stack sidebar-bottom" aria-label="Aide">
-          <button class="nav-item" data-action="settings" type="button"><span>⚙</span>Paramètres</button>
-          <button class="nav-item" data-action="help" type="button"><span>?</span>Aide</button>
-        </nav>
-      </aside>
+    <section class="welcome-panel">
+      <p class="station" id="station-label">Poste d'impression</p>
+      <h2>Comment souhaitez-vous envoyer vos documents ?</h2>
+      <p class="lead">Choisissez une option pour commencer. Vos fichiers seront préparés avant impression afin d'éviter les erreurs.</p>
 
-      <main class="workspace">
-        <section class="identity-view hidden" id="identity-view">
-          <div class="identity-card">
-            <div class="identity-icon" aria-hidden="true">▣</div>
-            <h1>Avant de commencer</h1>
-            <p>Merci de renseigner votre nom et prénom pour accéder au service d'impression.</p>
-            <form id="identity-form" class="identity-form">
-              <label>Nom<input id="last-name" autocomplete="family-name" required placeholder="Entrez votre nom"></label>
-              <label>Prénom<input id="first-name" autocomplete="given-name" required placeholder="Entrez votre prénom"></label>
-              <label class="optional-line">Avez-vous une carte d'impression ?
-                <select id="print-card">
-                  <option value="no">Non / pas sûr</option>
-                  <option value="yes">Oui</option>
-                </select>
-              </label>
-              <label class="optional-line">Déjà un numéro ID ?
-                <input id="client-id-input" inputmode="numeric" maxlength="5" placeholder="Facultatif, ex : 12345">
-              </label>
-              <button class="primary wide" type="submit">Continuer <span aria-hidden="true">→</span></button>
-            </form>
-            <div class="or-line"><span>ou</span></div>
-            <button class="secondary" id="identity-qr" type="button">▦ Continuer avec un QR Code</button>
-            <div class="security-note"><span>◇</span><div><strong>Vos données sont sécurisées</strong><p>Vos informations ne sont utilisées que pour votre session d'impression.</p></div></div>
-          </div>
-        </section>
+      <div class="choice-grid">
+        <button class="choice-card usb" id="usb-button" type="button">
+          <span class="choice-icon">USB</span>
+          <strong>Impression Clé USB</strong>
+          <small>Insérez votre clé USB puis sélectionnez vos fichiers.</small>
+        </button>
 
-        <section class="home-view hidden" id="home-view">
-          <div class="top-row">
-            <div>
-              <p class="eyebrow" id="station-label">Poste 1</p>
-              <h1>Bienvenue !</h1>
-              <p>Choisissez une option pour commencer une impression.</p>
-            </div>
-            <div class="customer-pill" id="customer-pill">Bonjour</div>
-            <div class="printer-pill"><span>▣</span><div><strong>Imprimante par défaut</strong><p id="printer-name">HP LaserJet Pro M404dn</p></div><em>Prête</em></div>
-          </div>
+        <button class="choice-card qr" id="qr-button" type="button">
+          <span class="choice-icon">QR</span>
+          <strong>Impression via QRCode</strong>
+          <small>Scannez le QR code avec votre téléphone pour envoyer vos fichiers.</small>
+        </button>
+      </div>
 
-          <h2>Lancer une impression</h2>
-          <div class="launch-grid">
-            <button class="launch-card blue" data-action="usb" type="button"><span class="big-icon">▮</span><strong>Impression clé USB</strong><p>Imprimez directement vos fichiers depuis une clé USB.</p><b>Commencer →</b></button>
-            <button class="launch-card green" data-action="qr" type="button"><span class="big-icon">▦</span><strong>Impressions via QR Code</strong><p>Scannez un QR code pour envoyer vos fichiers et les imprimer.</p><b>Commencer →</b></button>
-            <button class="launch-card purple" data-action="phone" type="button"><span class="big-icon">⇱</span><strong>Envoyer depuis mon téléphone</strong><p>Envoyez vos fichiers depuis votre téléphone et imprimez-les.</p><b>Commencer →</b></button>
-            <button class="launch-card orange" data-action="lookup" type="button"><span class="big-icon">✉</span><strong>Mes impressions</strong><p>Accédez aux documents envoyés et gérez vos impressions.</p><b>Ouvrir →</b></button>
-          </div>
+      <p class="status-message" id="status-message"></p>
+      <input class="hidden" id="usb-files" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp">
+    </section>
+  </main>
 
-          <h2>Informations</h2>
-          <div class="info-grid">
-            <div class="info-card"><span>▣</span><div><strong>Imprimante par défaut</strong><p id="info-printer">HP LaserJet Pro M404dn · Prête</p></div></div>
-            <div class="info-card"><span>▤</span><div><strong>File d'attente</strong><p id="queue-info">Aucun document en attente</p></div></div>
-            <div class="info-card"><span>▥</span><div><strong>Niveaux de consommables</strong><p>Toner : 78%</p><meter value="78" min="0" max="100"></meter></div></div>
-          </div>
-          <div class="help-band"><span>?</span><div><strong>Besoin d'aide ?</strong><p>Un conseiller peut reprendre la main au comptoir.</p></div><button class="secondary" data-action="help" type="button">Ouvrir l'aide</button></div>
-        </section>
-
-        <section class="print-view hidden" id="print-view">
-          <div class="document-topbar">
-            <div><p class="eyebrow" id="job-code-label">Session</p><h1>Impression de documents</h1></div>
-            <button class="secondary" data-action="phone" type="button">Envoyer depuis mon téléphone</button>
-          </div>
-          <div class="print-grid">
-            <aside class="files-panel">
-              <div class="panel-head"><h2>Fichiers à imprimer <span id="file-count">(0)</span></h2><button class="secondary small" id="add-files" type="button">+ Ajouter des fichiers</button></div>
-              <input class="hidden" id="file-input" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp">
-              <div class="file-list" id="file-list"></div>
-              <div class="panel-footer"><label><input id="select-all" type="checkbox" checked> Tout sélectionner</label><button class="danger-text" id="delete-selected" type="button">Supprimer la sélection</button></div>
-              <div class="multi-card"><span>▤</span><div><strong>Impression multiple</strong><p>Regroupez les documents sélectionnés et imprimez-les à la suite.</p></div><input id="multi-print" type="checkbox" checked></div>
-              <div class="action-row"><button class="primary" id="print-selected" type="button">▣ Imprimer</button><button class="secondary" id="cancel-session" type="button">Annuler</button></div>
-            </aside>
-
-            <section class="settings-panel">
-              <h2>Options d'impression</h2>
-              <div class="setting-block"><label>Imprimante<select id="printer-select"><option>HP LaserJet Pro M404dn</option><option>HP Color LaserJet Pro M454dw</option></select></label></div>
-              <div class="setting-block"><strong>Couleur</strong><div class="segmented"><label><input name="colorMode" type="radio" value="noir-blanc" checked> Noir et blanc</label><label><input name="colorMode" type="radio" value="couleur"> Couleur</label></div></div>
-              <div class="setting-block"><strong>Impression</strong><div class="segmented"><label><input name="duplex" type="radio" value="recto" checked> Recto</label><label><input name="duplex" type="radio" value="recto-verso-long"> Recto / Verso</label></div></div>
-              <div class="setting-block"><strong>Plage d'impression</strong><label><input name="rangeMode" type="radio" value="all" checked> Toutes les pages</label><label><input name="rangeMode" type="radio" value="current"> Page actuelle</label><label class="range-input"><input name="rangeMode" type="radio" value="pages"> Pages <input id="page-range" placeholder="1-5, 8"></label></div>
-              <div class="setting-block inline"><label>Nombre d'exemplaires<input id="copies" type="number" min="1" max="99" value="1"></label><label><input id="assemble" type="checkbox" checked> Assembler</label></div>
-              <p class="status-line" id="status-line"></p>
-            </section>
-
-            <section class="preview-panel">
-              <div class="panel-head"><h2>Aperçu</h2><div class="pager"><button type="button">‹</button><span>1 / 10</span><button type="button">›</button></div></div>
-              <div class="preview-stage" id="preview-stage"><div class="empty-preview">Sélectionnez un fichier pour afficher l'aperçu.</div></div>
-              <div class="summary-row"><div><span>Documents sélectionnés</span><strong id="selected-summary">0 fichier</strong></div><div><span>Pages totales</span><strong id="pages-summary">0 page</strong></div><div><span>Copies</span><strong id="copies-summary">1</strong></div></div>
-            </section>
-          </div>
-        </section>
-      </main>
-    </div>
-  </div>
-
-  <div class="modal hidden" id="qr-modal">
-    <div class="modal-card qr-card">
-      <button class="close-btn" data-close-modal type="button">×</button>
-      <h2>Envoyer des fichiers depuis votre téléphone</h2>
-      <p>Scannez le QR code avec votre téléphone pour ajouter vos documents à cette session.</p>
-      <img id="qr-image" alt="QR code d'envoi">
-      <div class="copy-url"><input id="upload-url" readonly><button id="copy-url" type="button">Copier</button></div>
-    </div>
-  </div>
-
-  <div class="modal hidden" id="id-modal">
-    <div class="modal-card id-card">
-      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
-      <span>Votre ID client</span>
-      <strong id="client-id-value">00000</strong>
-      <p>Gardez ce numéro : prenez-le en photo ou notez-le pour vos prochaines impressions.</p>
-      <button class="primary" data-close-modal type="button">J'ai gardé mon ID</button>
-    </div>
-  </div>
-
-  <div class="modal hidden" id="print-modal">
+  <div class="modal hidden" id="qr-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <div class="spinner" aria-hidden="true"></div>
-      <h2 id="print-modal-title">En attente</h2>
-      <p id="print-modal-text">Vos impressions sont envoyées au copieur.</p>
+      <button class="close-button" id="close-qr" type="button" aria-label="Fermer">×</button>
+      <h2>Envoyer depuis votre téléphone</h2>
+      <p>Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers.</p>
+      <img id="qr-image" alt="QR code pour envoyer des fichiers">
+      <div class="url-box">
+        <input id="upload-url" readonly>
+        <button id="copy-url" type="button">Copier</button>
+      </div>
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-home"></script>
+  <script src="/modern-app.js?v=20260618-reset-home"></script>
 </body>
 </html>
