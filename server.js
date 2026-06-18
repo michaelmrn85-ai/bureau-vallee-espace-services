@@ -843,15 +843,14 @@ function startMailWatcher() {
         if (!mid || processedSet.has(mid)) continue;
 
         try {
-          // Récupérer les infos du message (expéditeur)
-          const msgInfo = await zohoFetch(`/accounts/${accountId}/messages/${mid}`);
-          console.log('[mail] msgInfo: ' + JSON.stringify(msgInfo).slice(0, 300));
-          const fromAddress = msgInfo.data?.fromAddress || msgInfo.data?.sender || msg.sender || msg.fromAddress || '';
-          const subject = msgInfo.data?.subject || msg.subject || 'Vos fichiers Espace Services';
+          // Infos déjà dans la liste
+          const fromAddress = String(msg.fromAddress || msg.sender || '');
+          const hasAttachment = String(msg.hasAttachment) === '1';
+          console.log('[mail] Traitement ' + mid + ' de ' + fromAddress + ' PJ:' + hasAttachment);
 
-          // Récupérer les pièces jointes
-          const attResult = await zohoFetch(`/accounts/${accountId}/messages/${mid}/attachments`);
-          console.log('[mail] attachments: ' + JSON.stringify(attResult).slice(0, 300));
+          // Récupérer les pièces jointes via le bon endpoint
+          const attResult = await zohoFetch(`/accounts/${accountId}/messages/${mid}/attachmentinfo`);
+          console.log('[mail] attachments: ' + JSON.stringify(attResult).slice(0, 400));
           const attachments = Array.isArray(attResult.data) ? attResult.data : [];
 
           if (!attachments.length) {
