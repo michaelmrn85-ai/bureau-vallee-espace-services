@@ -20,6 +20,21 @@ const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const MAIL_ADDRESS = process.env.MAIL_ADDRESS || "es.bvm@outlook.fr";
+const MAIL_POLLING_ENABLED = process.env.MAIL_POLLING_ENABLED === "1";
+const MAIL_POLL_INTERVAL_MS = Math.max(15000, Number(process.env.MAIL_POLL_INTERVAL_MS) || 30000);
+const MAIL_IMAP_HOST = process.env.MAIL_IMAP_HOST || "outlook.office365.com";
+const MAIL_IMAP_PORT = Number(process.env.MAIL_IMAP_PORT) || 993;
+const MAIL_SMTP_HOST = process.env.MAIL_SMTP_HOST || "smtp-mail.outlook.com";
+const MAIL_SMTP_PORT = Number(process.env.MAIL_SMTP_PORT) || 587;
+const mailRuntimeStatus = {
+  enabled: MAIL_POLLING_ENABLED,
+  address: MAIL_ADDRESS,
+  configured: Boolean(process.env.MAIL_PASSWORD),
+  lastCheckAt: "",
+  lastSuccessAt: "",
+  lastError: "",
+  lastCode: "",
+};
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
@@ -72,6 +87,10 @@ function extensionFromUpload(file) {
   return mimeExtensions[String(file.mimetype || "").toLowerCase()] || "";
 }
 
+function isAllowedUploadFile(file) {
+  return allowedExtensions.has(extensionFromUpload(file));
+}
+
 fs.mkdirSync(JOBS_DIR, { recursive: true });
 fs.mkdirSync(TMP_DIR, { recursive: true });
 
@@ -80,7 +99,7 @@ const upload = multer({
   limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES_PER_UPLOAD },
   fileFilter(request, file, callback) {
     const extension = extensionFromUpload(file);
-    if (!allowedExtensions.has(extension)) {
+    if (!isAllowedUploadFile(file)) {
       callback(new Error("Format non accepte. PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG uniquement. Pour Word, DOC ou DOCX, rapprochez-vous d'un vendeur ou d'une vendeuse."));
       return;
     }
@@ -531,6 +550,196 @@ async function createPreparedPdf(job, file, settings, requestId) {
   };
 }
 
+
+function senderAddress(parsedMail) {
+  return parsedMail.from?.value?.[0]?.address || "";
+}
+
+function senderDisplayName(parsedMail) {
+  return sanitizeCustomerName(parsedMail.from?.value?.[0]?.name || senderAddress(parsedMail) || "Client mail");
+}
+
+function mailSubject(value) {
+  return String(value || "Vos fichiers Espace Services").replace(/[\r\n]/g, " ").slice(0, 120);
+}
+
+function mailTextForCode(job) {
+  return [
+    "Bonjour,",
+    "",
+    "Vos fichiers ont bien ete recus par l'Espace Services Bureau Vallee.",
+    "",
+    "Votre code dossier est : " + job.code,
+    "",
+    "Saisissez ce code sur le Poste Espace Services pour verifier vos documents et lancer l'impression.",
+    "Le code fonctionne sur le Poste 1 et le Poste 2.",
+    "",
+    "Rappel : 5 fichiers maximum par envoi. Les fichiers Word/DOC/DOCX ne sont pas acceptes sur les postes.",
+  ].join("\n");
+}
+
+function mailTextForReject(reason) {
+  return [
+    "Bonjour,",
+    "",
+    "Votre envoi n'a pas pu etre prepare automatiquement.",
+    "",
+    reason,
+    "",
+    "Formats acceptes : PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG.",
+    "Limite : 5 fichiers maximum par envoi.",
+  ].join("\n");
+}
+
+async function sendMailReply(nodemailer, to, subject, text) {
+  if (!to || !process.env.MAIL_PASSWORD) return;
+  const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_SMTP_HOST || MAIL_SMTP_HOST,
+    port: Number(process.env.MAIL_SMTP_PORT) || MAIL_SMTP_PORT,
+    secure: process.env.MAIL_SMTP_SECURE === "1",
+    auth: {
+      user: MAIL_ADDRESS,
+      pass: process.env.MAIL_PASSWORD,
+    },
+  });
+  await transporter.sendMail({ from: MAIL_ADDRESS, to, subject, text });
+}
+
+async function createMailJob(parsedMail) {
+  const attachments = (parsedMail.attachments || []).filter((attachment) => attachment.content?.length);
+  if (!attachments.length) {
+    return { error: "Aucune piece jointe n'a ete trouvee dans votre mail." };
+  }
+  if (attachments.length > MAX_FILES_PER_UPLOAD) {
+    return { error: "Votre mail contient " + attachments.length + " pieces jointes. Merci de renvoyer " + MAX_FILES_PER_UPLOAD + " fichiers maximum a la fois." };
+  }
+
+  const now = new Date();
+  const code = reserveCode();
+  const directory = jobDir(code);
+  const mailFiles = [];
+
+  for (let index = 0; index < attachments.length; index += 1) {
+    const attachment = attachments[index];
+    const originalname = attachment.filename || "piece-jointe-" + (index + 1);
+    const tmpPath = path.join(TMP_DIR, "mail-" + Date.now() + "-" + index + (path.extname(originalname) || ""));
+    const uploadLikeFile = {
+      path: tmpPath,
+      originalname,
+      mimetype: attachment.contentType || "",
+      size: attachment.size || attachment.content.length,
+    };
+    if (!isAllowedUploadFile(uploadLikeFile)) {
+      return { error: "Le fichier \"" + originalname + "\" n'est pas dans un format accepte." };
+    }
+    fs.writeFileSync(tmpPath, attachment.content);
+    mailFiles.push(uploadLikeFile);
+  }
+
+  const files = await storeUploadedFiles(mailFiles, directory);
+  const printSettings = sanitizePrintSettings({ colorMode: "noir-blanc" });
+  const job = {
+    code,
+    customerName: senderDisplayName(parsedMail),
+    clientId: "",
+    civility: "",
+    printCard: false,
+    source: "mail",
+    station: "poste-1",
+    adminUpload: false,
+    printMode: "noir-blanc",
+    printSettings,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + JOB_TTL_MS).toISOString(),
+    files,
+  };
+  writeJob(job);
+  return { job };
+}
+
+async function processIncomingMail(message, tools) {
+  const parsedMail = await tools.simpleParser(message.source);
+  const to = senderAddress(parsedMail);
+  const result = await createMailJob(parsedMail);
+  if (result.error) {
+    await sendMailReply(tools.nodemailer, to, "Espace Services - envoi impossible", mailTextForReject(result.error));
+    console.log("[mail] Envoi refuse " + (to || "sans expediteur") + " - " + result.error);
+    return;
+  }
+  await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
+  mailRuntimeStatus.lastCode = result.job.code;
+  mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
+  console.log("[mail] Code " + result.job.code + " cree pour " + (to || "sans expediteur"));
+}
+
+function startMailWatcher() {
+  mailRuntimeStatus.enabled = MAIL_POLLING_ENABLED;
+  mailRuntimeStatus.configured = Boolean(process.env.MAIL_PASSWORD);
+  if (!MAIL_POLLING_ENABLED) {
+    console.log("[mail] Lecture Outlook desactivee. Definir MAIL_POLLING_ENABLED=1 pour l'activer.");
+    return;
+  }
+  if (!process.env.MAIL_PASSWORD) {
+    console.log("[mail] MAIL_PASSWORD manquant. Lecture Outlook non demarree.");
+    return;
+  }
+
+  let isPolling = false;
+  let tools = null;
+
+  async function pollMailbox() {
+    if (isPolling) return;
+    isPolling = true;
+    mailRuntimeStatus.lastCheckAt = new Date().toISOString();
+    mailRuntimeStatus.lastError = "";
+    let client = null;
+    try {
+      if (!tools) {
+        const { ImapFlow } = require("imapflow");
+        const { simpleParser } = require("mailparser");
+        const nodemailer = require("nodemailer");
+        tools = { ImapFlow, simpleParser, nodemailer };
+      }
+
+      client = new tools.ImapFlow({
+        host: process.env.MAIL_IMAP_HOST || MAIL_IMAP_HOST,
+        port: Number(process.env.MAIL_IMAP_PORT) || MAIL_IMAP_PORT,
+        secure: process.env.MAIL_IMAP_SECURE !== "0",
+        auth: { user: MAIL_ADDRESS, pass: process.env.MAIL_PASSWORD },
+        logger: false,
+      });
+      await client.connect();
+      const lock = await client.getMailboxLock("INBOX");
+      try {
+        const unseenUids = await client.search({ seen: false }, { uid: true });
+        if (unseenUids.length) {
+          for await (const message of client.fetch(unseenUids.join(","), { uid: true, source: true }, { uid: true })) {
+            await processIncomingMail(message, tools);
+            await client.messageFlagsAdd(message.uid, ["\\Seen"], { uid: true });
+          }
+        }
+      } finally {
+        lock.release();
+      }
+    } catch (error) {
+      mailRuntimeStatus.lastError = error.message;
+      console.log("[mail] Erreur lecture Outlook: " + error.message);
+    } finally {
+      if (client) {
+        try {
+          await client.logout();
+        } catch (error) {
+          // Ignore logout errors.
+        }
+      }
+      isPolling = false;
+    }
+  }
+
+  pollMailbox();
+  setInterval(pollMailbox, MAIL_POLL_INTERVAL_MS);
+}
+
 function sessionCounters(job, files) {
   const counts = { bwPages: 0, colorPages: 0, totalPages: 0 };
   const fileById = new Map(files.map((file) => [file.id, file]));
@@ -803,6 +1012,27 @@ app.get("/qr.gif", (request, response) => {
   const dataUrl = qr.createDataURL(8, 4);
   const base64 = dataUrl.replace(/^data:image\/gif;base64,/, "");
   response.type("image/gif").send(Buffer.from(base64, "base64"));
+});
+
+app.get("/api/mail/status", (request, response) => {
+  const dependencyStatus = {};
+  for (const dependency of ["imapflow", "mailparser", "nodemailer"]) {
+    try {
+      require.resolve(dependency);
+      dependencyStatus[dependency] = true;
+    } catch (error) {
+      dependencyStatus[dependency] = false;
+    }
+  }
+  response.json({
+    ...mailRuntimeStatus,
+    hasPassword: Boolean(process.env.MAIL_PASSWORD),
+    dependencies: dependencyStatus,
+    imapHost: process.env.MAIL_IMAP_HOST || MAIL_IMAP_HOST,
+    imapPort: Number(process.env.MAIL_IMAP_PORT) || MAIL_IMAP_PORT,
+    smtpHost: process.env.MAIL_SMTP_HOST || MAIL_SMTP_HOST,
+    smtpPort: Number(process.env.MAIL_SMTP_PORT) || MAIL_SMTP_PORT,
+  });
 });
 
 app.get("/api/config", (request, response) => {
@@ -1341,6 +1571,7 @@ app.use((error, request, response, next) => {
 
 cleanupExpiredJobs();
 setInterval(cleanupExpiredJobs, 5 * 60 * 1000);
+startMailWatcher();
 
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
