@@ -1,4 +1,4 @@
-﻿const uploadForm = document.getElementById("upload-form");
+const uploadForm = document.getElementById("upload-form");
 const filesInput = document.getElementById("files-input");
 const selectedFiles = document.getElementById("selected-files");
 const result = document.getElementById("result");
@@ -106,7 +106,7 @@ async function sendUpload() {
     result.classList.remove("hidden");
     uploadForm.reset();
     selectedFiles.innerHTML = "";
-    setUploadMessage("Fichiers envoyÃ©s.", "success");
+    setUploadMessage("Fichiers envoyés.", "success");
   } catch (error) {
     setUploadMessage(error.message, "error");
   } finally {
@@ -125,5 +125,6 @@ uploadForm.addEventListener("submit", (event) => {
 });
 
 setupIdentity();
+
 
 
