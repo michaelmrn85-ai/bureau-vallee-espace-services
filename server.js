@@ -38,6 +38,7 @@ const mailRuntimeStatus = {
 };
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
+const MAIL_PROCESSED_FILE = path.join(DATA_DIR, "mail-processed.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
@@ -198,6 +199,24 @@ function writeHelpRequests(requests) {
   });
   fs.writeFileSync(HELP_FILE, JSON.stringify(cleanedRequests, null, 2));
 }
+
+function readProcessedMailIds() {
+  if (!fs.existsSync(MAIL_PROCESSED_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(MAIL_PROCESSED_FILE, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeProcessedMailIds(ids) {
+  fs.writeFileSync(MAIL_PROCESSED_FILE, JSON.stringify(ids.slice(-500), null, 2));
+}
+
+function mailMessageKey(message) {
+  return String(message.uid || message.emailId || message.id || "");
+}
+
 
 function readClients() {
   if (!fs.existsSync(CLIENTS_FILE)) return [];
@@ -725,12 +744,20 @@ function startMailWatcher() {
       const lock = await client.getMailboxLock("INBOX");
       try {
         if (client.mailbox.exists) {
-          for await (const message of client.fetch("1:*", { uid: true, flags: true, source: true })) {
-            const flags = Array.from(message.flags || []);
-            if (flags.some((flag) => String(flag).toLowerCase() === "\\seen")) continue;
+          const startSeq = Math.max(1, client.mailbox.exists - 50);
+          const processedIds = readProcessedMailIds();
+          const processedSet = new Set(processedIds);
+          let changed = false;
+          for await (const message of client.fetch(startSeq + ":*", { uid: true, flags: true, source: true })) {
+            const messageKey = mailMessageKey(message);
+            if (!messageKey || processedSet.has(messageKey)) continue;
             await processIncomingMail(message, tools);
+            processedIds.push(messageKey);
+            processedSet.add(messageKey);
+            changed = true;
             await client.messageFlagsAdd(message.uid, ["\\Seen"], { uid: true });
           }
+          if (changed) writeProcessedMailIds(processedIds);
         }
       } finally {
         lock.release();
