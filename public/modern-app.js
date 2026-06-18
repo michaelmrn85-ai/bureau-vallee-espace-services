@@ -45,6 +45,8 @@ const copyMail = document.getElementById("copy-mail");
 const mailCodeInput = document.getElementById("mail-code-input");
 const loadMailCode = document.getElementById("load-mail-code");
 
+const MAX_FILES_PER_UPLOAD = 5;
+
 let currentJob = null;
 let selectedFileId = "";
 let selectedFileIds = new Set();
@@ -297,6 +299,11 @@ async function loadJobFromCode(inputElement = qrCodeInput) {
 
 async function uploadUsbFiles(files) {
   if (!files.length) return;
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    showInfo("Trop de fichiers", `Vous pouvez envoyer ${MAX_FILES_PER_UPLOAD} fichiers maximum a la fois.`);
+    setStatus(`Limite : ${MAX_FILES_PER_UPLOAD} fichiers maximum par envoi.`, "error");
+    return;
+  }
   const formData = new FormData();
   formData.set("station", station);
   formData.set("customerName", `Client ${stationName()}`);
@@ -336,6 +343,11 @@ async function addFilesToCurrentJob(files) {
     return;
   }
   if (!files.length) return;
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    showInfo("Trop de fichiers", `Vous pouvez ajouter ${MAX_FILES_PER_UPLOAD} fichiers maximum a la fois.`);
+    setPrintStatus(`Limite : ${MAX_FILES_PER_UPLOAD} fichiers maximum par ajout.`, "error");
+    return;
+  }
 
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-mail-qr-add">
+  <link rel="stylesheet" href="/modern.css?v=20260618-upload-limit">
 </head>
 <body>
   <main class="home-screen" id="home-screen">
@@ -147,7 +147,7 @@
     <div class="modal-card">
       <button class="close-button" id="close-qr" type="button" aria-label="Fermer">x</button>
       <h2>Envoyer depuis votre téléphone</h2>
-      <p>Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers.</p>
+      <p>Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
       <img id="qr-image" alt="QR code pour envoyer des fichiers">
       <div class="url-box">
         <input id="upload-url" readonly>
@@ -167,7 +167,7 @@
     <div class="modal-card mail-card">
       <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
       <h2>Envoyer par mail</h2>
-      <p>Envoyez ou transferez vos fichiers en piece jointe a cette adresse, puis saisissez le code dossier recu.</p>
+      <p>Envoyez ou transferez vos fichiers en piece jointe a cette adresse, puis saisissez le code dossier recu. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
       <div class="mail-address-box">
         <span>Adresse du poste</span>
         <strong id="mail-address">poste@bureau-vallee.local</strong>
@@ -214,7 +214,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-mail-qr-add"></script>
+  <script src="/modern-app.js?v=20260618-upload-limit"></script>
 </body>
 </html>
 

@@ -9,6 +9,7 @@ const uploadMessage = document.getElementById("upload-message");
 const uploadBusy = document.getElementById("upload-busy");
 const customerNameInput = document.getElementById("customer-name");
 const mobileGreeting = document.getElementById("mobile-greeting");
+const MAX_FILES_PER_UPLOAD = 5;
 let isUploading = false;
 
 function params() {
@@ -44,7 +45,11 @@ function setBusy(active) {
 }
 
 function renderSelectedFiles() {
-  selectedFiles.innerHTML = [...filesInput.files].map((file) => `<div>${file.name}</div>`).join("");
+  const files = [...filesInput.files];
+  selectedFiles.innerHTML = files.map((file) => `<div>${file.name}</div>`).join("");
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    setUploadMessage(`Limite : ${MAX_FILES_PER_UPLOAD} fichiers maximum par envoi.`, "error");
+  }
 }
 
 function setupIdentity() {
@@ -75,6 +80,10 @@ async function sendUpload() {
   if (isUploading) return;
   if (!filesInput.files.length) {
     setUploadMessage("Ajoutez au moins un fichier.", "error");
+    return;
+  }
+  if (filesInput.files.length > MAX_FILES_PER_UPLOAD) {
+    setUploadMessage(`Limite : ${MAX_FILES_PER_UPLOAD} fichiers maximum par envoi.`, "error");
     return;
   }
 

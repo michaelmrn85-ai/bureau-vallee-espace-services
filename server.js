@@ -28,6 +28,7 @@ const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
+const MAX_FILES_PER_UPLOAD = 5;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_PAGES = 500;
 const allowedExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
@@ -79,11 +80,11 @@ fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const upload = multer({
   dest: TMP_DIR,
-  limits: { fileSize: MAX_FILE_SIZE, files: 10 },
+  limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES_PER_UPLOAD },
   fileFilter(request, file, callback) {
     const extension = extensionFromUpload(file);
     if (!allowedExtensions.has(extension)) {
-      callback(new Error("Format non accepte. PDF, PNG, JPEG, HEIC et WebP uniquement. Pour Word, DOC ou DOCX, rapprochez-vous d'un vendeur ou d'une vendeuse."));
+      callback(new Error("Format non accepte. PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG uniquement. Pour Word, DOC ou DOCX, rapprochez-vous d'un vendeur ou d'une vendeuse."));
       return;
     }
     callback(null, true);
@@ -950,7 +951,7 @@ app.delete("/api/help/:station", (request, response) => {
   response.json({ ok: true });
 });
 
-app.post("/api/jobs", upload.array("files", 10), async (request, response, next) => {
+app.post("/api/jobs", upload.array("files", MAX_FILES_PER_UPLOAD), async (request, response, next) => {
   try {
     if (!request.files?.length) {
       response.status(400).json({ error: "Ajoutez au moins un fichier." });
@@ -988,7 +989,7 @@ app.post("/api/jobs", upload.array("files", 10), async (request, response, next)
   }
 });
 
-app.post("/api/jobs/:code/files", upload.array("files", 10), async (request, response, next) => {
+app.post("/api/jobs/:code/files", upload.array("files", MAX_FILES_PER_UPLOAD), async (request, response, next) => {
   try {
     const job = readJob(request.params.code);
     if (!job) {
@@ -1332,6 +1333,10 @@ app.use((error, request, response, next) => {
   }
   if (error.code === "LIMIT_FILE_SIZE") {
     response.status(400).json({ error: `Fichier trop lourd. Limite : ${MAX_FILE_SIZE_MB} Mo par fichier.` });
+    return;
+  }
+  if (error.code === "LIMIT_FILE_COUNT") {
+    response.status(400).json({ error: `Limite atteinte : ${MAX_FILES_PER_UPLOAD} fichiers maximum par envoi.` });
     return;
   }
   response.status(400).json({ error: error.message || "Operation impossible." });
