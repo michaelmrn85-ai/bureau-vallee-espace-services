@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-home-compact">
+  <link rel="stylesheet" href="/modern.css?v=20260618-home-centered">
 </head>
 <body>
   <main class="home-screen" id="home-screen">
@@ -12,7 +12,7 @@
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
       <div>
         <p>Espace Services</p>
-        <h1>Poste Espace Services</h1>
+        <h1 id="brand-title">Poste Espace Services</h1>
       </div>
     </header>
 
@@ -20,6 +20,8 @@
       <p class="station" id="station-label">Poste d'impression</p>
       <h2>Comment souhaitez-vous envoyer vos documents ?</h2>
       <p class="lead">Choisissez une option pour commencer. Vos fichiers seront préparés avant impression afin d'éviter les erreurs.</p>
+
+      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptés sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
 
       <div class="choice-grid">
         <button class="choice-card usb" id="usb-button" type="button">
@@ -50,7 +52,6 @@
       </div>
 
       <p class="status-message" id="status-message"></p>
-      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptés sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
       <input class="hidden" id="usb-files" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp">
     </section>
   </main>
@@ -181,6 +182,6 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-eject-usb"></script>
+  <script src="/modern-app.js?v=20260618-home-centered"></script>
 </body>
 </html>

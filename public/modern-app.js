@@ -1,4 +1,5 @@
 const station = window.location.pathname.includes("poste-2") ? "poste-2" : "poste-1";
+const brandTitle = document.getElementById("brand-title");
 const stationLabel = document.getElementById("station-label");
 const homeScreen = document.getElementById("home-screen");
 const printScreen = document.getElementById("print-screen");
@@ -384,6 +385,7 @@ async function endSession(isAutomatic = false) {
   }
 }
 
+brandTitle.textContent = `${stationName()} - Espace Services`;
 stationLabel.textContent = stationName();
 
 usbButton.addEventListener("click", () => usbFiles.click());
