@@ -15,7 +15,9 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
   color: var(--ink);
   background: radial-gradient(circle at 85% 10%, #ffffff 0, #f6f9fd 42%, #edf4fb 100%);
 }
@@ -34,10 +36,13 @@ button {
 }
 
 .home-screen {
-  min-height: 100vh;
+  width: min(1900px, 100vw);
+  height: min(1220px, 100vh);
+  margin: 0 auto;
   display: grid;
-  grid-template-rows: auto 1fr;
-  padding: 44px 58px;
+  grid-template-rows: 190px minmax(0, 1fr);
+  padding: 42px 60px 34px;
+  overflow: hidden;
 }
 
 .brand-header {
@@ -47,7 +52,7 @@ button {
 }
 
 .brand-header img {
-  width: 260px;
+  width: 325px;
   height: auto;
   border-radius: 8px;
   box-shadow: 0 18px 45px rgba(7, 20, 47, .12);
@@ -62,15 +67,16 @@ button {
 
 .brand-header h1 {
   margin: 0;
-  font-size: 46px;
+  font-size: 56px;
   line-height: 1;
 }
 
 .welcome-panel {
-  width: min(1280px, 100%);
+  width: min(1600px, 100%);
+  max-height: 100%;
   align-self: center;
   justify-self: center;
-  padding: 54px;
+  padding: 58px 68px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, .9);
@@ -86,14 +92,14 @@ button {
 
 .welcome-panel h2 {
   margin: 0;
-  max-width: 900px;
-  font-size: 48px;
+  max-width: 980px;
+  font-size: 58px;
   line-height: 1.08;
 }
 
 .lead {
-  max-width: 780px;
-  margin: 18px 0 42px;
+  max-width: 900px;
+  margin: 20px 0 50px;
   color: var(--muted);
   font-size: 21px;
   line-height: 1.5;
@@ -102,11 +108,11 @@ button {
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(320px, 1fr));
-  gap: 34px;
+  gap: 44px;
 }
 
 .choice-card {
-  min-height: 300px;
+  min-height: 330px;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -252,10 +258,12 @@ button {
 }
 
 .print-screen {
-  height: 100vh;
+  width: min(1900px, 100vw);
+  height: min(1220px, 100vh);
+  margin: 0 auto;
   display: grid;
   grid-template-rows: auto 1fr;
-  padding: 34px;
+  padding: 34px 42px;
   overflow: hidden;
 }
 
@@ -293,8 +301,8 @@ button {
 .print-layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: 340px 360px minmax(420px, 1fr);
-  gap: 18px;
+  grid-template-columns: 380px 390px minmax(560px, 1fr);
+  gap: 22px;
 }
 
 .doc-panel,
@@ -465,6 +473,24 @@ button {
   border: 0;
   object-fit: contain;
   background: #fff;
+}
+
+.print-progress-card {
+  border-top: 7px solid var(--yellow);
+}
+
+.loader {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 22px;
+  border: 8px solid #e8eef6;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .preview-fallback {

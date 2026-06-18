@@ -13,6 +13,7 @@ const previewBox = document.getElementById("preview-box");
 const previewPages = document.getElementById("preview-pages");
 const printButton = document.getElementById("print-button");
 const printStatus = document.getElementById("print-status");
+const printModal = document.getElementById("print-modal");
 const backHome = document.getElementById("back-home");
 const addMoreFiles = document.getElementById("add-more-files");
 const copiesInput = document.getElementById("copies");
@@ -37,6 +38,10 @@ function setStatus(message, tone = "") {
 function setPrintStatus(message, tone = "") {
   printStatus.textContent = message;
   printStatus.dataset.tone = tone;
+}
+
+function showPrintModal(active) {
+  printModal.classList.toggle("hidden", !active);
 }
 
 function showPrintScreen() {
@@ -187,18 +192,26 @@ async function printSelectedFile() {
     return;
   }
   setPrintStatus("Envoi au copieur...");
-  const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileId: selectedFileId, settings: printSettings() }),
-  });
-  const payload = await response.json();
-  if (!response.ok) {
-    setPrintStatus(payload.error || "Impression impossible.", "error");
-    return;
+  showPrintModal(true);
+  try {
+    const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileId: selectedFileId, settings: printSettings() }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setPrintStatus(payload.error || "Impression impossible.", "error");
+      return;
+    }
+    currentJob = payload.job;
+    setPrintStatus("Impression envoyée au copieur.", "success");
+    window.setTimeout(() => showPrintModal(false), 1800);
+  } catch (error) {
+    setPrintStatus(error.message || "Impression impossible.", "error");
+  } finally {
+    window.setTimeout(() => showPrintModal(false), 2200);
   }
-  currentJob = payload.job;
-  setPrintStatus("Impression envoyée au copieur.", "success");
 }
 
 stationLabel.textContent = stationName();
