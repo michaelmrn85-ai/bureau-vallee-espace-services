@@ -714,77 +714,163 @@ async function processIncomingMail(message, tools) {
   console.log("[mail] Code " + result.job.code + " cree pour " + (to || "sans expediteur"));
 }
 
+const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID || "";
+const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET || "";
+const ZOHO_REFRESH_TOKEN = process.env.ZOHO_REFRESH_TOKEN || "";
+const ZOHO_API_BASE = "https://mail.zoho.eu/api";
+const ZOHO_ACCOUNTS_URL = "https://accounts.zoho.eu/oauth/v2/token";
+
+let zohoAccessToken = "";
+let zohoAccessTokenExpiry = 0;
+let zohoAccountId = "";
+
+async function zohoRefreshAccessToken() {
+  const https = require("https");
+  const params = new URLSearchParams({
+    refresh_token: ZOHO_REFRESH_TOKEN,
+    client_id: ZOHO_CLIENT_ID,
+    client_secret: ZOHO_CLIENT_SECRET,
+    grant_type: "refresh_token",
+  });
+  const url = new URL(ZOHO_ACCOUNTS_URL);
+  return new Promise((resolve, reject) => {
+    const req = https.request({ hostname: url.hostname, path: url.pathname, method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" } }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.access_token) {
+            zohoAccessToken = json.access_token;
+            zohoAccessTokenExpiry = Date.now() + (json.expires_in - 60) * 1000;
+            resolve(json.access_token);
+          } else {
+            reject(new Error("Zoho token error: " + JSON.stringify(json)));
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    req.on("error", reject);
+    req.write(params.toString());
+    req.end();
+  });
+}
+
+async function zohoGetToken() {
+  if (!zohoAccessToken || Date.now() >= zohoAccessTokenExpiry) {
+    await zohoRefreshAccessToken();
+  }
+  return zohoAccessToken;
+}
+
+async function zohoFetch(path, options = {}) {
+  const https = require("https");
+  const token = await zohoGetToken();
+  const url = new URL(ZOHO_API_BASE + path);
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: url.hostname,
+      path: url.pathname + (url.search || ""),
+      method: options.method || "GET",
+      headers: { "Authorization": "Zoho-oauthtoken " + token, "Content-Type": "application/json", ...(options.headers || {}) },
+    }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try { resolve(JSON.parse(data)); } catch (error) { resolve({ raw: data }); }
+      });
+    });
+    req.on("error", reject);
+    if (options.body) req.write(JSON.stringify(options.body));
+    req.end();
+  });
+}
+
+async function zohoGetAccountId() {
+  if (zohoAccountId) return zohoAccountId;
+  const result = await zohoFetch("/accounts");
+  const account = (result.data || []).find((a) => a.primaryEmailAddress === MAIL_ADDRESS) || result.data?.[0];
+  if (!account) throw new Error("Compte Zoho introuvable pour " + MAIL_ADDRESS);
+  zohoAccountId = account.accountId;
+  return zohoAccountId;
+}
+
 function startMailWatcher() {
   mailRuntimeStatus.enabled = MAIL_POLLING_ENABLED;
-  mailRuntimeStatus.configured = Boolean(process.env.MAIL_PASSWORD);
+  mailRuntimeStatus.configured = Boolean(ZOHO_REFRESH_TOKEN);
   if (!MAIL_POLLING_ENABLED) {
-    console.log("[mail] Lecture Outlook desactivee. Definir MAIL_POLLING_ENABLED=1 pour l'activer.");
+    console.log("[mail] Lecture mail desactivee. Definir MAIL_POLLING_ENABLED=1 pour l'activer.");
     return;
   }
-  if (!process.env.MAIL_PASSWORD) {
-    console.log("[mail] MAIL_PASSWORD manquant. Lecture Outlook non demarree.");
+  if (!ZOHO_REFRESH_TOKEN) {
+    console.log("[mail] ZOHO_REFRESH_TOKEN manquant. Lecture mail non demarree.");
     return;
   }
 
   let isPolling = false;
-  let tools = null;
 
   async function pollMailbox() {
     if (isPolling) return;
     isPolling = true;
     mailRuntimeStatus.lastCheckAt = new Date().toISOString();
     mailRuntimeStatus.lastError = "";
-    let client = null;
     try {
-      if (!tools) {
-        const { ImapFlow } = require("imapflow");
-        const { simpleParser } = require("mailparser");
-        const nodemailer = require("nodemailer");
-        tools = { ImapFlow, simpleParser, nodemailer };
-      }
+      const nodemailer = require("nodemailer");
+      const { simpleParser } = require("mailparser");
+      const accountId = await zohoGetAccountId();
 
-      client = new tools.ImapFlow({
-        host: process.env.MAIL_IMAP_HOST || MAIL_IMAP_HOST,
-        port: Number(process.env.MAIL_IMAP_PORT) || MAIL_IMAP_PORT,
-        secure: process.env.MAIL_IMAP_SECURE !== "0",
-        auth: { user: MAIL_ADDRESS, pass: process.env.MAIL_PASSWORD },
-        logger: false,
-      });
-      await client.connect();
-      const lock = await client.getMailboxLock("INBOX");
-      try {
-        mailRuntimeStatus.mailboxExists = client.mailbox.exists || 0;
-        if (client.mailbox.exists) {
-          const startSeq = Math.max(1, client.mailbox.exists - 50);
-          const processedIds = readProcessedMailIds();
-          const processedSet = new Set(processedIds);
-          let changed = false;
-          for await (const message of client.fetch(startSeq + ":*", { uid: true, flags: true, source: true })) {
-            const messageKey = mailMessageKey(message);
-            if (!messageKey || processedSet.has(messageKey)) continue;
-            await processIncomingMail(message, tools);
-            processedIds.push(messageKey);
-            processedSet.add(messageKey);
-            changed = true;
-            await client.messageFlagsAdd(message.uid, ["\\Seen"], { uid: true });
-          }
-          if (changed) writeProcessedMailIds(processedIds);
+      // Récupérer les mails non lus
+      const result = await zohoFetch(`/accounts/${accountId}/messages/search?searchKey=isUnread:true&sortorder=false&limit=20`);
+      const messages = result.data || [];
+      mailRuntimeStatus.mailboxExists = messages.length;
+
+      const processedIds = readProcessedMailIds();
+      const processedSet = new Set(processedIds);
+      let changed = false;
+
+      for (const msg of messages) {
+        const mid = String(msg.messageId || msg.mid || '');
+        if (!mid || processedSet.has(mid)) continue;
+
+        const fullMsg = await zohoFetch(`/accounts/${accountId}/messages/${mid}?includeraw=true`);
+        const rawData = fullMsg.data?.rawData || '';
+        if (!rawData) {
+          console.log('[mail] Contenu vide pour message ' + mid);
+          processedIds.push(mid);
+          processedSet.add(mid);
+          changed = true;
+          continue;
         }
-      } finally {
-        lock.release();
-      }
-    } catch (error) {
-      const detail = error.responseText || error.serverResponse || error.code || error.message;
-      mailRuntimeStatus.lastError = String(detail || error.message);
-      console.log("[mail] Erreur lecture Outlook: " + mailRuntimeStatus.lastError);
-    } finally {
-      if (client) {
+
+        let source;
         try {
-          await client.logout();
-        } catch (error) {
-          // Ignore logout errors.
+          source = Buffer.from(rawData, 'base64');
+          const preview = source.toString('utf8', 0, 200);
+          if (!preview.includes('@') && !preview.includes('MIME') && !preview.includes('From')) {
+            source = Buffer.from(rawData, 'utf8');
+          }
+        } catch (e) {
+          source = Buffer.from(rawData, 'utf8');
         }
+
+        await processIncomingMail({ source }, { simpleParser, nodemailer });
+
+        await zohoFetch(`/accounts/${accountId}/updatemessage`, {
+          method: 'PUT',
+          body: { mode: 'markAsRead', messageId: [mid] },
+        });
+
+        processedIds.push(mid);
+        processedSet.add(mid);
+        changed = true;
       }
+      if (changed) writeProcessedMailIds(processedIds);
+    } catch (error) {
+      mailRuntimeStatus.lastError = String(error.message || error);
+      console.log("[mail] Erreur lecture Zoho: " + mailRuntimeStatus.lastError);
+    } finally {
       isPolling = false;
     }
   }
