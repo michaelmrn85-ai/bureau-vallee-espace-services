@@ -62,12 +62,14 @@ function customerName() {
 
 function displayCustomer() {
   const name = `${state.customer.firstName} ${state.customer.lastName.toUpperCase()}`.trim();
-  return name || "Client";
+  return name || "Session libre";
 }
 
 function updateCustomerUi() {
   const idLabel = state.customer.id ? ` - ID ${state.customer.id}` : "";
-  customerPill.textContent = `Bonjour ${displayCustomer()}${idLabel}`;
+  customerPill.textContent = state.customer.firstName || state.customer.lastName
+    ? `Bonjour ${displayCustomer()}${idLabel}`
+    : "Session libre";
 }
 
 function queryParams() {
@@ -119,13 +121,19 @@ function fileKind(file) {
   return ext || "DOC";
 }
 
+function normalizedExtension(file) {
+  const ext = String(file?.extension || "").toLowerCase();
+  return ext.startsWith(".") ? ext : `.${ext}`;
+}
+
 function renderPreview(file) {
   if (!file) {
     previewStage.innerHTML = `<div class="empty-preview">Sélectionnez un fichier pour afficher l'aperçu.</div>`;
     return;
   }
-  if ([".pdf", ".png", ".jpg", ".jpeg", ".webp"].includes(file.extension)) {
-    const tag = file.extension === ".pdf"
+  const extension = normalizedExtension(file);
+  if ([".pdf", ".png", ".jpg", ".jpeg", ".webp"].includes(extension)) {
+    const tag = extension === ".pdf"
       ? `<iframe src="${file.viewUrl}" title="${file.originalName}"></iframe>`
       : `<img src="${file.viewUrl}" alt="${file.originalName}">`;
     previewStage.innerHTML = tag;
@@ -179,7 +187,6 @@ async function loadJob(code) {
 }
 
 async function pollQrUploads() {
-  if (!state.customer.id && !customerName()) return;
   try {
     const response = await fetch("/api/jobs");
     const payload = await response.json();
@@ -187,7 +194,10 @@ async function pollQrUploads() {
     const matching = (payload.jobs || [])
       .filter((job) => job.station === state.station)
       .filter((job) => new Date(job.createdAt || 0).getTime() >= state.qrStartedAt)
-      .filter((job) => (state.customer.id && job.clientId === state.customer.id) || job.customerName === customerName())
+      .filter((job) => {
+        if (!state.customer.id && !customerName()) return true;
+        return (state.customer.id && job.clientId === state.customer.id) || job.customerName === customerName();
+      })
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     if (!matching) return;
     window.clearInterval(state.qrPoll);
@@ -203,7 +213,7 @@ async function createOrAppendJob(files) {
   if (!files.length) return;
   const formData = new FormData();
   formData.set("station", state.station);
-  formData.set("customerName", customerName() || "Client");
+  formData.set("customerName", customerName() || `Client ${state.station === "poste-2" ? "Poste 2" : "Poste 1"}`);
   formData.set("clientId", state.customer.id);
   formData.set("printCard", state.customer.printCard ? "1" : "0");
   formData.set("source", "usb");
@@ -365,4 +375,5 @@ fileInput.addEventListener("change", async () => {
 });
 
 stationLabel.textContent = state.station === "poste-2" ? "Poste 2" : "Poste 1";
-showView("identity");
+updateCustomerUi();
+showView("home");
