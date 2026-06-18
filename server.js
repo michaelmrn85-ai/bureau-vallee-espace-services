@@ -827,11 +827,12 @@ function startMailWatcher() {
       const accountId = await zohoGetAccountId();
 
       // Récupérer les mails non lus
-      const result = await zohoFetch(`/accounts/${accountId}/messages/search?searchKey=isUnread:true&sortorder=false&limit=20`);
-      console.log('[mail] Zoho search result: ' + JSON.stringify(result).slice(0, 400));
-      const messages = result.data || [];
-      mailRuntimeStatus.mailboxExists = messages.length;
-      console.log('[mail] Mails non lus: ' + messages.length);
+      const result = await zohoFetch(`/accounts/${accountId}/messages/view?folder=INBOX&limit=20&start=0`);
+      console.log('[mail] Zoho inbox result: ' + JSON.stringify(result).slice(0, 400));
+      const allMessages = result.data || [];
+      const messages = allMessages.filter((m) => m.isUnRead === true || m.isUnRead === 'true' || m.unread === true || m.unread === 1);
+      mailRuntimeStatus.mailboxExists = allMessages.length;
+      console.log('[mail] Mails en boite: ' + allMessages.length + ', non lus: ' + messages.length);
 
       const processedIds = readProcessedMailIds();
       const processedSet = new Set(processedIds);
