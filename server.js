@@ -33,6 +33,7 @@ const mailRuntimeStatus = {
   lastCheckAt: "",
   lastSuccessAt: "",
   lastError: "",
+  lastReplyError: "",
   lastCode: "",
 };
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
@@ -592,7 +593,8 @@ function mailTextForReject(reason) {
 }
 
 async function sendMailReply(nodemailer, to, subject, text) {
-  if (!to || !process.env.MAIL_PASSWORD) return;
+  if (!to) throw new Error("Adresse expediteur introuvable.");
+  if (!process.env.MAIL_PASSWORD) throw new Error("MAIL_PASSWORD manquant.");
   const transporter = nodemailer.createTransport({
     host: process.env.MAIL_SMTP_HOST || MAIL_SMTP_HOST,
     port: Number(process.env.MAIL_SMTP_PORT) || MAIL_SMTP_PORT,
@@ -660,15 +662,26 @@ async function createMailJob(parsedMail) {
 async function processIncomingMail(message, tools) {
   const parsedMail = await tools.simpleParser(message.source);
   const to = senderAddress(parsedMail);
+  mailRuntimeStatus.lastReplyError = "";
   const result = await createMailJob(parsedMail);
   if (result.error) {
-    await sendMailReply(tools.nodemailer, to, "Espace Services - envoi impossible", mailTextForReject(result.error));
+    try {
+      await sendMailReply(tools.nodemailer, to, "Espace Services - envoi impossible", mailTextForReject(result.error));
+    } catch (error) {
+      mailRuntimeStatus.lastReplyError = error.message;
+    }
     console.log("[mail] Envoi refuse " + (to || "sans expediteur") + " - " + result.error);
     return;
   }
-  await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
+
   mailRuntimeStatus.lastCode = result.job.code;
   mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
+  try {
+    await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
+  } catch (error) {
+    mailRuntimeStatus.lastReplyError = error.message;
+    console.log("[mail] Code cree mais reponse impossible: " + error.message);
+  }
   console.log("[mail] Code " + result.job.code + " cree pour " + (to || "sans expediteur"));
 }
 
@@ -1028,6 +1041,16 @@ app.get("/api/mail/status", (request, response) => {
   }
   response.json({
     ...mailRuntimeStatus,
+    mailJobs: listActiveJobs()
+      .filter((job) => job.source === "mail")
+      .slice(0, 10)
+      .map((job) => ({
+        code: job.code,
+        customerName: job.customerName,
+        files: job.files.length,
+        createdAt: job.createdAt,
+        expiresAt: job.expiresAt,
+      })),
     hasPassword: Boolean(process.env.MAIL_PASSWORD),
     dependencies: dependencyStatus,
     imapHost: process.env.MAIL_IMAP_HOST || MAIL_IMAP_HOST,
