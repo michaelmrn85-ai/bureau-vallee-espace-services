@@ -260,7 +260,7 @@ async function openQrModal() {
 
 async function openMailModal() {
   mailCodeInput.value = "";
-  mailAddress.textContent = station === "poste-2" ? "copieur2@bureau-vallee.local" : "copieur1@bureau-vallee.local";
+  mailAddress.textContent = "es.bvm@outlook.fr";
   mailModal.classList.remove("hidden");
   setStatus("Envoyez vos pieces jointes par mail, puis ouvrez le code dossier recu.", "success");
   try {

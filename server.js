@@ -19,10 +19,7 @@ const NOTICE_FILE = path.join(DATA_DIR, "notice.json");
 const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
-const MAIL_ADDRESSES = {
-  "poste-1": process.env.MAIL_ADDRESS_POSTE_1 || "copieur1@bureau-vallee.local",
-  "poste-2": process.env.MAIL_ADDRESS_POSTE_2 || "copieur2@bureau-vallee.local",
-};
+const MAIL_ADDRESS = process.env.MAIL_ADDRESS || "es.bvm@outlook.fr";
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
@@ -814,8 +811,8 @@ app.get("/api/config", (request, response) => {
   response.json({
     uploadUrl: uploadUrl(station, "", request.query, baseUrl),
     qrUrl: `/qr.gif?station=${station}`,
-    mailAddress: MAIL_ADDRESSES[station],
-    mailAddresses: MAIL_ADDRESSES,
+    mailAddress: MAIL_ADDRESS,
+    mailAddresses: { "poste-1": MAIL_ADDRESS, "poste-2": MAIL_ADDRESS },
     stationLinks: {
       "poste-1": `${baseUrl}/poste-1`,
       "poste-2": `${baseUrl}/poste-2`,
