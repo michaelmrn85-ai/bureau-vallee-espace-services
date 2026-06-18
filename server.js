@@ -842,29 +842,105 @@ function startMailWatcher() {
         const mid = String(msg.messageId || msg.mid || '');
         if (!mid || processedSet.has(mid)) continue;
 
-        const fullMsg = await zohoFetch(`/accounts/${accountId}/messages/${mid}?includeraw=true`);
-        const rawData = fullMsg.data?.rawData || '';
-        if (!rawData) {
-          console.log('[mail] Contenu vide pour message ' + mid);
-          processedIds.push(mid);
-          processedSet.add(mid);
-          changed = true;
-          continue;
-        }
-
-        let source;
         try {
-          source = Buffer.from(rawData, 'base64');
-          const preview = source.toString('utf8', 0, 200);
-          if (!preview.includes('@') && !preview.includes('MIME') && !preview.includes('From')) {
-            source = Buffer.from(rawData, 'utf8');
+          // Récupérer les infos du message (expéditeur)
+          const msgInfo = await zohoFetch(`/accounts/${accountId}/messages/${mid}`);
+          console.log('[mail] msgInfo: ' + JSON.stringify(msgInfo).slice(0, 300));
+          const fromAddress = msgInfo.data?.fromAddress || msgInfo.data?.sender || msg.sender || msg.fromAddress || '';
+          const subject = msgInfo.data?.subject || msg.subject || 'Vos fichiers Espace Services';
+
+          // Récupérer les pièces jointes
+          const attResult = await zohoFetch(`/accounts/${accountId}/messages/${mid}/attachments`);
+          console.log('[mail] attachments: ' + JSON.stringify(attResult).slice(0, 300));
+          const attachments = Array.isArray(attResult.data) ? attResult.data : [];
+
+          if (!attachments.length) {
+            console.log('[mail] Pas de PJ pour ' + mid);
+            try {
+              await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Aucune piece jointe trouvee dans votre mail.'));
+            } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+            mailRuntimeStatus.lastIgnoredReason = 'no_attachment';
+          } else if (attachments.length > 5) {
+            try {
+              await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Votre mail contient ' + attachments.length + ' pieces jointes. Merci de renvoyer 5 fichiers maximum a la fois.'));
+            } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+            mailRuntimeStatus.lastIgnoredReason = 'invalid_attachment';
+          } else {
+            // Télécharger chaque pièce jointe
+            const https = require('https');
+            const token = await zohoGetToken();
+            const mailFiles = [];
+            let rejected = false;
+
+            for (const att of attachments) {
+              const attId = String(att.attachmentId || att.id || '');
+              const originalname = att.attachmentName || att.name || 'piece-jointe';
+              const ext = path.extname(originalname).toLowerCase();
+              if (!allowedExtensions.has(ext)) {
+                rejected = true;
+                try {
+                  await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Le fichier "' + originalname + '" nest pas dans un format accepte.'));
+                } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+                mailRuntimeStatus.lastIgnoredReason = 'invalid_attachment';
+                break;
+              }
+
+              // Télécharger le fichier
+              const dlUrl = new URL(`https://mail.zoho.eu/api/accounts/${accountId}/messages/${mid}/attachments/${attId}`);
+              const fileBuffer = await new Promise((resolve, reject) => {
+                const req = https.request({ hostname: dlUrl.hostname, path: dlUrl.pathname + dlUrl.search, headers: { 'Authorization': 'Zoho-oauthtoken ' + token } }, (res) => {
+                  const chunks = [];
+                  res.on('data', (c) => chunks.push(c));
+                  res.on('end', () => resolve(Buffer.concat(chunks)));
+                });
+                req.on('error', reject);
+                req.end();
+              });
+
+              const tmpPath = path.join(TMP_DIR, 'mail-' + Date.now() + '-' + attId + ext);
+              fs.writeFileSync(tmpPath, fileBuffer);
+              mailFiles.push({ path: tmpPath, originalname, mimetype: att.contentType || '', size: fileBuffer.length });
+            }
+
+            if (!rejected && mailFiles.length) {
+              const now = new Date();
+              const code = reserveCode();
+              const directory = jobDir(code);
+              const files = await storeUploadedFiles(mailFiles, directory);
+              const printSettings = sanitizePrintSettings({ colorMode: 'noir-blanc' });
+              const job = {
+                code,
+                customerName: sanitizeCustomerName(fromAddress || 'Client mail'),
+                clientId: '',
+                civility: '',
+                printCard: false,
+                source: 'mail',
+                station: 'poste-1',
+                adminUpload: false,
+                printMode: 'noir-blanc',
+                printSettings,
+                createdAt: now.toISOString(),
+                expiresAt: new Date(now.getTime() + JOB_TTL_MS).toISOString(),
+                files,
+              };
+              writeJob(job);
+              mailRuntimeStatus.lastCode = code;
+              mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
+              mailRuntimeStatus.processedCount += 1;
+              try {
+                await sendMailReply(nodemailer, fromAddress, 'Espace Services - code dossier ' + code, mailTextForCode(job));
+              } catch (e) {
+                mailRuntimeStatus.lastReplyError = e.message;
+                console.log('[mail] Code cree mais reponse impossible: ' + e.message);
+              }
+              console.log('[mail] Code ' + code + ' cree pour ' + (fromAddress || 'sans expediteur'));
+            }
           }
-        } catch (e) {
-          source = Buffer.from(rawData, 'utf8');
+        } catch (msgError) {
+          console.log('[mail] Erreur traitement message ' + mid + ': ' + msgError.message);
         }
 
-        await processIncomingMail({ source }, { simpleParser, nodemailer });
-
+        // Marquer comme lu
         await zohoFetch(`/accounts/${accountId}/updatemessage`, {
           method: 'PUT',
           body: { mode: 'markAsRead', messageId: [mid] },
