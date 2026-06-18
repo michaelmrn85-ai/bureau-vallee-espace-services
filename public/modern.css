@@ -257,6 +257,46 @@ button {
   font-weight: 800;
 }
 
+.code-box {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+
+.code-box label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.code-box div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.code-box input {
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 16px;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 4px;
+}
+
+.code-box button {
+  height: 52px;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 20px;
+  background: var(--green);
+  color: #fff;
+  font-weight: 900;
+}
+
 .print-screen {
   width: min(1900px, 100vw);
   height: min(1220px, 100vh);
@@ -275,6 +315,12 @@ button {
   margin-bottom: 22px;
 }
 
+.print-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .print-header p {
   margin: 10px 0 4px;
   color: var(--blue);
@@ -288,7 +334,9 @@ button {
 }
 
 .back-button,
-.add-button {
+.add-button,
+.end-button,
+.modal-action {
   min-height: 46px;
   border: 1px solid #9fc7ff;
   border-radius: 7px;
@@ -296,6 +344,20 @@ button {
   background: #fff;
   color: var(--blue);
   font-weight: 800;
+}
+
+.end-button {
+  border-color: #ffd4a0;
+  color: #a65a00;
+  background: #fff8ef;
+}
+
+.modal-action {
+  min-width: 140px;
+  margin-top: 24px;
+  border: 0;
+  background: var(--blue);
+  color: #fff;
 }
 
 .print-layout {
@@ -364,11 +426,12 @@ button {
 }
 
 .document-item {
+  position: relative;
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 52px 1fr 34px;
   grid-template-areas:
-    "type name"
-    "type meta";
+    "type name delete"
+    "type meta delete";
   gap: 4px 14px;
   width: 100%;
   min-height: 82px;
@@ -378,6 +441,7 @@ button {
   background: #fff;
   color: var(--ink);
   text-align: left;
+  cursor: pointer;
 }
 
 .document-item.active {
@@ -410,6 +474,26 @@ button {
   grid-area: meta;
   color: var(--muted);
   font-size: 14px;
+}
+
+.delete-file {
+  grid-area: delete;
+  width: 32px;
+  height: 32px;
+  align-self: center;
+  border: 1px solid #ffc4c4;
+  border-radius: 999px;
+  background: #fff5f5;
+  color: #c9152f;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.empty-documents {
+  margin: 0;
+  padding: 18px;
+  color: var(--muted);
 }
 
 .settings-panel label,
@@ -662,9 +746,31 @@ body[data-page="upload"] {
 }
 
 .upload-busy {
-  margin-top: 12px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 12px;
+  background: #f2f8ff;
   color: var(--blue);
+  text-align: center;
   font-weight: 800;
+}
+
+.upload-busy span {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hourglass {
+  width: 44px;
+  height: 44px;
+  border: 5px solid var(--blue);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 .upload-result {

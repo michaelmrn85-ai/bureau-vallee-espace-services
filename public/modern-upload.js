@@ -58,6 +58,7 @@ async function sendUpload() {
     setUploadMessage("Ajoutez au moins un fichier.", "error");
     return;
   }
+
   const query = params();
   const formData = new FormData(uploadForm);
   const customerName = cleanName(query.get("customerName"));
@@ -74,7 +75,7 @@ async function sendUpload() {
   }
 
   setBusy(true);
-  setUploadMessage("Envoi de vos fichiers...");
+  setUploadMessage("");
   result.classList.add("hidden");
   try {
     const response = await fetch("/api/jobs", { method: "POST", body: formData });
@@ -96,8 +97,10 @@ filesInput.addEventListener("change", () => {
   renderSelectedFiles();
   sendUpload();
 });
+
 uploadForm.addEventListener("submit", (event) => {
   event.preventDefault();
   sendUpload();
 });
+
 setupIdentity();

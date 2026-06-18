@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Envoi de fichiers</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-upload-admin">
+  <link rel="stylesheet" href="/modern.css?v=20260618-code-delete">
 </head>
 <body data-page="upload">
   <main class="upload-page">
@@ -26,7 +26,11 @@
       </form>
 
       <p id="upload-message" class="upload-message"></p>
-      <div id="upload-busy" class="upload-busy hidden">Envoi en cours...</div>
+      <div id="upload-busy" class="upload-busy hidden">
+        <div class="hourglass" aria-hidden="true"></div>
+        <strong>Envoi en cours...</strong>
+        <span>Merci de patienter pendant le transfert des fichiers.</span>
+      </div>
       <div id="result" class="upload-result hidden">
         <span>Code dossier</span>
         <strong id="result-code">0000</strong>
@@ -34,6 +38,6 @@
       </div>
     </section>
   </main>
-  <script src="/modern-upload.js?v=20260618-upload-admin"></script>
+  <script src="/modern-upload.js?v=20260618-code-delete"></script>
 </body>
 </html>
