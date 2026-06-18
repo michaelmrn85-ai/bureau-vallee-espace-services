@@ -618,14 +618,15 @@ function mailTextForReject(reason) {
 
 async function sendMailReply(nodemailer, to, subject, text) {
   if (!to) throw new Error("Adresse expediteur introuvable.");
-  if (!process.env.MAIL_PASSWORD) throw new Error("MAIL_PASSWORD manquant.");
+  const accessToken = await zohoGetToken();
   const transporter = nodemailer.createTransport({
     host: process.env.MAIL_SMTP_HOST || MAIL_SMTP_HOST,
     port: Number(process.env.MAIL_SMTP_PORT) || MAIL_SMTP_PORT,
     secure: process.env.MAIL_SMTP_SECURE === "1",
     auth: {
+      type: "OAuth2",
       user: MAIL_ADDRESS,
-      pass: process.env.MAIL_PASSWORD,
+      accessToken,
     },
   });
   await transporter.sendMail({ from: MAIL_ADDRESS, to, subject, text });
