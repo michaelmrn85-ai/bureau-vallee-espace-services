@@ -4,35 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Envoi de fichiers</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-fit">
+  <link rel="stylesheet" href="/modern.css?v=20260618-upload-admin">
 </head>
-<body data-app="upload">
-  <main class="mobile-upload">
-    <div class="mobile-card">
-      <div class="app-mark">▣</div>
-      <p class="eyebrow" id="mobile-greeting">Session d'impression</p>
-      <h1>Envoyer vos fichiers</h1>
-      <p id="upload-lead">Ajoutez vos documents. Ils apparaîtront automatiquement sur le poste.</p>
-      <form id="upload-form">
+<body data-page="upload">
+  <main class="upload-page">
+    <section class="upload-card">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée" class="upload-logo">
+      <p class="upload-kicker" id="mobile-greeting">Espace Services</p>
+      <h1>Envoyer vos documents</h1>
+      <p id="upload-lead">Ajoutez vos fichiers. Ils apparaîtront automatiquement sur le poste d'impression.</p>
+
+      <form id="upload-form" class="upload-form">
         <input id="customer-name" name="customerName" type="hidden">
-        <label class="file-drop">
+        <label class="upload-drop">
           <input id="files-input" name="files" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp">
-          <span>+ Ajouter des fichiers</span>
+          <span>Ajouter des fichiers</span>
           <small>PDF, Word, PNG, JPEG, HEIC ou WebP</small>
         </label>
-        <div id="selected-files" class="selected-files"></div>
-        <button class="primary wide" type="submit">Envoyer les fichiers</button>
+        <div id="selected-files" class="upload-selected"></div>
+        <button class="upload-submit" type="submit">Envoyer</button>
       </form>
-      <p id="upload-message" class="status-line"></p>
-      <div id="upload-busy" class="busy hidden">Envoi en cours...</div>
-      <div id="result" class="result-card hidden">
+
+      <p id="upload-message" class="upload-message"></p>
+      <div id="upload-busy" class="upload-busy hidden">Envoi en cours...</div>
+      <div id="result" class="upload-result hidden">
         <span>Code dossier</span>
         <strong id="result-code">0000</strong>
-        <p id="result-help">Retournez au poste : vos fichiers sont prêts.</p>
+        <p id="result-help">Vos fichiers sont transmis au poste.</p>
       </div>
-      <div class="security-note"><span>◇</span><div><strong>Connexion sécurisée</strong><p>Vos fichiers sont supprimés automatiquement après impression.</p></div></div>
-    </div>
+    </section>
   </main>
-  <script src="/modern-upload.js?v=20260618-fit"></script>
+  <script src="/modern-upload.js?v=20260618-upload-admin"></script>
 </body>
 </html>
