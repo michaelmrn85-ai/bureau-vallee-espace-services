@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bureau Vallée - Espace Services</title>
+  <title>Poste Espace Services</title>
   <link rel="stylesheet" href="/modern.css?v=20260618-session-popups">
 </head>
 <body>
@@ -12,7 +12,7 @@
       <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
       <div>
         <p>Espace Services</p>
-        <h1>Impression facile</h1>
+        <h1>Poste Espace Services</h1>
       </div>
     </header>
 
@@ -133,6 +133,12 @@
       <div class="loader" aria-hidden="true"></div>
       <h2>Impression en cours</h2>
       <p>Merci de patienter, vos documents sont envoyés au copieur.</p>
+      <ol class="print-steps" id="print-steps">
+        <li data-step="prepare">Préparation du document</li>
+        <li data-step="server">Envoi au serveur</li>
+        <li data-step="queue">Mise en file d'attente</li>
+        <li data-step="printer">Transmission au copieur</li>
+      </ol>
     </div>
   </div>
 
@@ -153,6 +159,6 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-code-delete"></script>
+  <script src="/modern-app.js?v=20260618-session-print-steps"></script>
 </body>
 </html>

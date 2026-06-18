@@ -577,6 +577,59 @@ button {
   to { transform: rotate(360deg); }
 }
 
+.print-steps {
+  display: grid;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.print-steps li {
+  position: relative;
+  padding: 12px 14px 12px 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbff;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.print-steps li::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #b8c7d9;
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.print-steps li.active {
+  border-color: #8bbcff;
+  color: var(--blue);
+  background: #eef6ff;
+}
+
+.print-steps li.active::before {
+  border-color: var(--blue);
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+.print-steps li.done {
+  color: var(--green);
+  background: #f0fbf4;
+}
+
+.print-steps li.done::before {
+  border-color: var(--green);
+  background: var(--green);
+}
+
 .preview-fallback {
   max-width: 360px;
   text-align: center;

@@ -14,6 +14,7 @@ const previewPages = document.getElementById("preview-pages");
 const printButton = document.getElementById("print-button");
 const printStatus = document.getElementById("print-status");
 const printModal = document.getElementById("print-modal");
+const printSteps = document.getElementById("print-steps");
 const loadingModal = document.getElementById("loading-modal");
 const loadingTitle = document.getElementById("loading-title");
 const loadingText = document.getElementById("loading-text");
@@ -38,6 +39,7 @@ const copyUrl = document.getElementById("copy-url");
 let currentJob = null;
 let selectedFileId = "";
 let inactivityTimer = null;
+let sessionCloseTimer = null;
 let inactivityVisible = false;
 
 function stationName() {
@@ -58,6 +60,17 @@ function showPrintModal(active) {
   printModal.classList.toggle("hidden", !active);
 }
 
+function setPrintStep(step) {
+  if (!printSteps) return;
+  const order = ["prepare", "server", "queue", "printer"];
+  const activeIndex = order.indexOf(step);
+  printSteps.querySelectorAll("li").forEach((item) => {
+    const itemIndex = order.indexOf(item.dataset.step);
+    item.classList.toggle("done", activeIndex > itemIndex);
+    item.classList.toggle("active", activeIndex === itemIndex);
+  });
+}
+
 function showLoading(active, title = "Recherche en cours", text = "Le serveur prepare votre demande.") {
   loadingTitle.textContent = title;
   loadingText.textContent = text;
@@ -76,12 +89,17 @@ function hideInfo() {
 
 function resetInactivityTimer() {
   window.clearTimeout(inactivityTimer);
+  window.clearTimeout(sessionCloseTimer);
   if (printScreen.classList.contains("hidden")) return;
   inactivityTimer = window.setTimeout(() => {
     if (printScreen.classList.contains("hidden") || inactivityVisible) return;
     inactivityVisible = true;
-    showInfo("Session toujours active", "Vous etes toujours la ? Touchez l'ecran ou bougez la souris pour continuer.");
-  }, 10000);
+    showInfo("Session inactive", "Touchez l'ecran ou bougez la souris pour continuer. Sans action, la session sera fermee automatiquement.");
+  }, 30000);
+  sessionCloseTimer = window.setTimeout(() => {
+    if (printScreen.classList.contains("hidden")) return;
+    endSession(true);
+  }, 180000);
 }
 
 function wakeSession() {
@@ -102,6 +120,7 @@ function showHomeScreen() {
   printScreen.classList.add("hidden");
   homeScreen.classList.remove("hidden");
   window.clearTimeout(inactivityTimer);
+  window.clearTimeout(sessionCloseTimer);
 }
 
 function extension(file) {
@@ -289,7 +308,10 @@ async function printSelectedFile() {
   }
   setPrintStatus("Envoi au copieur...");
   showPrintModal(true);
+  setPrintStep("prepare");
   try {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    setPrintStep("server");
     const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -297,7 +319,10 @@ async function printSelectedFile() {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Impression impossible.");
+    setPrintStep("queue");
     currentJob = payload.job;
+    await new Promise((resolve) => window.setTimeout(resolve, 450));
+    setPrintStep("printer");
     setPrintStatus("Impression envoyee au copieur.", "success");
     showInfo("Impression envoyee", "Vos documents ont ete transmis au copieur.");
   } catch (error) {
@@ -308,8 +333,10 @@ async function printSelectedFile() {
   }
 }
 
-async function endSession() {
-  showLoading(true, "Fin de session", "Nettoyage du dossier en cours.");
+async function endSession(isAutomatic = false) {
+  window.clearTimeout(inactivityTimer);
+  window.clearTimeout(sessionCloseTimer);
+  showLoading(true, "Fin de session", isAutomatic ? "La session inactive est fermee automatiquement." : "Nettoyage du dossier en cours.");
   try {
     if (currentJob?.code) await fetch(`/api/jobs/${currentJob.code}`, { method: "DELETE" });
     currentJob = null;
@@ -318,7 +345,7 @@ async function endSession() {
     documentList.innerHTML = "";
     documentCount.textContent = "0";
     showHomeScreen();
-    showInfo("Session terminee", "Merci. Vous pouvez retirer vos documents et votre cle USB si vous en avez utilise une.");
+    showInfo("Session terminee", isAutomatic ? "La session a ete fermee apres inactivite." : "Merci. Vous pouvez retirer vos documents et votre cle USB si vous en avez utilise une.");
   } catch (error) {
     showInfo("Erreur", "Impossible de terminer la session pour le moment.");
   } finally {
