@@ -1,278 +1,153 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bureau Vallee - Impression client</title>
-  <link rel="stylesheet" href="/styles.css?v=20260618-full-redesign">
-  <link rel="stylesheet" href="/kiosk.css?v=20260618-1920x1200">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Impression facile</title>
+  <link rel="stylesheet" href="/modern.css?v=20260618-foundation">
 </head>
-<body>
-  <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
-    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-    <strong id="notice-screen-message"></strong>
-  </section>
-
-  <section class="session-screen hidden" id="session-screen" aria-live="polite">
-    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-    <strong id="session-screen-message"></strong>
-  </section>
-
-  <main class="shell">
-    <section class="identity-screen" id="identity-screen" aria-label="Identification client">
-      <div class="identity-card">
-        <img class="identity-logo" src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-        <p class="eyebrow">Avant de commencer</p>
-        <h1>Identifiez votre impression</h1>
-        <p>Merci de renseigner votre nom et prenom pour suivre vos impressions au comptoir.</p>
-        <form class="identity-form" id="identity-form">
-          <label>
-            Civilite
-            <select id="customer-civility" name="civility" required>
-              <option value="">Choisir</option>
-              <option value="madame">Madame</option>
-              <option value="monsieur">Monsieur</option>
-            </select>
-          </label>
-          <label>
-            Nom
-            <input id="customer-last-name" name="lastName" type="text" autocomplete="family-name" placeholder="Entrez votre nom" required>
-          </label>
-          <label>
-            Prenom
-            <input id="customer-first-name" name="firstName" type="text" autocomplete="given-name" placeholder="Entrez votre prenom" required>
-          </label>
-          <fieldset class="identity-card-question">
-            <legend>Avez-vous une carte d'impression ?</legend>
-            <label class="identity-checkbox">
-              <input id="customer-print-card" name="printCard" type="checkbox" value="1">
-              <span>Oui, j'ai une carte d'impression</span>
-            </label>
-          </fieldset>
-          <label>
-            Deja un numero ID ?
-            <input id="customer-existing-id" name="clientId" type="text" inputmode="numeric" maxlength="5" placeholder="Facultatif, ex : 12345">
-          </label>
-          <button type="submit">Continuer <span aria-hidden="true">-></span></button>
-        </form>
-      </div>
-    </section>
-
-    <header class="station-welcome">
-      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-      <div>
-        <h1>Bienvenue !</h1>
-        <p>Choisissez une option pour commencer une impression sur <span id="station-title">Poste</span>.</p>
-      </div>
-      <time class="home-clock" id="home-clock" datetime="">--:--</time>
-      <div class="customer-greeting hidden" id="customer-greeting"></div>
+<body data-app="kiosk">
+  <div class="window-shell">
+    <header class="titlebar">
+      <div class="app-mark" aria-hidden="true">▣</div>
+      <strong>Impression facile</strong>
+      <div class="window-controls" aria-hidden="true"><span>−</span><span>□</span><span>×</span></div>
     </header>
 
-    <section class="printer-status-card" aria-label="Imprimante par defaut">
-      <span class="status-printer-icon" aria-hidden="true">P</span>
-      <div>
-        <strong>Imprimante par defaut</strong>
-        <small id="station-printer-label">Copieur du poste</small>
-      </div>
-      <span class="ready-pill">Prete</span>
-    </section>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <nav class="nav-stack" aria-label="Navigation poste">
+          <button class="nav-item active" data-nav="home" type="button"><span>⌂</span>Accueil</button>
+          <button class="nav-item" data-action="usb" type="button"><span>▣</span>Impression clé USB</button>
+          <button class="nav-item" data-action="qr" type="button"><span>▦</span>Impressions via QR Code</button>
+          <button class="nav-item" data-action="phone" type="button"><span>⇱</span>Envoyer depuis mon téléphone</button>
+          <button class="nav-item" data-action="lookup" type="button"><span>▤</span>Mes impressions</button>
+          <button class="nav-item" data-action="history" type="button"><span>◷</span>Historique</button>
+        </nav>
+        <nav class="nav-stack sidebar-bottom" aria-label="Aide">
+          <button class="nav-item" data-action="settings" type="button"><span>⚙</span>Paramètres</button>
+          <button class="nav-item" data-action="help" type="button"><span>?</span>Aide</button>
+        </nav>
+      </aside>
 
-    <div class="notice-banner hidden" id="notice-banner"></div>
+      <main class="workspace">
+        <section class="identity-view" id="identity-view">
+          <div class="identity-card">
+            <div class="identity-icon" aria-hidden="true">▣</div>
+            <h1>Avant de commencer</h1>
+            <p>Merci de renseigner votre nom et prénom pour accéder au service d'impression.</p>
+            <form id="identity-form" class="identity-form">
+              <label>Nom<input id="last-name" autocomplete="family-name" required placeholder="Entrez votre nom"></label>
+              <label>Prénom<input id="first-name" autocomplete="given-name" required placeholder="Entrez votre prénom"></label>
+              <label class="optional-line">Avez-vous une carte d'impression ?
+                <select id="print-card">
+                  <option value="no">Non / pas sûr</option>
+                  <option value="yes">Oui</option>
+                </select>
+              </label>
+              <label class="optional-line">Déjà un numéro ID ?
+                <input id="client-id-input" inputmode="numeric" maxlength="5" placeholder="Facultatif, ex : 12345">
+              </label>
+              <button class="primary wide" type="submit">Continuer <span aria-hidden="true">→</span></button>
+            </form>
+            <div class="or-line"><span>ou</span></div>
+            <button class="secondary" id="identity-qr" type="button">▦ Continuer avec un QR Code</button>
+            <div class="security-note"><span>◇</span><div><strong>Vos données sont sécurisées</strong><p>Vos informations ne sont utilisées que pour votre session d'impression.</p></div></div>
+          </div>
+        </section>
 
-    <section class="session-toolbar hidden" id="client-session-toolbar" aria-live="polite">
-      <div>
-        <span>Session en cours</span>
-        <strong id="client-session-label">Impression</strong>
-      </div>
-    </section>
+        <section class="home-view hidden" id="home-view">
+          <div class="top-row">
+            <div>
+              <p class="eyebrow" id="station-label">Poste 1</p>
+              <h1>Bienvenue !</h1>
+              <p>Choisissez une option pour commencer une impression.</p>
+            </div>
+            <div class="customer-pill" id="customer-pill">Bonjour</div>
+            <div class="printer-pill"><span>▣</span><div><strong>Imprimante par défaut</strong><p id="printer-name">HP LaserJet Pro M404dn</p></div><em>Prête</em></div>
+          </div>
 
-    <section class="choice-grid" aria-label="Choix du mode d'impression">
-      <button class="print-choice-card choice-usb" type="button" data-flow="usb">
-        <span class="choice-icon" aria-hidden="true">
-          <svg viewBox="0 0 64 64" focusable="false">
-            <path d="M25 7h14v19h5a8 8 0 0 1 8 8v9a14 14 0 0 1-14 14H26a14 14 0 0 1-14-14v-9a8 8 0 0 1 8-8h5V7Z"/>
-            <path d="M29 7h6M22 31h20M25 39h14"/>
-          </svg>
-        </span>
-        <h2>Impression cle USB</h2>
-        <p>Imprimez directement vos fichiers depuis une cle USB.</p>
-        <div class="choice-tags">
-          <span>PDF</span>
-          <span>A4</span>
-          <span>PNG/JPEG</span>
-        </div>
-      </button>
+          <h2>Lancer une impression</h2>
+          <div class="launch-grid">
+            <button class="launch-card blue" data-action="usb" type="button"><span class="big-icon">▮</span><strong>Impression clé USB</strong><p>Imprimez directement vos fichiers depuis une clé USB.</p><b>Commencer →</b></button>
+            <button class="launch-card green" data-action="qr" type="button"><span class="big-icon">▦</span><strong>Impressions via QR Code</strong><p>Scannez un QR code pour envoyer vos fichiers et les imprimer.</p><b>Commencer →</b></button>
+            <button class="launch-card purple" data-action="phone" type="button"><span class="big-icon">⇱</span><strong>Envoyer depuis mon téléphone</strong><p>Envoyez vos fichiers depuis votre téléphone et imprimez-les.</p><b>Commencer →</b></button>
+            <button class="launch-card orange" data-action="lookup" type="button"><span class="big-icon">✉</span><strong>Mes impressions</strong><p>Accédez aux documents envoyés et gérez vos impressions.</p><b>Ouvrir →</b></button>
+          </div>
 
-      <button class="print-choice-card is-mobile choice-qr" type="button" data-flow="mobile">
-        <span class="choice-icon" aria-hidden="true">
-          <svg viewBox="0 0 64 64" focusable="false">
-            <rect x="20" y="6" width="24" height="52" rx="6"/>
-            <path d="M29 12h6M28 50h8M27 24h10v10H27zM25 20h2M37 20h2M25 38h2M37 38h2"/>
-          </svg>
-        </span>
-        <h2>Impression via QR Code</h2>
-        <p>Scannez un QR code pour envoyer vos fichiers et les imprimer.</p>
-        <div class="choice-tags">
-          <span>QR code</span>
-          <span>PDF</span>
-          <span>PNG/JPEG</span>
-          <span>Code client</span>
-        </div>
-      </button>
+          <h2>Informations</h2>
+          <div class="info-grid">
+            <div class="info-card"><span>▣</span><div><strong>Imprimante par défaut</strong><p id="info-printer">HP LaserJet Pro M404dn · Prête</p></div></div>
+            <div class="info-card"><span>▤</span><div><strong>File d'attente</strong><p id="queue-info">Aucun document en attente</p></div></div>
+            <div class="info-card"><span>▥</span><div><strong>Niveaux de consommables</strong><p>Toner : 78%</p><meter value="78" min="0" max="100"></meter></div></div>
+          </div>
+          <div class="help-band"><span>?</span><div><strong>Besoin d'aide ?</strong><p>Un conseiller peut reprendre la main au comptoir.</p></div><button class="secondary" data-action="help" type="button">Ouvrir l'aide</button></div>
+        </section>
 
-      <button class="print-choice-card is-webmail choice-mail" type="button" data-flow="webmail">
-        <span class="choice-icon" aria-hidden="true">
-          <svg viewBox="0 0 64 64" focusable="false">
-            <rect x="8" y="14" width="48" height="36" rx="5"/>
-            <path d="M10 18l22 17 22-17M22 39h20"/>
-          </svg>
-        </span>
-        <h2>Impression via mail</h2>
-        <p>Envoyez vos fichiers a l'adresse mail du service impression.</p>
-        <div class="choice-tags">
-          <span>Mail</span>
-          <span>Pieces jointes</span>
-          <span>Reception comptoir</span>
-        </div>
-      </button>
-    </section>
+        <section class="print-view hidden" id="print-view">
+          <div class="document-topbar">
+            <div><p class="eyebrow" id="job-code-label">Session</p><h1>Impression de documents</h1></div>
+            <button class="secondary" data-action="phone" type="button">Envoyer depuis mon téléphone</button>
+          </div>
+          <div class="print-grid">
+            <aside class="files-panel">
+              <div class="panel-head"><h2>Fichiers à imprimer <span id="file-count">(0)</span></h2><button class="secondary small" id="add-files" type="button">+ Ajouter des fichiers</button></div>
+              <input class="hidden" id="file-input" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp">
+              <div class="file-list" id="file-list"></div>
+              <div class="panel-footer"><label><input id="select-all" type="checkbox" checked> Tout sélectionner</label><button class="danger-text" id="delete-selected" type="button">Supprimer la sélection</button></div>
+              <div class="multi-card"><span>▤</span><div><strong>Impression multiple</strong><p>Regroupez les documents sélectionnés et imprimez-les à la suite.</p></div><input id="multi-print" type="checkbox" checked></div>
+              <div class="action-row"><button class="primary" id="print-selected" type="button">▣ Imprimer</button><button class="secondary" id="cancel-session" type="button">Annuler</button></div>
+            </aside>
 
-    <section class="format-panel compact-home-info">
-      <div>
-        <p class="eyebrow">A retenir</p>
-        <h2>Impression A4 uniquement</h2>
-        <p class="format-warning">Pour vos impressions A3 ou sur papier epais, merci de vous rapprocher du comptoir.</p>
-      </div>
-      <button class="help-button" id="help-button" type="button">Aide</button>
-    </section>
+            <section class="settings-panel">
+              <h2>Options d'impression</h2>
+              <div class="setting-block"><label>Imprimante<select id="printer-select"><option>HP LaserJet Pro M404dn</option><option>HP Color LaserJet Pro M454dw</option></select></label></div>
+              <div class="setting-block"><strong>Couleur</strong><div class="segmented"><label><input name="colorMode" type="radio" value="noir-blanc" checked> Noir et blanc</label><label><input name="colorMode" type="radio" value="couleur"> Couleur</label></div></div>
+              <div class="setting-block"><strong>Impression</strong><div class="segmented"><label><input name="duplex" type="radio" value="recto" checked> Recto</label><label><input name="duplex" type="radio" value="recto-verso-long"> Recto / Verso</label></div></div>
+              <div class="setting-block"><strong>Plage d'impression</strong><label><input name="rangeMode" type="radio" value="all" checked> Toutes les pages</label><label><input name="rangeMode" type="radio" value="current"> Page actuelle</label><label class="range-input"><input name="rangeMode" type="radio" value="pages"> Pages <input id="page-range" placeholder="1-5, 8"></label></div>
+              <div class="setting-block inline"><label>Nombre d'exemplaires<input id="copies" type="number" min="1" max="99" value="1"></label><label><input id="assemble" type="checkbox" checked> Assembler</label></div>
+              <p class="status-line" id="status-line"></p>
+            </section>
 
-    <aside class="wifi-bubble" aria-label="Information Wi-Fi">
-      <span>Pour plus de fluidite</span>
-      <strong>Connectez-vous au Wi-Fi public</strong>
-      <small>Reseau : <b>wifi_bvpublic</b> - Mot de passe : <b>bureauvallee</b></small>
-    </aside>
-    <p class="message home-message" id="home-message"></p>
-
-    <section class="panel flow-panel hidden" id="usb-panel">
-      <div class="panel-heading">
-        <div>
-          <p class="eyebrow">Cle USB</p>
-          <h2>Choisir votre PDF</h2>
-        </div>
-        <div class="panel-actions">
-          <button class="text-link eject-usb-button" type="button" data-eject-usb>Ejecter la cle USB</button>
-          <button class="text-link" type="button" data-back-home>Changer de mode</button>
-        </div>
-      </div>
-      <form class="usb-form" id="usb-form">
-        <label class="drop-zone">
-          <input id="usb-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,application/pdf,image/png,image/jpeg,image/heic,image/heif" multiple required>
-          <span>Choisir et charger le fichier</span>
-          <small>Selectionnez un PDF, PNG, JPG, JPEG ou HEIC sur votre cle USB. Limite : 500 Mo par fichier.</small>
-        </label>
-      </form>
-      <p class="message" id="usb-message"></p>
-    </section>
-
-    <section class="panel flow-panel hidden" id="mobile-panel">
-      <div class="panel-heading">
-        <div>
-          <p class="eyebrow">Mobile</p>
-          <h2>Envoyer depuis votre telephone</h2>
-        </div>
-        <button class="text-link" type="button" data-back-home>Changer de mode</button>
-      </div>
-      <div class="mobile-flow-grid">
-        <div class="qr-card">
-          <img id="upload-qr" src="/qr.gif?station=poste-1" alt="QR code upload mobile">
-          <span>Flashez ici</span>
-          <strong id="upload-url">Chargement...</strong>
-        </div>
-        <div>
-          <p class="lead">Apres l'envoi sur votre telephone, saisissez le code obtenu ici.</p>
-          <form class="code-form" id="code-form">
-            <input id="pickup-code" type="text" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
-            <button type="submit">Charger</button>
-          </form>
-          <p class="message" id="message"></p>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel flow-panel hidden" id="webmail-panel">
-      <div class="panel-heading">
-        <div>
-          <p class="eyebrow">Impression via mail</p>
-          <h2>Envoyer vos documents au service impression</h2>
-        </div>
-        <button class="text-link" type="button" data-back-home>Fin de session</button>
-      </div>
-      <div class="mail-inbox-card">
-        <span>Adresse de reception</span>
-        <strong>Adresse mail a configurer</strong>
-        <small>Envoyez vos pieces jointes depuis votre telephone ou ouvrez votre boite mail ci-dessous. Les fichiers apparaitront ici lorsque la reception automatique sera activee.</small>
-      </div>
-      <div class="webmail-grid">
-        <button type="button" data-webmail="gmail">Gmail</button>
-        <button type="button" data-webmail="outlook">Outlook</button>
-        <button type="button" data-webmail="orange">Orange Mail</button>
-        <button type="button" data-webmail="yahoo">Yahoo Mail</button>
-        <button type="button" data-webmail="laposte">LaPoste.net</button>
-        <button type="button" data-webmail="free">Free Zimbra</button>
-      </div>
-      <p class="message" id="webmail-message"></p>
-    </section>
-
-    <section class="files hidden" id="files"></section>
-  </main>
-
-  <div class="modal hidden" id="expiration-modal" role="dialog" aria-modal="true" aria-labelledby="expiration-title">
-    <div class="modal-card">
-      <p class="eyebrow">Attention</p>
-      <h2 id="expiration-title">Suppression automatique dans <span id="expiration-countdown">30</span> secondes</h2>
-      <p>Vos fichiers vont etre supprimes automatiquement. Terminez vos impressions ou telechargez vos fichiers maintenant.</p>
-      <div class="modal-actions">
-        <button id="close-expiration-modal" type="button">J'ai compris</button>
-      </div>
+            <section class="preview-panel">
+              <div class="panel-head"><h2>Aperçu</h2><div class="pager"><button type="button">‹</button><span>1 / 10</span><button type="button">›</button></div></div>
+              <div class="preview-stage" id="preview-stage"><div class="empty-preview">Sélectionnez un fichier pour afficher l'aperçu.</div></div>
+              <div class="summary-row"><div><span>Documents sélectionnés</span><strong id="selected-summary">0 fichier</strong></div><div><span>Pages totales</span><strong id="pages-summary">0 page</strong></div><div><span>Copies</span><strong id="copies-summary">1</strong></div></div>
+            </section>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
-  <div class="print-status-modal hidden" id="print-status-modal" role="status" aria-live="polite">
-    <div class="print-status-card">
-      <span class="print-status-spinner spinner" aria-hidden="true"></span>
-      <strong id="print-status-title">Impression en cours</strong>
-      <p id="print-status-detail">Merci de patienter.</p>
+  <div class="modal hidden" id="qr-modal">
+    <div class="modal-card qr-card">
+      <button class="close-btn" data-close-modal type="button">×</button>
+      <h2>Envoyer des fichiers depuis votre téléphone</h2>
+      <p>Scannez le QR code avec votre téléphone pour ajouter vos documents à cette session.</p>
+      <img id="qr-image" alt="QR code d'envoi">
+      <div class="copy-url"><input id="upload-url" readonly><button id="copy-url" type="button">Copier</button></div>
     </div>
   </div>
 
-  <div class="client-id-modal hidden" id="client-id-modal" role="dialog" aria-modal="true" aria-labelledby="client-id-title">
-    <div class="client-id-card">
-      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+  <div class="modal hidden" id="id-modal">
+    <div class="modal-card id-card">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
       <span>Votre ID client</span>
       <strong id="client-id-value">00000</strong>
-      <p id="client-id-help">Gardez ce numero : prenez-le en photo ou notez-le pour vos prochaines impressions.</p>
-      <button id="close-client-id-modal" type="button">J'ai garde mon ID</button>
+      <p>Gardez ce numéro : prenez-le en photo ou notez-le pour vos prochaines impressions.</p>
+      <button class="primary" data-close-modal type="button">J'ai gardé mon ID</button>
     </div>
   </div>
 
-  <div class="session-close-modal hidden" id="session-close-modal" role="status" aria-live="polite">
-    <div class="session-close-card">
-      <strong id="session-close-countdown" style="--timer-progress: 360deg">10</strong>
-      <h2>Session terminee</h2>
-      <p>Merci pour vos impressions. Veuillez vous rapprocher de la caisse.</p>
+  <div class="modal hidden" id="print-modal">
+    <div class="modal-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2 id="print-modal-title">En attente</h2>
+      <p id="print-modal-text">Vos impressions sont envoyées au copieur.</p>
     </div>
   </div>
 
-  <div class="usb-eject-modal hidden" id="usb-eject-modal" role="dialog" aria-modal="true" aria-labelledby="usb-eject-title">
-    <div class="usb-eject-card">
-      <strong id="usb-eject-title">Votre cle USB peut etre ejectee</strong>
-      <p>Vous pouvez la retirer du poste.</p>
-      <button id="close-usb-eject-modal" type="button">J'ai compris</button>
-    </div>
-  </div>
-
-  <script src="/notice.js?v=20260523-print-preview"></script>
-  <script src="/session.js?v=20260523-print-preview"></script>
-  <script src="/app.js?v=20260618-1920x1200"></script>
+  <script src="/modern-app.js?v=20260618-foundation"></script>
 </body>
 </html>

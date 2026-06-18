@@ -1112,7 +1112,7 @@ app.post("/api/stations/:station/eject", (request, response) => {
 app.post("/api/stations/:station/commands", (request, response) => {
   const station = stationFrom(request.params.station);
   const type = String(request.body.type || "");
-  if (!["open-webmail", "cleanup-browser"].includes(type)) {
+  if (!["open-webmail", "cleanup-browser", "shutdown-station", "restart-station"].includes(type)) {
     response.status(400).json({ error: "Commande non autorisee." });
     return;
   }

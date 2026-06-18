@@ -67,6 +67,18 @@ function webmailProfileDir(config) {
   return path.join(os.tmpdir(), "bureau-vallee-webmail", config.station);
 }
 
+function runPowerCommand(mode) {
+  return new Promise((resolve, reject) => {
+    const args = mode === "restart-station" ? ["/r", "/t", "0"] : ["/s", "/t", "0"];
+    const child = spawn("shutdown.exe", args, { windowsHide: true });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`shutdown.exe a retourne le code ${code}`));
+    });
+  });
+}
+
 function isBlackAndWhite(settings = {}) {
   const colorMode = String(settings.colorMode || settings.color || settings.modeCouleur || "auto")
     .toLowerCase()
@@ -240,6 +252,7 @@ async function handleCommand(config, command) {
     if (command.type === "eject-usb") await ejectUsbDrives();
     else if (command.type === "open-webmail") await openWebmail(config, command.url);
     else if (command.type === "cleanup-browser") await cleanupBrowserSession(config);
+    else if (command.type === "shutdown-station" || command.type === "restart-station") await runPowerCommand(command.type);
     else return;
     await markCommandStatus(config, command.id, "done");
     console.log("Commande terminee.");

@@ -1,54 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload mobile - Bureau Vallee</title>
-  <link rel="stylesheet" href="/styles.css?v=20260618-client-redesign">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Envoi de fichiers</title>
+  <link rel="stylesheet" href="/modern.css?v=20260618-foundation">
 </head>
-<body class="mobile-body">
-  <section class="notice-screen hidden" id="notice-screen" aria-live="polite">
-    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-    <strong id="notice-screen-message"></strong>
-  </section>
-
-  <main class="mobile-shell">
-    <section class="mobile-card">
-      <img class="mobile-logo" src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-      <div class="notice-banner hidden" id="notice-banner"></div>
-      <div class="mobile-greeting hidden" id="mobile-greeting"></div>
-      <p class="eyebrow">Bureau Vallee</p>
-      <h1>Envoyer mes fichiers</h1>
-      <p class="lead" id="upload-lead">Ajoutez vos PDF, PNG, JPG, JPEG, HEIC ou WebP jusqu'a 500 Mo par fichier. Les fichiers Word sont a presenter au comptoir.</p>
-
+<body data-app="upload">
+  <main class="mobile-upload">
+    <div class="mobile-card">
+      <div class="app-mark">▣</div>
+      <p class="eyebrow" id="mobile-greeting">Session d'impression</p>
+      <h1>Envoyer vos fichiers</h1>
+      <p id="upload-lead">Ajoutez vos documents. Ils apparaîtront automatiquement sur le poste.</p>
       <form id="upload-form">
-        <label>
-          Nom ou repere client
-          <input id="customer-name" name="customerName" type="text" maxlength="80" placeholder="Ex : Martin">
+        <input id="customer-name" name="customerName" type="hidden">
+        <label class="file-drop">
+          <input id="files-input" name="files" type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp">
+          <span>+ Ajouter des fichiers</span>
+          <small>PDF, Word, PNG, JPEG, HEIC ou WebP</small>
         </label>
-
-        <label class="drop-zone">
-          <input id="files-input" name="files" type="file" multiple required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic,.heif,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*">
-          <span>Choisir et envoyer mes fichiers</span>
-          <small>Le code s'affiche automatiquement apres selection. Limite : 500 Mo par fichier.</small>
-        </label>
-
-        <div class="selected-files" id="selected-files"></div>
-        <div class="busy-state hidden" id="upload-busy" aria-live="polite">
-          <span class="spinner" aria-hidden="true"></span>
-          <strong>Merci de patienter</strong>
-        </div>
+        <div id="selected-files" class="selected-files"></div>
+        <button class="primary wide" type="submit">Envoyer les fichiers</button>
       </form>
-
-      <div class="result hidden" id="result">
-        <span>Votre code</span>
+      <p id="upload-message" class="status-line"></p>
+      <div id="upload-busy" class="busy hidden">Envoi en cours...</div>
+      <div id="result" class="result-card hidden">
+        <span>Code dossier</span>
         <strong id="result-code">0000</strong>
-        <p id="result-help">Saisissez ce code sur le poste face a vous, pas au comptoir.</p>
+        <p id="result-help">Retournez au poste : vos fichiers sont prêts.</p>
       </div>
-      <p class="message" id="upload-message"></p>
-    </section>
+      <div class="security-note"><span>◇</span><div><strong>Connexion sécurisée</strong><p>Vos fichiers sont supprimés automatiquement après impression.</p></div></div>
+    </div>
   </main>
-  <script src="/notice.js?v=20260523-print-preview"></script>
-  <script src="/upload.js?v=20260618-client-redesign"></script>
+  <script src="/modern-upload.js?v=20260618-foundation"></script>
 </body>
 </html>

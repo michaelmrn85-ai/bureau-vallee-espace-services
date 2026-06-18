@@ -1,64 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Bureau Vallee Espace Services</title>
-  <link rel="stylesheet" href="/styles.css?v=20260618-admin-dashboard">
-  <link rel="stylesheet" href="/admin-dashboard.css?v=20260618-1920x1200">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestion d'impression</title>
+  <link rel="stylesheet" href="/modern.css?v=20260618-foundation">
 </head>
-<body class="admin-body">
-  <aside class="admin-sidebar">
-    <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
-    <nav aria-label="Navigation admin">
-      <a class="is-active" href="/admin">Tableau de bord</a>
-      <a href="/poste-1">Poste 1</a>
-      <a href="/poste-2">Poste 2</a>
-      <button id="open-admin-upload" type="button">QR comptoir</button>
-    </nav>
-  </aside>
-
-  <main class="admin-main">
-    <header class="admin-topbar">
-      <div>
-        <h1>Tableau de bord</h1>
-        <p>Vue d'ensemble des postes d'impression et des impressions par client.</p>
-      </div>
-      <div class="admin-topbar-actions">
-        <span class="admin-date-pill">Aujourd'hui</span>
-        <button id="refresh-codes" type="button">Actualiser</button>
-      </div>
+<body data-app="admin">
+  <div class="window-shell">
+    <header class="titlebar">
+      <div class="app-mark" aria-hidden="true">▣</div>
+      <strong>Gestion d'impression</strong>
+      <div class="window-controls" aria-hidden="true"><span>−</span><span>□</span><span>×</span></div>
     </header>
-
-    <p class="message admin-message" id="codes-message"></p>
-
-    <section class="admin-summary-grid" id="admin-summary" aria-live="polite"></section>
-
-    <section class="admin-report-card">
-      <div class="admin-report-heading">
-        <div>
-          <h2>Impressions par poste et par client</h2>
-          <p>Compteurs reels N&B, couleur et total copies.</p>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <nav class="nav-stack">
+          <button class="nav-item active" type="button"><span>⌂</span>Tableau de bord</button>
+          <button class="nav-item" type="button"><span>▣</span>Postes d'impression</button>
+          <button class="nav-item" type="button"><span>♙</span>Clients</button>
+          <button class="nav-item" type="button"><span>▤</span>Impressions</button>
+          <button class="nav-item" type="button"><span>▥</span>Rapports</button>
+          <button class="nav-item" type="button"><span>△</span>Alertes</button>
+          <button class="nav-item" type="button"><span>⚙</span>Paramètres</button>
+        </nav>
+        <nav class="nav-stack sidebar-bottom">
+          <button class="nav-item" type="button"><span>?</span>Aide</button>
+          <button class="nav-item" type="button"><span>◷</span>Déconnexion</button>
+        </nav>
+      </aside>
+      <main class="admin-main">
+        <div class="admin-header">
+          <div><h1>Tableau de bord</h1><p>Vue d'ensemble de vos postes d'impression et des impressions par client.</p></div>
+          <div class="admin-actions"><button class="secondary" type="button">20/05/2024 - 20/05/2024</button><button class="secondary" id="refresh-admin" type="button">↻ Actualiser</button></div>
         </div>
-        <button type="button" class="admin-export-button">Exporter</button>
-      </div>
-      <div class="admin-table-wrap" id="station-report-table" aria-live="polite"></div>
-    </section>
 
-    <section class="admin-station-control" id="station-dashboard" aria-live="polite"></section>
-    <section class="admin-upload-list" id="admin-upload-list" aria-live="polite"></section>
-  </main>
+        <section class="metric-grid">
+          <article class="metric"><span class="metric-icon blue">▣</span><div><p>Postes d'impression</p><strong id="metric-stations">2</strong><em>En ligne</em></div></article>
+          <article class="metric"><span class="metric-icon purple">♙</span><div><p>Clients</p><strong id="metric-clients">0</strong><em>Enregistrés</em></div></article>
+          <article class="metric"><span class="metric-icon green">▤</span><div><p>Total impressions</p><strong id="metric-total">0</strong><em>Total copies</em></div></article>
+          <article class="metric"><span class="metric-icon warm">◐</span><div><p>N&B</p><strong id="metric-bw">0</strong><em id="metric-bw-rate">0%</em></div></article>
+          <article class="metric"><span class="metric-icon color">●</span><div><p>Couleur</p><strong id="metric-color">0</strong><em id="metric-color-rate">0%</em></div></article>
+        </section>
 
-  <div class="admin-upload-modal hidden" id="admin-upload-modal" role="dialog" aria-modal="true" aria-labelledby="admin-upload-title">
-    <div class="admin-upload-card">
-      <button class="admin-modal-close" id="close-admin-upload" type="button" aria-label="Fermer">Fermer</button>
-      <p class="eyebrow">Depot comptoir</p>
-      <h2 id="admin-upload-title">QR code client</h2>
-      <img src="/qr.gif?mode=admin" alt="QR code depot comptoir">
-      <strong>Le client flashe ce QR code pour envoyer ses fichiers au comptoir.</strong>
-      <small>Les fichiers apparaitront dans le tableau de bord admin.</small>
+        <section class="admin-card">
+          <div class="panel-head"><h2>Impressions par poste et par client</h2><button class="secondary small" type="button">⇩ Exporter</button></div>
+          <div class="tabs"><button class="active" type="button">Vue par poste</button><button type="button">Vue par client</button></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Client</th><th>Poste 1 N&B</th><th>Poste 2 N&B</th><th>Couleur</th><th>Total</th><th>Dernière activité</th></tr></thead>
+              <tbody id="client-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-card">
+          <h2>Postes d'impression</h2>
+          <div class="station-grid" id="station-grid"></div>
+        </section>
+
+        <section class="alert-band" id="alert-band"><span>△</span><div><strong>Alertes</strong><p>Aucune alerte en cours.</p></div><button class="secondary" type="button">Voir toutes les alertes →</button></section>
+      </main>
     </div>
   </div>
-  <script src="/admin.js?v=20260618-admin-dashboard"></script>
+  <script src="/modern-admin.js?v=20260618-foundation"></script>
 </body>
 </html>
