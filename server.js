@@ -711,9 +711,10 @@ function startMailWatcher() {
       await client.connect();
       const lock = await client.getMailboxLock("INBOX");
       try {
-        const unseenUids = await client.search({ seen: false }, { uid: true });
-        if (unseenUids.length) {
-          for await (const message of client.fetch(unseenUids.join(","), { uid: true, source: true }, { uid: true })) {
+        if (client.mailbox.exists) {
+          for await (const message of client.fetch("1:*", { uid: true, flags: true, source: true })) {
+            const flags = Array.from(message.flags || []);
+            if (flags.some((flag) => String(flag).toLowerCase() === "\\seen")) continue;
             await processIncomingMail(message, tools);
             await client.messageFlagsAdd(message.uid, ["\\Seen"], { uid: true });
           }
@@ -722,8 +723,9 @@ function startMailWatcher() {
         lock.release();
       }
     } catch (error) {
-      mailRuntimeStatus.lastError = error.message;
-      console.log("[mail] Erreur lecture Outlook: " + error.message);
+      const detail = error.responseText || error.serverResponse || error.code || error.message;
+      mailRuntimeStatus.lastError = String(detail || error.message);
+      console.log("[mail] Erreur lecture Outlook: " + mailRuntimeStatus.lastError);
     } finally {
       if (client) {
         try {
