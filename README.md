@@ -52,3 +52,21 @@ Le QR code pointe toujours vers :
 ```text
 https://bureau-vallee-espace-services.onrender.com/upload
 ```
+
+
+## Reception par mail Outlook
+
+Le bouton "Envoi par mail" utilise l'adresse `es.bvm@outlook.fr`.
+Pour activer la lecture automatique des pieces jointes, definir les variables d'environnement :
+
+```
+MAIL_POLLING_ENABLED=1
+MAIL_ADDRESS=es.bvm@outlook.fr
+MAIL_PASSWORD=mot_de_passe_ou_mot_de_passe_application
+MAIL_IMAP_HOST=outlook.office365.com
+MAIL_IMAP_PORT=993
+MAIL_SMTP_HOST=smtp-mail.outlook.com
+MAIL_SMTP_PORT=587
+```
+
+Le serveur lit les mails non lus, accepte 5 pieces jointes maximum, cree un code dossier, puis repond au client avec ce code.
