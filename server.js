@@ -18,6 +18,7 @@ const SESSION_FILE = path.join(DATA_DIR, "session.json");
 const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
+const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 3 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
@@ -174,6 +175,50 @@ function writeHelpRequests(requests) {
     return new Date(request.createdAt).getTime() >= cutoff;
   });
   fs.writeFileSync(HELP_FILE, JSON.stringify(cleanedRequests, null, 2));
+}
+
+function readClients() {
+  if (!fs.existsSync(CLIENTS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(CLIENTS_FILE, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeClients(clients) {
+  fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
+}
+
+function sanitizeClientId(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 5);
+  return digits.length === 5 ? digits : "";
+}
+
+function generateClientId(clients) {
+  const used = new Set(clients.map((client) => client.id));
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const id = String(Math.floor(10000 + Math.random() * 90000));
+    if (!used.has(id)) return id;
+  }
+  throw new Error("Impossible de creer un identifiant client disponible.");
+}
+
+function normalizeClientName(value) {
+  return sanitizeCustomerName(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function findExistingClient(clients, { clientId, customerName }) {
+  if (clientId) {
+    const byId = clients.find((client) => client.id === clientId);
+    if (byId) return byId;
+  }
+  const normalizedName = normalizeClientName(customerName);
+  if (!normalizedName) return null;
+  return clients.find((client) => normalizeClientName(client.customerName) === normalizedName) || null;
 }
 
 function sanitizePrintSettings(input = {}) {
@@ -521,6 +566,7 @@ function publicJob(job, status = "actif") {
   return {
     code: job.code,
     customerName: job.customerName,
+    clientId: job.clientId || "",
     civility: job.civility || "",
     printCard: Boolean(job.printCard),
     source: job.source || "",
@@ -635,8 +681,10 @@ function uploadUrl(station = "poste-1", mode = "", extras = {}) {
     params.set("station", stationFrom(station));
   }
   const customerName = sanitizeCustomerName(extras.customerName);
+  const clientId = sanitizeClientId(extras.clientId);
   const civility = ["madame", "monsieur"].includes(extras.civility) ? extras.civility : "";
   if (customerName) params.set("customerName", customerName);
+  if (clientId) params.set("clientId", clientId);
   if (civility) params.set("civility", civility);
   if (extras.printCard === "1") params.set("printCard", "1");
   return `${PUBLIC_BASE_URL}/upload?${params.toString()}`;
@@ -740,6 +788,44 @@ app.get("/api/config", (request, response) => {
       "poste-2": `${PUBLIC_BASE_URL}/poste-2`,
     },
   });
+});
+
+app.post("/api/clients/identify", (request, response) => {
+  const customerName = sanitizeCustomerName(request.body.customerName);
+  const civility = ["madame", "monsieur"].includes(request.body.civility) ? request.body.civility : "";
+  const printCard = request.body.printCard === "1" || request.body.printCard === true;
+  const requestedClientId = sanitizeClientId(request.body.clientId);
+
+  if (!customerName) {
+    response.status(400).json({ error: "Nom client obligatoire." });
+    return;
+  }
+
+  const clients = readClients();
+  const existing = findExistingClient(clients, { clientId: requestedClientId, customerName });
+  const now = new Date().toISOString();
+
+  if (existing) {
+    existing.customerName = customerName;
+    existing.civility = civility;
+    existing.printCard = printCard;
+    existing.updatedAt = now;
+    writeClients(clients);
+    response.json({ client: existing, isNew: false });
+    return;
+  }
+
+  const client = {
+    id: requestedClientId || generateClientId(clients),
+    customerName,
+    civility,
+    printCard,
+    createdAt: now,
+    updatedAt: now,
+  };
+  clients.push(client);
+  writeClients(clients);
+  response.status(201).json({ client, isNew: true });
 });
 
 app.get("/api/notice", (request, response) => {
@@ -850,6 +936,7 @@ app.post("/api/jobs", upload.array("files", 10), async (request, response, next)
     const job = {
       code,
       customerName: sanitizeCustomerName(request.body.customerName),
+      clientId: sanitizeClientId(request.body.clientId),
       civility: ["madame", "monsieur"].includes(request.body.civility) ? request.body.civility : "",
       printCard: request.body.printCard === "1",
       source: String(request.body.source || "").trim().slice(0, 30),
@@ -906,6 +993,8 @@ app.get("/api/jobs/:code", (request, response) => {
     job.station = stationFrom(request.query.station);
     const customerName = sanitizeCustomerName(request.query.customerName);
     if (customerName) job.customerName = customerName;
+    const clientId = sanitizeClientId(request.query.clientId);
+    if (clientId) job.clientId = clientId;
     if (["madame", "monsieur"].includes(request.query.civility)) job.civility = request.query.civility;
     if (request.query.printCard === "1") job.printCard = true;
     writeJob(job);

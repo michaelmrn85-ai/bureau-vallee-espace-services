@@ -49,6 +49,10 @@
               <span>Oui, j'ai une carte d'impression</span>
             </label>
           </fieldset>
+          <label>
+            Deja un numero ID ?
+            <input id="customer-existing-id" name="clientId" type="text" inputmode="numeric" maxlength="5" placeholder="Facultatif, ex : 12345">
+          </label>
           <button type="submit">Continuer <span aria-hidden="true">-></span></button>
         </form>
       </div>
@@ -238,6 +242,16 @@
       <span class="print-status-spinner spinner" aria-hidden="true"></span>
       <strong id="print-status-title">Impression en cours</strong>
       <p id="print-status-detail">Merci de patienter.</p>
+    </div>
+  </div>
+
+  <div class="client-id-modal hidden" id="client-id-modal" role="dialog" aria-modal="true" aria-labelledby="client-id-title">
+    <div class="client-id-card">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallee">
+      <span>Votre ID client</span>
+      <strong id="client-id-value">00000</strong>
+      <p id="client-id-help">Gardez ce numero : prenez-le en photo ou notez-le pour vos prochaines impressions.</p>
+      <button id="close-client-id-modal" type="button">J'ai garde mon ID</button>
     </div>
   </div>
 

@@ -14,7 +14,11 @@ const customerCivilityInput = document.getElementById("customer-civility");
 const customerLastNameInput = document.getElementById("customer-last-name");
 const customerFirstNameInput = document.getElementById("customer-first-name");
 const customerPrintCardInput = document.getElementById("customer-print-card");
+const customerExistingIdInput = document.getElementById("customer-existing-id");
 const customerGreeting = document.getElementById("customer-greeting");
+const clientIdModal = document.getElementById("client-id-modal");
+const clientIdValue = document.getElementById("client-id-value");
+const closeClientIdModalBtn = document.getElementById("close-client-id-modal");
 const expirationModal = document.getElementById("expiration-modal");
 const expirationCountdown = document.getElementById("expiration-countdown");
 const closeExpirationModalBtn = document.getElementById("close-expiration-modal");
@@ -41,7 +45,7 @@ const helpButton = document.getElementById("help-button");
 let currentCode = "";
 let activeJob = null;
 let currentFlow = "";
-let currentCustomer = { civility: "", firstName: "", lastName: "", printCard: false };
+let currentCustomer = { id: "", civility: "", firstName: "", lastName: "", printCard: false };
 let deletionSeconds = 0;
 let deletionInterval = null;
 let expirationWarningShown = false;
@@ -70,6 +74,11 @@ function cleanNamePart(value) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, 60);
 }
 
+function cleanClientId(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 5);
+  return digits.length === 5 ? digits : "";
+}
+
 function customerFullName() {
   return [currentCustomer.firstName, currentCustomer.lastName].filter(Boolean).join(" ").trim();
 }
@@ -89,7 +98,8 @@ function customerDisplayName() {
 function updateCustomerGreeting() {
   if (!customerGreeting) return;
   const name = customerDisplayName();
-  customerGreeting.textContent = `Bonjour ${name}`;
+  const idLabel = currentCustomer.id ? ` - ID ${currentCustomer.id}` : "";
+  customerGreeting.textContent = `Bonjour ${name}${idLabel}`;
   customerGreeting.classList.toggle("hidden", !customerFullName());
 }
 
@@ -97,10 +107,42 @@ function customerQueryParams() {
   const params = new URLSearchParams({
     station: currentStation(),
     customerName: customerFullName(),
+    clientId: currentCustomer.id,
     civility: currentCustomer.civility,
     printCard: currentCustomer.printCard ? "1" : "0",
   });
   return params.toString();
+}
+
+function showClientIdModal(isNewClient) {
+  if (!clientIdModal || !clientIdValue || !currentCustomer.id) return;
+  clientIdValue.textContent = currentCustomer.id;
+  const helper = document.getElementById("client-id-help");
+  if (helper) {
+    helper.textContent = isNewClient
+      ? "Gardez ce numero : prenez-le en photo ou notez-le pour vos prochaines impressions."
+      : "ID retrouve. Vous pouvez continuer avec ce numero pour cette session.";
+  }
+  clientIdModal.classList.remove("hidden");
+}
+
+async function identifyCustomer() {
+  const response = await fetch("/api/clients/identify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customerName: customerFullName(),
+      clientId: currentCustomer.id,
+      civility: currentCustomer.civility,
+      printCard: currentCustomer.printCard ? "1" : "0",
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Identification impossible.");
+  currentCustomer.id = payload.client.id;
+  currentCustomer.civility = payload.client.civility || currentCustomer.civility;
+  currentCustomer.printCard = Boolean(payload.client.printCard);
+  return payload;
 }
 
 function showIdentityScreen() {
@@ -209,7 +251,7 @@ function showHome(resetCustomer = true) {
   setUsbMessage("");
   setWebmailMessage("");
   if (resetCustomer) {
-    currentCustomer = { civility: "", firstName: "", lastName: "", printCard: false };
+    currentCustomer = { id: "", civility: "", firstName: "", lastName: "", printCard: false };
     identityForm.reset();
     updateCustomerGreeting();
     showIdentityScreen();
@@ -753,6 +795,7 @@ async function uploadUsbFile() {
   formData.set("station", currentStation());
   formData.set("printMode", "noir-blanc");
   formData.set("customerName", customerFullName() || "Client cle USB");
+  formData.set("clientId", currentCustomer.id);
   formData.set("civility", currentCustomer.civility);
   formData.set("printCard", currentCustomer.printCard ? "1" : "0");
   formData.set("source", "usb");
@@ -1070,9 +1113,10 @@ document.querySelectorAll("[data-flow]").forEach((button) => {
   button.addEventListener("click", () => showFlow(button.dataset.flow));
 });
 
-identityForm.addEventListener("submit", (event) => {
+identityForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   currentCustomer = {
+    id: cleanClientId(customerExistingIdInput.value),
     civility: customerCivilityInput.value,
     lastName: cleanNamePart(customerLastNameInput.value),
     firstName: cleanNamePart(customerFirstNameInput.value),
@@ -1082,11 +1126,34 @@ identityForm.addEventListener("submit", (event) => {
     showIdentityScreen();
     return;
   }
-  hideIdentityScreen();
-  updateCustomerGreeting();
-  refreshQrIdentity();
-  setHomeMessage(`Bonjour ${customerDisplayName()}, choisissez votre mode d'impression.`, "success");
+  const submitButton = identityForm.querySelector("button[type='submit']");
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Identification...";
+  }
+  try {
+    const payload = await identifyCustomer();
+    hideIdentityScreen();
+    updateCustomerGreeting();
+    refreshQrIdentity();
+    showClientIdModal(payload.isNew);
+    setHomeMessage(`Bonjour ${customerDisplayName()}, choisissez votre mode d'impression.`, "success");
+  } catch (error) {
+    setHomeMessage(error.message, "error");
+    showIdentityScreen();
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = `Continuer <span aria-hidden="true">-&gt;</span>`;
+    }
+  }
 });
+
+if (closeClientIdModalBtn) {
+  closeClientIdModalBtn.addEventListener("click", () => {
+    clientIdModal.classList.add("hidden");
+  });
+}
 
 document.querySelectorAll("[data-back-home]").forEach((button) => {
   button.addEventListener("click", disconnectSession);

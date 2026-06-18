@@ -80,16 +80,19 @@ function clientRows() {
 
   for (const job of printableJobs()) {
     const client = job.customerName || "Client sans nom";
+    const clientId = job.clientId || "";
     const station = job.station || "poste-1";
     if (!rows.has(client)) {
       rows.set(client, {
         client,
+        clientId,
         bw: { "poste-1": 0, "poste-2": 0 },
         color: { "poste-1": 0, "poste-2": 0 },
         total: { "poste-1": 0, "poste-2": 0 },
       });
     }
     const row = rows.get(client);
+    if (!row.clientId && clientId) row.clientId = clientId;
     row.bw[station] += Number(job.bwPages || 0);
     row.color[station] += Number(job.colorPages || 0);
     row.total[station] += Number(job.totalPages || 0);
@@ -168,7 +171,7 @@ function renderReportTable() {
       <tbody>
         ${rows.length ? rows.map((row) => `
           <tr>
-            <td>${row.client}</td>
+            <td>${row.client}${row.clientId ? ` <span class="admin-client-id">ID ${row.clientId}</span>` : ""}</td>
             <td>${totalCell(row.bw, "poste-1")}</td>
             <td>${totalCell(row.bw, "poste-2")}</td>
             <td><strong>${groupTotal(row.bw)}</strong></td>

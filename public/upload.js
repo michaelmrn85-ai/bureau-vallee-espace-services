@@ -37,9 +37,11 @@ function setupCustomerFromQr() {
   const query = params();
   const customerName = cleanName(query.get("customerName"));
   const civility = civilityLabel(query.get("civility"));
+  const clientId = String(query.get("clientId") || "").replace(/\D/g, "").slice(0, 5);
   if (!customerName) return;
   customerNameInput.value = customerName;
-  mobileGreeting.textContent = `Bonjour ${[civility, customerName].filter(Boolean).join(" ")}`;
+  const idLabel = clientId.length === 5 ? ` - ID ${clientId}` : "";
+  mobileGreeting.textContent = `Bonjour ${[civility, customerName].filter(Boolean).join(" ")}${idLabel}`;
   mobileGreeting.classList.remove("hidden");
   uploadLead.textContent = "Ajoutez vos fichiers. Le code obtenu sera rattache a votre session sur le poste.";
 }
@@ -79,7 +81,9 @@ async function sendUpload() {
   formData.set("source", "qr");
   const query = params();
   const customerName = cleanName(query.get("customerName"));
+  const clientId = String(query.get("clientId") || "").replace(/\D/g, "").slice(0, 5);
   if (customerName) formData.set("customerName", customerName);
+  if (clientId.length === 5) formData.set("clientId", clientId);
   if (["madame", "monsieur"].includes(query.get("civility"))) formData.set("civility", query.get("civility"));
   if (query.get("printCard") === "1") formData.set("printCard", "1");
   if (isAdminUpload()) {

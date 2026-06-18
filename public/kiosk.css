@@ -653,6 +653,75 @@ body:not(.mobile-body) .print-status-spinner {
   border-top-color: #f3c400 !important;
 }
 
+body:not(.mobile-body) .client-id-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(5px);
+}
+
+body:not(.mobile-body) .client-id-modal.hidden {
+  display: none !important;
+}
+
+body:not(.mobile-body) .client-id-card {
+  width: 520px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 30px;
+  background: #fff;
+  color: var(--k-ink);
+  text-align: center;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.28);
+}
+
+body:not(.mobile-body) .client-id-card img {
+  width: 190px;
+  border-radius: 8px;
+}
+
+body:not(.mobile-body) .client-id-card span {
+  color: var(--k-muted);
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body:not(.mobile-body) .client-id-card strong {
+  display: block;
+  min-width: 310px;
+  border: 2px dashed #93c5fd;
+  border-radius: 8px;
+  padding: 18px 26px;
+  background: #eff6ff;
+  color: var(--k-blue-dark);
+  font-size: 72px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+body:not(.mobile-body) .client-id-card p {
+  max-width: 390px;
+  margin: 0;
+  color: var(--k-muted);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+body:not(.mobile-body) .client-id-card button {
+  min-height: 50px;
+  border-radius: 6px;
+  background: var(--k-blue) !important;
+  color: #fff !important;
+}
+
 body:not(.mobile-body) .session-screen {
   display: none !important;
 }
