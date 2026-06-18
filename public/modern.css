@@ -197,6 +197,19 @@ button {
   color: var(--green);
 }
 
+.home-warning {
+  width: min(900px, 100%);
+  margin: 18px 0 0;
+  padding: 16px 20px;
+  border: 1px solid #f0c84b;
+  border-radius: 8px;
+  background: #fff8df;
+  color: #6b4d00;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .modal {
   position: fixed;
   inset: 0;
