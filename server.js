@@ -35,6 +35,11 @@ const mailRuntimeStatus = {
   lastError: "",
   lastReplyError: "",
   lastCode: "",
+  mailboxExists: 0,
+  lastFetchedAt: "",
+  lastAttachmentCount: 0,
+  lastIgnoredReason: "",
+  processedCount: 0,
 };
 const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
@@ -628,6 +633,7 @@ async function sendMailReply(nodemailer, to, subject, text) {
 
 async function createMailJob(parsedMail) {
   const attachments = (parsedMail.attachments || []).filter((attachment) => attachment.content?.length);
+  mailRuntimeStatus.lastAttachmentCount = attachments.length;
   if (!attachments.length) {
     return { error: "Aucune piece jointe n'a ete trouvee dans votre mail." };
   }
@@ -681,6 +687,8 @@ async function createMailJob(parsedMail) {
 async function processIncomingMail(message, tools) {
   const parsedMail = await tools.simpleParser(message.source);
   const to = senderAddress(parsedMail);
+  mailRuntimeStatus.lastFetchedAt = new Date().toISOString();
+  mailRuntimeStatus.lastIgnoredReason = "";
   mailRuntimeStatus.lastReplyError = "";
   const result = await createMailJob(parsedMail);
   if (result.error) {
@@ -689,12 +697,14 @@ async function processIncomingMail(message, tools) {
     } catch (error) {
       mailRuntimeStatus.lastReplyError = error.message;
     }
+    mailRuntimeStatus.lastIgnoredReason = result.error.includes("piece jointe") ? "no_attachment" : "invalid_attachment";
     console.log("[mail] Envoi refuse " + (to || "sans expediteur") + " - " + result.error);
     return;
   }
 
   mailRuntimeStatus.lastCode = result.job.code;
   mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
+  mailRuntimeStatus.processedCount += 1;
   try {
     await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
   } catch (error) {
@@ -743,6 +753,7 @@ function startMailWatcher() {
       await client.connect();
       const lock = await client.getMailboxLock("INBOX");
       try {
+        mailRuntimeStatus.mailboxExists = client.mailbox.exists || 0;
         if (client.mailbox.exists) {
           const startSeq = Math.max(1, client.mailbox.exists - 50);
           const processedIds = readProcessedMailIds();
