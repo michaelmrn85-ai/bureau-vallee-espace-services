@@ -1441,3 +1441,51 @@ body[data-page="admin"] {
   border-top: 1px solid rgba(15, 38, 75, .14);
   font-weight: 800;
 }
+
+
+.preview-box.is-pdf {
+  overflow: hidden;
+}
+
+.preview-box.is-pdf .pdf-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.preview-box.is-photo {
+  display: block;
+  overflow: auto;
+  padding: 18px;
+  scrollbar-width: auto;
+  scrollbar-color: #8aa4c9 #edf3fb;
+}
+
+.preview-box.is-photo::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.preview-box.is-photo::-webkit-scrollbar-track {
+  background: #edf3fb;
+}
+
+.preview-box.is-photo::-webkit-scrollbar-thumb {
+  background: #8aa4c9;
+  border: 3px solid #edf3fb;
+  border-radius: 999px;
+}
+
+.preview-box.is-photo .preview-photo,
+.preview-box.is-photo.is-portrait .preview-photo,
+.preview-box.is-photo.is-landscape .preview-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: none;
+  margin: 0 auto;
+  object-fit: contain;
+  object-position: top center;
+}

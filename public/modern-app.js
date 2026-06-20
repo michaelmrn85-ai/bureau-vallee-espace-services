@@ -637,7 +637,7 @@ function fileLabel(file) {
 }
 
 function renderPreview(file) {
-  previewBox.classList.remove("is-photo", "is-portrait", "is-landscape");
+  previewBox.classList.remove("is-photo", "is-pdf", "is-portrait", "is-landscape");
   if (!file) {
     previewPages.textContent = "1 / 1";
     previewBox.innerHTML = `<p>${t("selectDocument")}</p>`;
@@ -647,7 +647,8 @@ function renderPreview(file) {
   previewPages.textContent = `1 / ${file.pages || 1}`;
   const ext = extension(file);
   if (ext === ".pdf") {
-    previewBox.innerHTML = `<iframe src="${file.viewUrl}#view=FitH" title="${file.originalName}"></iframe>`;
+    previewBox.classList.add("is-pdf");
+    previewBox.innerHTML = `<iframe class="pdf-preview-frame" src="${file.viewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="${file.originalName}"></iframe>`;
   } else if ([".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"].includes(ext)) {
     previewBox.classList.add("is-photo");
     previewBox.innerHTML = `<img class="preview-photo" src="${file.viewUrl}" alt="${file.originalName}">`;
