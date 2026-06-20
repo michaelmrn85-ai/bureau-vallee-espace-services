@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260620-preview-scroll-pdf-toolbar">
+  <link rel="stylesheet" href="/modern.css?v=20260620-photo-orientation-usb-eject">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -121,6 +121,14 @@
           <strong>Recto / verso</strong>
           <label><input name="duplex" type="radio" value="recto" checked> Recto</label>
           <label><input name="duplex" type="radio" value="recto-verso-long"> Recto verso</label>
+        </div>
+
+        <div class="setting-group photo-orientation-group hidden" id="photo-orientation-group">
+          <strong>Orientation photo</strong>
+          <p>Choisissez le sens d'impression de la photo.</p>
+          <label><input name="orientation" type="radio" value="auto" checked> Auto</label>
+          <label><input name="orientation" type="radio" value="portrait"> Portrait</label>
+          <label><input name="orientation" type="radio" value="paysage"> Paysage</label>
         </div>
 
         <label>Nombre d'exemplaires
@@ -247,7 +255,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260620-preview-scroll-pdf-toolbar"></script>
+  <script src="/modern-app.js?v=20260620-photo-orientation-usb-eject"></script>
 </body>
 </html>
 

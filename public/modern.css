@@ -1489,3 +1489,16 @@ body[data-page="admin"] {
   object-fit: contain;
   object-position: top center;
 }
+
+
+.photo-orientation-group {
+  border-color: #9fc7ff;
+  background: #f5f9ff;
+}
+
+.photo-orientation-group p {
+  margin: 2px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}

@@ -34,6 +34,7 @@ const ejectUsbButton = document.getElementById("eject-usb");
 const endSessionButton = document.getElementById("end-session");
 const copiesInput = document.getElementById("copies");
 const pageRangeInput = document.getElementById("page-range");
+const photoOrientationGroup = document.getElementById("photo-orientation-group");
 const qrModal = document.getElementById("qr-modal");
 const qrImage = document.getElementById("qr-image");
 const uploadUrl = document.getElementById("upload-url");
@@ -93,6 +94,11 @@ const I18N = {
     color: "Couleur",
     bw: "Noir et blanc",
     duplex: "Recto / verso",
+    photoOrientation: "Orientation photo",
+    orientationHelp: "Choisissez le sens d'impression de la photo.",
+    orientationAuto: "Auto",
+    orientationPortrait: "Portrait",
+    orientationLandscape: "Paysage",
     simplex: "Recto",
     duplexLong: "Recto verso",
     copies: "Nombre d'exemplaires",
@@ -157,6 +163,11 @@ const I18N = {
     color: "Color",
     bw: "Black and white",
     duplex: "Single / double-sided",
+    photoOrientation: "Photo orientation",
+    orientationHelp: "Choose the print direction for the photo.",
+    orientationAuto: "Auto",
+    orientationPortrait: "Portrait",
+    orientationLandscape: "Landscape",
     simplex: "Single-sided",
     duplexLong: "Double-sided",
     copies: "Number of copies",
@@ -221,6 +232,11 @@ const I18N = {
     color: "Color",
     bw: "Blanco y negro",
     duplex: "Una / doble cara",
+    photoOrientation: "Orientación de foto",
+    orientationHelp: "Elija el sentido de impresión de la foto.",
+    orientationAuto: "Auto",
+    orientationPortrait: "Vertical",
+    orientationLandscape: "Horizontal",
     simplex: "Una cara",
     duplexLong: "Doble cara",
     copies: "Número de copias",
@@ -285,6 +301,11 @@ const I18N = {
     color: "Farbe",
     bw: "Schwarzweiß",
     duplex: "Einseitig / doppelseitig",
+    photoOrientation: "Fotoausrichtung",
+    orientationHelp: "Wählen Sie die Druckrichtung des Fotos.",
+    orientationAuto: "Auto",
+    orientationPortrait: "Hochformat",
+    orientationLandscape: "Querformat",
     simplex: "Einseitig",
     duplexLong: "Doppelseitig",
     copies: "Anzahl Kopien",
@@ -371,7 +392,7 @@ function applyTranslations() {
   endSessionButton.textContent = t("endSession");
   setText(".doc-panel .panel-title h2", "documents");
   setText(".settings-panel h2", "settings");
-  setAllText(".setting-group > strong", ["paper", "color", "duplex"]);
+  setAllText(".setting-group > strong", ["paper", "color", "duplex", "photoOrientation"]);
   setAllText(".setting-group label", ["", "", "", ""]);
   document.querySelectorAll(".setting-group")[1]?.querySelectorAll("label").forEach((label, index) => {
     label.childNodes[label.childNodes.length - 1].textContent = index === 0 ? ` ${t("bw")}` : ` ${t("color")}`;
@@ -379,6 +400,15 @@ function applyTranslations() {
   document.querySelectorAll(".setting-group")[2]?.querySelectorAll("label").forEach((label, index) => {
     label.childNodes[label.childNodes.length - 1].textContent = index === 0 ? ` ${t("simplex")}` : ` ${t("duplexLong")}`;
   });
+  const orientationGroup = document.getElementById("photo-orientation-group");
+  if (orientationGroup) {
+    const help = orientationGroup.querySelector("p");
+    if (help) help.textContent = t("orientationHelp");
+    orientationGroup.querySelectorAll("label").forEach((label, index) => {
+      const keys = ["orientationAuto", "orientationPortrait", "orientationLandscape"];
+      label.childNodes[label.childNodes.length - 1].textContent = ` ${t(keys[index])}`;
+    });
+  }
   copiesInput.closest("label").childNodes[0].textContent = t("copies") + " ";
   pageRangeInput.closest("label").childNodes[0].textContent = t("pages") + " ";
   pageRangeInput.placeholder = t("allPages");
@@ -636,7 +666,30 @@ function fileLabel(file) {
   return extension(file).replace(".", "").toUpperCase() || "DOC";
 }
 
+function isPhotoFile(file) {
+  return [".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"].includes(extension(file));
+}
+
+function selectedPreviewFile() {
+  return currentJob?.files?.find((file) => file.id === selectedFileId) || currentJob?.files?.[0] || null;
+}
+
+function updateSessionControls() {
+  const source = String(currentJob?.source || "").toLowerCase();
+  ejectUsbButton.classList.toggle("hidden", source !== "usb");
+}
+
+function updatePhotoOrientationControls(file) {
+  const isPhoto = isPhotoFile(file);
+  photoOrientationGroup?.classList.toggle("hidden", !isPhoto);
+  if (!isPhoto) {
+    const autoOrientation = document.querySelector("input[name='orientation'][value='auto']");
+    if (autoOrientation) autoOrientation.checked = true;
+  }
+}
+
 function renderPreview(file) {
+  updatePhotoOrientationControls(file);
   previewBox.classList.remove("is-photo", "is-pdf", "is-portrait", "is-landscape");
   if (!file) {
     previewPages.textContent = "1 / 1";
@@ -649,7 +702,7 @@ function renderPreview(file) {
   if (ext === ".pdf") {
     previewBox.classList.add("is-pdf");
     previewBox.innerHTML = `<iframe class="pdf-preview-frame" src="${file.viewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="${file.originalName}"></iframe>`;
-  } else if ([".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"].includes(ext)) {
+  } else if (isPhotoFile(file)) {
     previewBox.classList.add("is-photo");
     previewBox.innerHTML = `<img class="preview-photo" src="${file.viewUrl}" alt="${file.originalName}">`;
     const image = previewBox.querySelector("img");
@@ -683,7 +736,8 @@ function renderJob(job) {
       <button class="delete-file" type="button" data-delete-file="${file.id}" aria-label="Supprimer ${file.originalName}">x</button>
     </article>
   `).join("") : `<p class="empty-documents">Aucun document dans cette session.</p>`;
-  renderPreview(job.files.find((file) => file.id === selectedFileId) || job.files[0]);
+  renderPreview(selectedPreviewFile());
+  updateSessionControls();
   showPrintScreen();
 }
 
@@ -693,7 +747,7 @@ function printSettings() {
     duplex: document.querySelector("input[name='duplex']:checked")?.value || "recto",
     paperSize: document.querySelector("input[name='paperSize']:checked")?.value || "A4",
     scaling: "ajuster",
-    orientation: "auto",
+    orientation: document.querySelector("input[name='orientation']:checked")?.value || "auto",
     pageRange: pageRangeInput.value.trim(),
     pagesPerSheet: 1,
     copies: Math.max(1, Number.parseInt(copiesInput.value, 10) || 1),
@@ -936,6 +990,7 @@ async function endSession(isAutomatic = false) {
     selectedFileId = "";
     selectedFileIds = new Set();
     renderPreview(null);
+    updateSessionControls();
     documentList.innerHTML = "";
     documentCount.textContent = "0";
     showHomeScreen();
