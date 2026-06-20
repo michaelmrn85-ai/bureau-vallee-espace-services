@@ -48,6 +48,7 @@ const loadMailCode = document.getElementById("load-mail-code");
 const mailWaitTimer = document.getElementById("mail-wait-timer");
 
 const MAX_FILES_PER_UPLOAD = 5;
+const MAIL_WAIT_DURATION_MS = 2 * 60 * 1000;
 
 let currentJob = null;
 let selectedFileId = "";
@@ -86,11 +87,18 @@ function startDigitalClock() {
 function startMailWaitTimer() {
   if (!mailWaitTimer) return;
   clearInterval(mailWaitInterval);
-  mailWaitStartedAt = Date.now();
-  mailWaitTimer.textContent = "00:00";
-  mailWaitInterval = setInterval(() => {
-    mailWaitTimer.textContent = formatElapsed(Date.now() - mailWaitStartedAt);
-  }, 1000);
+
+  const deadline = Date.now() + MAIL_WAIT_DURATION_MS;
+  const updateCountdown = () => {
+    const remaining = Math.max(0, deadline - Date.now());
+    mailWaitTimer.textContent = formatElapsed(remaining);
+    mailWaitTimer.classList.toggle("is-done", remaining === 0);
+    if (remaining === 0) clearInterval(mailWaitInterval);
+  };
+
+  mailWaitTimer.classList.remove("is-done");
+  updateCountdown();
+  mailWaitInterval = setInterval(updateCountdown, 1000);
 }
 
 function stopMailWaitTimer() {
@@ -302,7 +310,7 @@ async function openMailModal() {
   mailAddress.textContent = "kiosk.es@zohomail.eu";
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
-  setStatus("Envoyez vos pieces jointes par mail, puis ouvrez le code dossier recu.", "success");
+  setStatus("Envoyez vos pieces jointes par mail, patientez puis ouvrez le code dossier recu.", "success");
   try {
     const params = qrParams("mail");
     const response = await fetch(`/api/config?${params}`);

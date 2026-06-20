@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-client-polish">
+  <link rel="stylesheet" href="/modern.css?v=20260620-mail-steps">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -165,23 +165,46 @@
     <div class="modal-card mail-card">
       <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
       <h2>Envoyer par mail</h2>
-      <p>Envoyez ou transferez vos fichiers en piece jointe a cette adresse, puis saisissez le code dossier recu. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
-      <div class="mail-address-box">
-        <span>Adresse du poste</span>
-        <strong id="mail-address">kiosk.es@zohomail.eu</strong>
-        <button id="copy-mail" type="button">Copier</button>
+      <p class="mail-intro">Suivez les 3 étapes. Le code arrive dans votre boîte mail après réception des pièces jointes.</p>
+
+      <div class="mail-steps">
+        <section class="mail-step-card">
+          <span class="step-number">1</span>
+          <h3>Envoyez vos fichiers</h3>
+          <p>Envoyez ou transférez vos fichiers en pièce jointe à cette adresse.</p>
+          <div class="mail-address-box">
+            <span>Adresse du poste</span>
+            <strong id="mail-address">kiosk.es@zohomail.eu</strong>
+            <button id="copy-mail" type="button">Copier</button>
+          </div>
+        </section>
+
+        <section class="mail-step-card mail-step-wait">
+          <span class="step-number">2</span>
+          <h3>Patientez</h3>
+          <p>Le serveur récupère le mail et prépare le dossier d'impression.</p>
+          <div class="mail-countdown">
+            <span>Temps conseillé</span>
+            <strong id="mail-wait-timer">02:00</strong>
+          </div>
+          <small>Vous pouvez saisir le code dès que vous le recevez.</small>
+        </section>
+
+        <section class="mail-step-card">
+          <span class="step-number">3</span>
+          <h3>Saisissez le code</h3>
+          <p>Entrez le code reçu dans votre boîte mail pour ouvrir vos fichiers sur ce poste.</p>
+          <div class="code-box mail-code-box">
+            <label for="mail-code-input">Code reçu par mail</label>
+            <div>
+              <input id="mail-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
+              <button id="load-mail-code" type="button">Ouvrir</button>
+            </div>
+          </div>
+        </section>
       </div>
-      <div class="mail-wait-box">
-        <span>Temps d'attente du code</span>
-        <strong id="mail-wait-timer">00:00</strong>
-      </div>
-      <div class="code-box">
-        <label for="mail-code-input">Code dossier reçu par mail</label>
-        <div>
-          <input id="mail-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
-          <button id="load-mail-code" type="button">Ouvrir</button>
-        </div>
-      </div>
+
+      <p class="mail-limit-note">Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
     </div>
   </div>
 
@@ -216,7 +239,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260618-client-polish"></script>
+  <script src="/modern-app.js?v=20260620-mail-steps"></script>
 </body>
 </html>
 
