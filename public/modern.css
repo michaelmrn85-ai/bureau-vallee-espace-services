@@ -45,6 +45,37 @@ button {
   overflow: hidden;
 }
 
+.language-switcher {
+  position: fixed;
+  top: 22px;
+  right: 132px;
+  z-index: 31;
+  display: flex;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid rgba(13, 96, 191, .18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 12px 34px rgba(7, 20, 47, .08);
+}
+
+.language-switcher button {
+  min-width: 42px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.language-switcher button.active {
+  border-color: #9fc7ff;
+  background: #eef6ff;
+  color: var(--blue);
+}
+
 .digital-clock {
   position: fixed;
   top: 22px;

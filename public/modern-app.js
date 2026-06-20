@@ -2,6 +2,7 @@
 const brandTitle = document.getElementById("brand-title");
 const stationLabel = document.getElementById("station-label");
 const digitalClock = document.getElementById("digital-clock");
+const languageButtons = document.querySelectorAll("[data-lang]");
 const homeScreen = document.getElementById("home-screen");
 const printScreen = document.getElementById("print-screen");
 const usbButton = document.getElementById("usb-button");
@@ -61,8 +62,349 @@ let clockInterval = null;
 let mailWaitInterval = null;
 let mailWaitStartedAt = 0;
 
+const LANGUAGE_STORAGE_KEY = "bv-espace-services-language";
+let currentLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || "fr";
+const I18N = {
+  fr: {
+    station1: "Poste 1",
+    station2: "Poste 2",
+    brandTitle: "{station} - Espace Services",
+    stationPrint: "Poste d'impression",
+    welcomeTitle: "Comment souhaitez-vous envoyer vos documents ?",
+    welcomeLead: "Choisissez une option pour commencer. Vos fichiers seront préparés avant impression afin d'éviter les erreurs.",
+    wordWarning: "Les fichiers Word, DOC et DOCX ne sont pas acceptés sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.",
+    usbTitle: "Impression via clé USB",
+    usbSmall: "Insérez votre clé USB puis sélectionnez vos fichiers.",
+    qrTitle: "Impression via QR Code",
+    qrSmall: "Scannez le QR code avec votre téléphone pour envoyer vos fichiers.",
+    mailTitle: "Envoi de fichiers par mail",
+    mailSmall: "Envoyez vos pièces jointes à l'adresse du poste, puis ouvrez le dossier reçu.",
+    home: "< Accueil",
+    jobCode: "Code dossier",
+    preparePrint: "Préparer l'impression",
+    addFiles: "+ Ajouter des fichiers",
+    ejectUsb: "Éjecter clé USB",
+    endSession: "Fin de session",
+    documents: "Documents",
+    settings: "Configuration",
+    paper: "Format papier",
+    color: "Couleur",
+    bw: "Noir et blanc",
+    duplex: "Recto / verso",
+    simplex: "Recto",
+    duplexLong: "Recto verso",
+    copies: "Nombre d'exemplaires",
+    pages: "Pages à imprimer",
+    allPages: "Toutes les pages",
+    printSelection: "Imprimer la sélection",
+    preview: "Aperçu",
+    selectDocument: "Sélectionnez un document.",
+    qrModalTitle: "Envoyer depuis votre téléphone",
+    qrModalText: "Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.",
+    codePhone: "Code reçu sur le téléphone",
+    open: "Ouvrir",
+    copy: "Copier",
+    mailModalTitle: "Envoyer par mail",
+    mailIntro: "Suivez les 3 étapes. Le code arrive dans votre boîte mail après réception des pièces jointes.",
+    stepSend: "Envoyez vos fichiers",
+    stepSendText: "Envoyez ou transférez vos fichiers en pièce jointe à cette adresse.",
+    address: "Adresse du poste",
+    stepWait: "Patientez",
+    stepWaitText: "Le serveur récupère le mail et prépare le dossier d'impression.",
+    advisedTime: "Temps conseillé",
+    stepWaitSmall: "Vous pouvez saisir le code dès que vous le recevez.",
+    stepCode: "Saisissez le code",
+    stepCodeText: "Entrez le code reçu dans votre boîte mail pour ouvrir vos fichiers sur ce poste.",
+    codeMail: "Code reçu par mail",
+    mailLimit: "Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.",
+    printInProgress: "Impression en cours",
+    printWait: "Merci de patienter, vos documents sont envoyés au copieur.",
+    stepPrepare: "Préparation du document",
+    stepServer: "Envoi au serveur",
+    stepQueue: "Mise en file d'attente",
+    stepPrinter: "Transmission au copieur",
+    loadingTitle: "Recherche en cours",
+    loadingText: "Le serveur prépare votre demande.",
+    information: "Information",
+    ok: "OK"
+  },
+  en: {
+    station1: "Station 1",
+    station2: "Station 2",
+    brandTitle: "{station} - Service Desk",
+    stationPrint: "Print station",
+    welcomeTitle: "How would you like to send your documents?",
+    welcomeLead: "Choose an option to start. Your files will be prepared before printing to avoid mistakes.",
+    wordWarning: "Word, DOC and DOCX files are not accepted on these stations. Please ask a sales assistant.",
+    usbTitle: "Print from USB key",
+    usbSmall: "Insert your USB key, then select your files.",
+    qrTitle: "Print via QR Code",
+    qrSmall: "Scan the QR code with your phone to send your files.",
+    mailTitle: "Send files by email",
+    mailSmall: "Send your attachments to the station address, then open the received folder.",
+    home: "< Home",
+    jobCode: "Folder code",
+    preparePrint: "Prepare printing",
+    addFiles: "+ Add files",
+    ejectUsb: "Eject USB key",
+    endSession: "End session",
+    documents: "Documents",
+    settings: "Settings",
+    paper: "Paper size",
+    color: "Color",
+    bw: "Black and white",
+    duplex: "Single / double-sided",
+    simplex: "Single-sided",
+    duplexLong: "Double-sided",
+    copies: "Number of copies",
+    pages: "Pages to print",
+    allPages: "All pages",
+    printSelection: "Print selection",
+    preview: "Preview",
+    selectDocument: "Select a document.",
+    qrModalTitle: "Send from your phone",
+    qrModalText: "Scan this QR code with your phone, then add your files. Limit: 5 files per upload. Canva exports in PDF, PNG or JPEG are accepted.",
+    codePhone: "Code received on your phone",
+    open: "Open",
+    copy: "Copy",
+    mailModalTitle: "Send by email",
+    mailIntro: "Follow the 3 steps. The code arrives in your mailbox after the attachments are received.",
+    stepSend: "Send your files",
+    stepSendText: "Send or forward your files as attachments to this address.",
+    address: "Station address",
+    stepWait: "Please wait",
+    stepWaitText: "The server retrieves the email and prepares the print folder.",
+    advisedTime: "Suggested time",
+    stepWaitSmall: "You can enter the code as soon as you receive it.",
+    stepCode: "Enter the code",
+    stepCodeText: "Enter the code received in your mailbox to open your files on this station.",
+    codeMail: "Code received by email",
+    mailLimit: "Limit: 5 files per email. Canva exports in PDF, PNG or JPEG are accepted.",
+    printInProgress: "Printing in progress",
+    printWait: "Please wait, your documents are being sent to the copier.",
+    stepPrepare: "Preparing document",
+    stepServer: "Sending to server",
+    stepQueue: "Adding to queue",
+    stepPrinter: "Sending to copier",
+    loadingTitle: "Searching",
+    loadingText: "The server is preparing your request.",
+    information: "Information",
+    ok: "OK"
+  },
+  es: {
+    station1: "Puesto 1",
+    station2: "Puesto 2",
+    brandTitle: "{station} - Servicios",
+    stationPrint: "Puesto de impresión",
+    welcomeTitle: "¿Cómo desea enviar sus documentos?",
+    welcomeLead: "Elija una opción para empezar. Sus archivos se prepararán antes de imprimir para evitar errores.",
+    wordWarning: "Los archivos Word, DOC y DOCX no se aceptan en estos puestos. Consulte a un vendedor o vendedora.",
+    usbTitle: "Imprimir desde USB",
+    usbSmall: "Inserte su memoria USB y seleccione sus archivos.",
+    qrTitle: "Imprimir con código QR",
+    qrSmall: "Escanee el código QR con su teléfono para enviar sus archivos.",
+    mailTitle: "Enviar archivos por email",
+    mailSmall: "Envíe sus adjuntos a la dirección del puesto y abra la carpeta recibida.",
+    home: "< Inicio",
+    jobCode: "Código de carpeta",
+    preparePrint: "Preparar impresión",
+    addFiles: "+ Añadir archivos",
+    ejectUsb: "Expulsar USB",
+    endSession: "Finalizar sesión",
+    documents: "Documentos",
+    settings: "Configuración",
+    paper: "Tamaño de papel",
+    color: "Color",
+    bw: "Blanco y negro",
+    duplex: "Una / doble cara",
+    simplex: "Una cara",
+    duplexLong: "Doble cara",
+    copies: "Número de copias",
+    pages: "Páginas a imprimir",
+    allPages: "Todas las páginas",
+    printSelection: "Imprimir selección",
+    preview: "Vista previa",
+    selectDocument: "Seleccione un documento.",
+    qrModalTitle: "Enviar desde su teléfono",
+    qrModalText: "Escanee este código QR con su teléfono y añada sus archivos. Límite: 5 archivos por envío. Se aceptan exportaciones Canva en PDF, PNG o JPEG.",
+    codePhone: "Código recibido en el teléfono",
+    open: "Abrir",
+    copy: "Copiar",
+    mailModalTitle: "Enviar por email",
+    mailIntro: "Siga los 3 pasos. El código llega a su correo después de recibir los adjuntos.",
+    stepSend: "Envíe sus archivos",
+    stepSendText: "Envíe o reenvíe sus archivos adjuntos a esta dirección.",
+    address: "Dirección del puesto",
+    stepWait: "Espere",
+    stepWaitText: "El servidor recupera el email y prepara la carpeta de impresión.",
+    advisedTime: "Tiempo recomendado",
+    stepWaitSmall: "Puede introducir el código en cuanto lo reciba.",
+    stepCode: "Introduzca el código",
+    stepCodeText: "Introduzca el código recibido por email para abrir sus archivos en este puesto.",
+    codeMail: "Código recibido por email",
+    mailLimit: "Límite: 5 archivos por email. Se aceptan exportaciones Canva en PDF, PNG o JPEG.",
+    printInProgress: "Impresión en curso",
+    printWait: "Espere, sus documentos se están enviando a la copiadora.",
+    stepPrepare: "Preparando documento",
+    stepServer: "Enviando al servidor",
+    stepQueue: "Añadiendo a la cola",
+    stepPrinter: "Enviando a la copiadora",
+    loadingTitle: "Buscando",
+    loadingText: "El servidor está preparando su solicitud.",
+    information: "Información",
+    ok: "OK"
+  },
+  de: {
+    station1: "Station 1",
+    station2: "Station 2",
+    brandTitle: "{station} - Servicebereich",
+    stationPrint: "Druckstation",
+    welcomeTitle: "Wie möchten Sie Ihre Dokumente senden?",
+    welcomeLead: "Wählen Sie eine Option. Ihre Dateien werden vor dem Drucken vorbereitet, um Fehler zu vermeiden.",
+    wordWarning: "Word-, DOC- und DOCX-Dateien werden an diesen Stationen nicht akzeptiert. Bitte wenden Sie sich an das Verkaufsteam.",
+    usbTitle: "Von USB-Stick drucken",
+    usbSmall: "Stecken Sie Ihren USB-Stick ein und wählen Sie Ihre Dateien.",
+    qrTitle: "Per QR-Code drucken",
+    qrSmall: "Scannen Sie den QR-Code mit Ihrem Telefon, um Ihre Dateien zu senden.",
+    mailTitle: "Dateien per E-Mail senden",
+    mailSmall: "Senden Sie Ihre Anhänge an die Adresse der Station und öffnen Sie den erhaltenen Ordner.",
+    home: "< Start",
+    jobCode: "Ordnercode",
+    preparePrint: "Druck vorbereiten",
+    addFiles: "+ Dateien hinzufügen",
+    ejectUsb: "USB-Stick auswerfen",
+    endSession: "Sitzung beenden",
+    documents: "Dokumente",
+    settings: "Einstellungen",
+    paper: "Papierformat",
+    color: "Farbe",
+    bw: "Schwarzweiß",
+    duplex: "Einseitig / doppelseitig",
+    simplex: "Einseitig",
+    duplexLong: "Doppelseitig",
+    copies: "Anzahl Kopien",
+    pages: "Zu druckende Seiten",
+    allPages: "Alle Seiten",
+    printSelection: "Auswahl drucken",
+    preview: "Vorschau",
+    selectDocument: "Wählen Sie ein Dokument.",
+    qrModalTitle: "Vom Telefon senden",
+    qrModalText: "Scannen Sie diesen QR-Code mit Ihrem Telefon und fügen Sie Ihre Dateien hinzu. Limit: 5 Dateien pro Upload. Canva-Exporte als PDF, PNG oder JPEG werden akzeptiert.",
+    codePhone: "Code auf dem Telefon erhalten",
+    open: "Öffnen",
+    copy: "Kopieren",
+    mailModalTitle: "Per E-Mail senden",
+    mailIntro: "Folgen Sie den 3 Schritten. Der Code kommt nach Eingang der Anhänge in Ihrem Postfach an.",
+    stepSend: "Dateien senden",
+    stepSendText: "Senden oder leiten Sie Ihre Dateien als Anhänge an diese Adresse weiter.",
+    address: "Adresse der Station",
+    stepWait: "Bitte warten",
+    stepWaitText: "Der Server ruft die E-Mail ab und bereitet den Druckordner vor.",
+    advisedTime: "Empfohlene Zeit",
+    stepWaitSmall: "Sie können den Code eingeben, sobald Sie ihn erhalten.",
+    stepCode: "Code eingeben",
+    stepCodeText: "Geben Sie den per E-Mail erhaltenen Code ein, um Ihre Dateien an dieser Station zu öffnen.",
+    codeMail: "Code per E-Mail erhalten",
+    mailLimit: "Limit: 5 Dateien pro E-Mail. Canva-Exporte als PDF, PNG oder JPEG werden akzeptiert.",
+    printInProgress: "Druck läuft",
+    printWait: "Bitte warten, Ihre Dokumente werden an den Kopierer gesendet.",
+    stepPrepare: "Dokument vorbereiten",
+    stepServer: "An Server senden",
+    stepQueue: "In Warteschlange stellen",
+    stepPrinter: "An Kopierer senden",
+    loadingTitle: "Suche läuft",
+    loadingText: "Der Server bereitet Ihre Anfrage vor.",
+    information: "Information",
+    ok: "OK"
+  }
+};
+
+function t(key, values = {}) {
+  const dictionary = I18N[currentLanguage] || I18N.fr;
+  let text = dictionary[key] || I18N.fr[key] || key;
+  Object.entries(values).forEach(([name, value]) => {
+    text = text.replaceAll(`{${name}}`, value);
+  });
+  return text;
+}
+
+function setText(selector, key) {
+  const element = document.querySelector(selector);
+  if (element) element.textContent = t(key);
+}
+
+function setAllText(selector, keys) {
+  document.querySelectorAll(selector).forEach((element, index) => {
+    if (keys[index]) element.textContent = t(keys[index]);
+  });
+}
+
+function applyTranslations() {
+  document.documentElement.lang = currentLanguage;
+  languageButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.lang === currentLanguage);
+  });
+  const currentStation = stationName();
+  brandTitle.textContent = t("brandTitle", { station: currentStation });
+  stationLabel.textContent = currentStation;
+  setText(".welcome-panel .station", station === "poste-2" ? "station2" : "station1");
+  setText(".welcome-panel h2", "welcomeTitle");
+  setText(".lead", "welcomeLead");
+  setText(".home-warning", "wordWarning");
+  setText("#usb-button strong", "usbTitle");
+  setText("#usb-button small", "usbSmall");
+  setText("#qr-button strong", "qrTitle");
+  setText("#qr-button small", "qrSmall");
+  setText("#mail-button strong", "mailTitle");
+  setText("#mail-button small", "mailSmall");
+  backHome.textContent = t("home");
+  jobCode.textContent = t("jobCode");
+  setText(".print-header h1", "preparePrint");
+  addMoreFiles.textContent = t("addFiles");
+  ejectUsbButton.textContent = t("ejectUsb");
+  endSessionButton.textContent = t("endSession");
+  setText(".doc-panel .panel-title h2", "documents");
+  setText(".settings-panel h2", "settings");
+  setAllText(".setting-group > strong", ["paper", "color", "duplex"]);
+  setAllText(".setting-group label", ["", "", "", ""]);
+  document.querySelectorAll(".setting-group")[1]?.querySelectorAll("label").forEach((label, index) => {
+    label.childNodes[label.childNodes.length - 1].textContent = index === 0 ? ` ${t("bw")}` : ` ${t("color")}`;
+  });
+  document.querySelectorAll(".setting-group")[2]?.querySelectorAll("label").forEach((label, index) => {
+    label.childNodes[label.childNodes.length - 1].textContent = index === 0 ? ` ${t("simplex")}` : ` ${t("duplexLong")}`;
+  });
+  copiesInput.closest("label").childNodes[0].textContent = t("copies") + " ";
+  pageRangeInput.closest("label").childNodes[0].textContent = t("pages") + " ";
+  pageRangeInput.placeholder = t("allPages");
+  printButton.textContent = t("printSelection");
+  setText(".preview-panel .panel-title h2", "preview");
+  if (!currentJob) renderPreview(null);
+  setText("#qr-modal h2", "qrModalTitle");
+  setText("#qr-modal .modal-card > p", "qrModalText");
+  setText("label[for='qr-code-input']", "codePhone");
+  loadCode.textContent = t("open");
+  copyUrl.textContent = t("copy");
+  setText("#mail-modal h2", "mailModalTitle");
+  setText(".mail-intro", "mailIntro");
+  setAllText(".mail-step-card h3", ["stepSend", "stepWait", "stepCode"]);
+  setAllText(".mail-step-card > p", ["stepSendText", "stepWaitText", "stepCodeText"]);
+  setText(".mail-address-box span", "address");
+  copyMail.textContent = t("copy");
+  setText(".mail-countdown span", "advisedTime");
+  setText(".mail-step-wait small", "stepWaitSmall");
+  setText("label[for='mail-code-input']", "codeMail");
+  loadMailCode.textContent = t("open");
+  setText(".mail-limit-note", "mailLimit");
+  setText("#print-modal h2", "printInProgress");
+  setText("#print-modal p", "printWait");
+  setAllText("#print-steps li", ["stepPrepare", "stepServer", "stepQueue", "stepPrinter"]);
+  loadingTitle.textContent = t("loadingTitle");
+  loadingText.textContent = t("loadingText");
+  infoOk.textContent = t("ok");
+}
+
 function stationName() {
-  return station === "poste-2" ? "Poste 2" : "Poste 1";
+  return station === "poste-2" ? t("station2") : t("station1");
 }
 
 function formatClock(date = new Date()) {
@@ -230,7 +572,7 @@ function fileLabel(file) {
 function renderPreview(file) {
   if (!file) {
     previewPages.textContent = "1 / 1";
-    previewBox.innerHTML = "<p>Selectionnez un document.</p>";
+    previewBox.innerHTML = `<p>${t("selectDocument")}</p>`;
     return;
   }
 
@@ -295,7 +637,7 @@ async function openQrModal() {
   uploadUrl.value = "Preparation du lien...";
   qrCodeInput.value = "";
   qrModal.classList.remove("hidden");
-  setStatus("Scannez le QR code pour envoyer vos documents.", "success");
+  setStatus(currentLanguage === "fr" ? "Scannez le QR code pour envoyer vos documents." : t("qrSmall"), "success");
   try {
     const response = await fetch(`/api/config?${params}`);
     const payload = await response.json();
@@ -310,7 +652,7 @@ async function openMailModal() {
   mailAddress.textContent = "kiosk.es@zohomail.eu";
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
-  setStatus("Envoyez vos pieces jointes par mail, patientez puis ouvrez le code dossier recu.", "success");
+  setStatus(t("mailIntro"), "success");
   try {
     const params = qrParams("mail");
     const response = await fetch(`/api/config?${params}`);
@@ -323,11 +665,11 @@ async function openMailModal() {
 async function loadJobFromCode(inputElement = qrCodeInput) {
   const code = String(inputElement.value || "").replace(/\D/g, "").slice(0, 4);
   if (code.length !== 4) {
-    showInfo("Code invalide", "Entrez le code a 4 chiffres affiche sur le telephone.");
+    showInfo(t("information"), currentLanguage === "fr" ? "Entrez le code à 4 chiffres." : "Enter the 4-digit code.");
     return;
   }
 
-  showLoading(true, "Recherche du dossier", "Le serveur recherche les fichiers envoyes.");
+  showLoading(true, t("loadingTitle"), "Le serveur recherche les fichiers envoyes.");
   try {
     const response = await fetch(`/api/jobs/${code}?station=${station}`);
     const payload = await response.json();
@@ -529,13 +871,19 @@ async function endSession(isAutomatic = false) {
   }
 }
 
-brandTitle.textContent = `${stationName()} - Espace Services`;
-stationLabel.textContent = stationName();
+applyTranslations();
 startDigitalClock();
 
 usbButton.addEventListener("click", () => usbFiles.click());
 qrButton.addEventListener("click", openQrModal);
 mailButton.addEventListener("click", openMailModal);
+languageButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    currentLanguage = button.dataset.lang || "fr";
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+    applyTranslations();
+  });
+});
 
 usbFiles.addEventListener("change", () => {
   if (currentJob?.code && !printScreen.classList.contains("hidden")) addFilesToCurrentJob([...usbFiles.files]);
