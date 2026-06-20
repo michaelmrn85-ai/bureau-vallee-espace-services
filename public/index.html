@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260620-languages">
+  <link rel="stylesheet" href="/modern.css?v=20260620-upload-preview-weight">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -218,13 +218,15 @@
     <div class="modal-card print-progress-card">
       <div class="loader" aria-hidden="true"></div>
       <h2>Impression en cours</h2>
-      <p>Merci de patienter, vos documents sont envoyés au copieur.</p>
+      <p id="print-progress-text">Merci de patienter, vos documents sont envoyés au copieur.</p>
       <ol class="print-steps" id="print-steps">
-        <li data-step="prepare">Préparation du document</li>
-        <li data-step="server">Envoi au serveur</li>
-        <li data-step="queue">Mise en file d'attente</li>
-        <li data-step="printer">Transmission au copieur</li>
+        <li data-step="prepare">Vérification des options</li>
+        <li data-step="server">Préparation du fichier</li>
+        <li data-step="queue">Envoi dans la file du poste</li>
+        <li data-step="agent">Prise en charge par le poste</li>
+        <li data-step="printer">Impression lancée au copieur</li>
       </ol>
+      <p class="print-safe-note">Vous pouvez patienter devant le poste. Le message se ferme quand le lancement est confirmé.</p>
     </div>
   </div>
 
@@ -245,7 +247,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260620-languages"></script>
+  <script src="/modern-app.js?v=20260620-upload-preview-weight"></script>
 </body>
 </html>
 

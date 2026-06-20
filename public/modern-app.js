@@ -19,6 +19,7 @@ const printButton = document.getElementById("print-button");
 const printStatus = document.getElementById("print-status");
 const printModal = document.getElementById("print-modal");
 const printSteps = document.getElementById("print-steps");
+const printProgressText = document.getElementById("print-progress-text");
 const loadingModal = document.getElementById("loading-modal");
 const loadingTitle = document.getElementById("loading-title");
 const loadingText = document.getElementById("loading-text");
@@ -48,7 +49,8 @@ const mailCodeInput = document.getElementById("mail-code-input");
 const loadMailCode = document.getElementById("load-mail-code");
 const mailWaitTimer = document.getElementById("mail-wait-timer");
 
-const MAX_FILES_PER_UPLOAD = 5;
+const MAX_TOTAL_UPLOAD_SIZE_MB = 500;
+const MAX_TOTAL_UPLOAD_SIZE = MAX_TOTAL_UPLOAD_SIZE_MB * 1024 * 1024;
 const MAIL_WAIT_DURATION_MS = 2 * 60 * 1000;
 
 let currentJob = null;
@@ -100,7 +102,7 @@ const I18N = {
     preview: "Aperçu",
     selectDocument: "Sélectionnez un document.",
     qrModalTitle: "Envoyer depuis votre téléphone",
-    qrModalText: "Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.",
+    qrModalText: "Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers. Les gros envois peuvent prendre plus de temps. Les exports Canva en PDF, PNG ou JPEG sont acceptés.",
     codePhone: "Code reçu sur le téléphone",
     open: "Ouvrir",
     copy: "Copier",
@@ -116,13 +118,14 @@ const I18N = {
     stepCode: "Saisissez le code",
     stepCodeText: "Entrez le code reçu dans votre boîte mail pour ouvrir vos fichiers sur ce poste.",
     codeMail: "Code reçu par mail",
-    mailLimit: "Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.",
+    mailLimit: "Les gros fichiers peuvent prendre plus de temps. Les exports Canva en PDF, PNG ou JPEG sont acceptés.",
     printInProgress: "Impression en cours",
-    printWait: "Merci de patienter, vos documents sont envoyés au copieur.",
+    printWait: "Restez devant le poste : nous préparons et lançons vos documents au copieur.",
     stepPrepare: "Préparation du document",
     stepServer: "Envoi au serveur",
     stepQueue: "Mise en file d'attente",
-    stepPrinter: "Transmission au copieur",
+    stepAgent: "Prise en charge par le poste",
+    stepPrinter: "Impression lancée au copieur",
     loadingTitle: "Recherche en cours",
     loadingText: "Le serveur prépare votre demande.",
     information: "Information",
@@ -163,7 +166,7 @@ const I18N = {
     preview: "Preview",
     selectDocument: "Select a document.",
     qrModalTitle: "Send from your phone",
-    qrModalText: "Scan this QR code with your phone, then add your files. Limit: 5 files per upload. Canva exports in PDF, PNG or JPEG are accepted.",
+    qrModalText: "Scan this QR code with your phone, then add your files. Large uploads may take longer. Canva exports in PDF, PNG or JPEG are accepted.",
     codePhone: "Code received on your phone",
     open: "Open",
     copy: "Copy",
@@ -179,13 +182,14 @@ const I18N = {
     stepCode: "Enter the code",
     stepCodeText: "Enter the code received in your mailbox to open your files on this station.",
     codeMail: "Code received by email",
-    mailLimit: "Limit: 5 files per email. Canva exports in PDF, PNG or JPEG are accepted.",
+    mailLimit: "Large files may take longer. Canva exports in PDF, PNG or JPEG are accepted.",
     printInProgress: "Printing in progress",
-    printWait: "Please wait, your documents are being sent to the copier.",
+    printWait: "Please stay near the station: your documents are being prepared and sent to the copier.",
     stepPrepare: "Preparing document",
     stepServer: "Sending to server",
     stepQueue: "Adding to queue",
-    stepPrinter: "Sending to copier",
+    stepAgent: "Station is taking over",
+    stepPrinter: "Printing started on copier",
     loadingTitle: "Searching",
     loadingText: "The server is preparing your request.",
     information: "Information",
@@ -226,7 +230,7 @@ const I18N = {
     preview: "Vista previa",
     selectDocument: "Seleccione un documento.",
     qrModalTitle: "Enviar desde su teléfono",
-    qrModalText: "Escanee este código QR con su teléfono y añada sus archivos. Límite: 5 archivos por envío. Se aceptan exportaciones Canva en PDF, PNG o JPEG.",
+    qrModalText: "Escanee este código QR con su teléfono y añada sus archivos. Los envíos pesados pueden tardar más. Se aceptan exportaciones Canva en PDF, PNG o JPEG.",
     codePhone: "Código recibido en el teléfono",
     open: "Abrir",
     copy: "Copiar",
@@ -242,13 +246,14 @@ const I18N = {
     stepCode: "Introduzca el código",
     stepCodeText: "Introduzca el código recibido por email para abrir sus archivos en este puesto.",
     codeMail: "Código recibido por email",
-    mailLimit: "Límite: 5 archivos por email. Se aceptan exportaciones Canva en PDF, PNG o JPEG.",
+    mailLimit: "Los archivos pesados pueden tardar más. Se aceptan exportaciones Canva en PDF, PNG o JPEG.",
     printInProgress: "Impresión en curso",
-    printWait: "Espere, sus documentos se están enviando a la copiadora.",
+    printWait: "Espere junto al puesto: sus documentos se preparan y se envían a la copiadora.",
     stepPrepare: "Preparando documento",
     stepServer: "Enviando al servidor",
     stepQueue: "Añadiendo a la cola",
-    stepPrinter: "Enviando a la copiadora",
+    stepAgent: "El puesto toma el relevo",
+    stepPrinter: "Impresión iniciada en la copiadora",
     loadingTitle: "Buscando",
     loadingText: "El servidor está preparando su solicitud.",
     information: "Información",
@@ -289,7 +294,7 @@ const I18N = {
     preview: "Vorschau",
     selectDocument: "Wählen Sie ein Dokument.",
     qrModalTitle: "Vom Telefon senden",
-    qrModalText: "Scannen Sie diesen QR-Code mit Ihrem Telefon und fügen Sie Ihre Dateien hinzu. Limit: 5 Dateien pro Upload. Canva-Exporte als PDF, PNG oder JPEG werden akzeptiert.",
+    qrModalText: "Scannen Sie diesen QR-Code mit Ihrem Telefon und fügen Sie Ihre Dateien hinzu. Große Uploads können länger dauern. Canva-Exporte als PDF, PNG oder JPEG werden akzeptiert.",
     codePhone: "Code auf dem Telefon erhalten",
     open: "Öffnen",
     copy: "Kopieren",
@@ -305,13 +310,14 @@ const I18N = {
     stepCode: "Code eingeben",
     stepCodeText: "Geben Sie den per E-Mail erhaltenen Code ein, um Ihre Dateien an dieser Station zu öffnen.",
     codeMail: "Code per E-Mail erhalten",
-    mailLimit: "Limit: 5 Dateien pro E-Mail. Canva-Exporte als PDF, PNG oder JPEG werden akzeptiert.",
+    mailLimit: "Große Dateien können länger dauern. Canva-Exporte als PDF, PNG oder JPEG werden akzeptiert.",
     printInProgress: "Druck läuft",
-    printWait: "Bitte warten, Ihre Dokumente werden an den Kopierer gesendet.",
+    printWait: "Bitte bleiben Sie an der Station: Ihre Dokumente werden vorbereitet und an den Kopierer gesendet.",
     stepPrepare: "Dokument vorbereiten",
     stepServer: "An Server senden",
     stepQueue: "In Warteschlange stellen",
-    stepPrinter: "An Kopierer senden",
+    stepAgent: "Station übernimmt",
+    stepPrinter: "Druck am Kopierer gestartet",
     loadingTitle: "Suche läuft",
     loadingText: "Der Server bereitet Ihre Anfrage vor.",
     information: "Information",
@@ -397,7 +403,7 @@ function applyTranslations() {
   setText(".mail-limit-note", "mailLimit");
   setText("#print-modal h2", "printInProgress");
   setText("#print-modal p", "printWait");
-  setAllText("#print-steps li", ["stepPrepare", "stepServer", "stepQueue", "stepPrinter"]);
+  setAllText("#print-steps li", ["stepPrepare", "stepServer", "stepQueue", "stepAgent", "stepPrinter"]);
   loadingTitle.textContent = t("loadingTitle");
   loadingText.textContent = t("loadingText");
   infoOk.textContent = t("ok");
@@ -462,9 +468,70 @@ function showPrintModal(active) {
   printModal.classList.toggle("hidden", !active);
 }
 
+function setPrintProgressText(text) {
+  if (printProgressText) printProgressText.textContent = text;
+}
+
+function totalFileSize(files) {
+  return [...files].reduce((total, file) => total + (file.size || 0), 0);
+}
+
+function validateRemoteUploadWeight(files, targetStatus = setStatus) {
+  const totalSize = totalFileSize(files);
+  if (totalSize <= MAX_TOTAL_UPLOAD_SIZE) return true;
+  const message = `Fichiers trop lourds. Limite conseillée : ${MAX_TOTAL_UPLOAD_SIZE_MB} Mo par envoi QR Code ou mail. Pour un gros dossier, utilisez une clé USB ou demandez de l'aide à un vendeur.`;
+  showInfo("Envoi trop lourd", message);
+  targetStatus(message, "error");
+  return false;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function requestStatusLabel(printRequests, requestIds) {
+  const tracked = printRequests.filter((request) => requestIds.includes(request.id));
+  if (tracked.some((request) => request.status === "failed")) return "failed";
+  if (tracked.length && tracked.every((request) => request.status === "done")) return "done";
+  if (tracked.some((request) => request.status === "printing")) return "printing";
+  return "queued";
+}
+
+async function waitForPrintConfirmation(requestIds) {
+  const startedAt = Date.now();
+  let lastStatus = "queued";
+  while (Date.now() - startedAt < 120000) {
+    const response = await fetch(`/api/jobs/${currentJob.code}?station=${station}`);
+    const payload = await response.json();
+    if (response.ok) currentJob = payload;
+    const status = requestStatusLabel(payload.printRequests || [], requestIds);
+
+    if (status !== lastStatus) {
+      lastStatus = status;
+      if (status === "queued") {
+        setPrintStep("queue");
+        setPrintProgressText("Vos documents attendent le poste d'impression. Merci de patienter quelques instants.");
+      }
+      if (status === "printing") {
+        setPrintStep("agent");
+        setPrintProgressText("Le poste d'impression a pris en charge vos documents. Le copieur va démarrer.");
+      }
+    }
+
+    if (status === "done") {
+      setPrintStep("printer");
+      setPrintProgressText("Impression lancée et confirmée. Récupérez vos documents au copieur.");
+      return payload;
+    }
+    if (status === "failed") throw new Error("Le poste n'a pas pu lancer l'impression. Merci de contacter un vendeur.");
+    await wait(1400);
+  }
+  throw new Error("Le poste n'a pas confirmé le lancement dans les temps. Merci de contacter un vendeur avant de relancer.");
+}
+
 function setPrintStep(step) {
   if (!printSteps) return;
-  const order = ["prepare", "server", "queue", "printer"];
+  const order = ["prepare", "server", "queue", "agent", "printer"];
   const activeIndex = order.indexOf(step);
   printSteps.querySelectorAll("li").forEach((item) => {
     const itemIndex = order.indexOf(item.dataset.step);
@@ -570,6 +637,7 @@ function fileLabel(file) {
 }
 
 function renderPreview(file) {
+  previewBox.classList.remove("is-photo", "is-portrait", "is-landscape");
   if (!file) {
     previewPages.textContent = "1 / 1";
     previewBox.innerHTML = `<p>${t("selectDocument")}</p>`;
@@ -579,9 +647,15 @@ function renderPreview(file) {
   previewPages.textContent = `1 / ${file.pages || 1}`;
   const ext = extension(file);
   if (ext === ".pdf") {
-    previewBox.innerHTML = `<iframe src="${file.viewUrl}" title="${file.originalName}"></iframe>`;
-  } else if ([".png", ".jpg", ".jpeg", ".webp"].includes(ext)) {
-    previewBox.innerHTML = `<img src="${file.viewUrl}" alt="${file.originalName}">`;
+    previewBox.innerHTML = `<iframe src="${file.viewUrl}#view=FitH" title="${file.originalName}"></iframe>`;
+  } else if ([".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"].includes(ext)) {
+    previewBox.classList.add("is-photo");
+    previewBox.innerHTML = `<img class="preview-photo" src="${file.viewUrl}" alt="${file.originalName}">`;
+    const image = previewBox.querySelector("img");
+    image.addEventListener("load", () => {
+      previewBox.classList.toggle("is-portrait", image.naturalHeight >= image.naturalWidth);
+      previewBox.classList.toggle("is-landscape", image.naturalWidth > image.naturalHeight);
+    }, { once: true });
   } else {
     previewBox.innerHTML = `
       <div class="preview-fallback">
@@ -637,7 +711,6 @@ async function openQrModal() {
   uploadUrl.value = "Preparation du lien...";
   qrCodeInput.value = "";
   qrModal.classList.remove("hidden");
-  setStatus(currentLanguage === "fr" ? "Scannez le QR code pour envoyer vos documents." : t("qrSmall"), "success");
   try {
     const response = await fetch(`/api/config?${params}`);
     const payload = await response.json();
@@ -652,7 +725,6 @@ async function openMailModal() {
   mailAddress.textContent = "kiosk.es@zohomail.eu";
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
-  setStatus(t("mailIntro"), "success");
   try {
     const params = qrParams("mail");
     const response = await fetch(`/api/config?${params}`);
@@ -689,11 +761,6 @@ async function loadJobFromCode(inputElement = qrCodeInput) {
 
 async function uploadUsbFiles(files) {
   if (!files.length) return;
-  if (files.length > MAX_FILES_PER_UPLOAD) {
-    showInfo("Trop de fichiers", `Vous pouvez envoyer ${MAX_FILES_PER_UPLOAD} fichiers maximum a la fois.`);
-    setStatus(`Limite : ${MAX_FILES_PER_UPLOAD} fichiers maximum par envoi.`, "error");
-    return;
-  }
   const formData = new FormData();
   formData.set("station", station);
   formData.set("customerName", `Client ${stationName()}`);
@@ -710,7 +777,6 @@ async function uploadUsbFiles(files) {
     const response = await fetch("/api/jobs", { method: "POST", body: formData });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
-    setStatus(`Fichiers recus. Code dossier : ${payload.code}`, "success");
     selectedFileId = payload.files[0]?.id || "";
     selectedFileIds = new Set(payload.files.map((file) => file.id));
     renderJob(payload);
@@ -733,11 +799,7 @@ async function addFilesToCurrentJob(files) {
     return;
   }
   if (!files.length) return;
-  if (files.length > MAX_FILES_PER_UPLOAD) {
-    showInfo("Trop de fichiers", `Vous pouvez ajouter ${MAX_FILES_PER_UPLOAD} fichiers maximum a la fois.`);
-    setPrintStatus(`Limite : ${MAX_FILES_PER_UPLOAD} fichiers maximum par ajout.`, "error");
-    return;
-  }
+  if (!validateRemoteUploadWeight(files, setPrintStatus)) return;
 
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
@@ -819,14 +881,20 @@ async function printSelectedFiles() {
     showInfo("Aucun document", "Selectionnez au moins un document avant d'imprimer.");
     return;
   }
-  setPrintStatus("Envoi au copieur...");
+
+  const settings = printSettings();
+  const requestIds = [];
+  setPrintStatus("Préparation de l'impression...");
   showPrintModal(true);
   setPrintStep("prepare");
+  setPrintProgressText("Nous vérifions les documents sélectionnés et vos options d'impression.");
+
   try {
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    await wait(300);
     setPrintStep("server");
+    setPrintProgressText("Le serveur prépare les fichiers dans le bon format pour le copieur.");
+
     let payload = null;
-    const settings = printSettings();
     for (const fileId of fileIds) {
       const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
         method: "POST",
@@ -835,18 +903,25 @@ async function printSelectedFiles() {
       });
       payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Impression impossible.");
+      if (payload.printRequest?.id) requestIds.push(payload.printRequest.id);
     }
-    setPrintStep("queue");
+
     currentJob = payload.job;
-    await new Promise((resolve) => window.setTimeout(resolve, 450));
-    setPrintStep("printer");
-    setPrintStatus(`${fileIds.length} document(s) envoye(s) au copieur.`, "success");
-    showInfo("Impression envoyee", `${fileIds.length} document(s) ont ete transmis au copieur.`);
+    setPrintStep("queue");
+    setPrintProgressText("Vos documents sont dans la file d'attente du poste. Ne fermez pas la session.");
+    const confirmedJob = await waitForPrintConfirmation(requestIds);
+    currentJob = confirmedJob;
+    setPrintStatus(`${fileIds.length} document(s) lancé(s) au copieur.`, "success");
+    await wait(2200);
+    showPrintModal(false);
+    showInfo("Impression lancée", "Le copieur a reçu la demande. Récupérez vos documents au bac de sortie.");
   } catch (error) {
     setPrintStatus(error.message || "Impression impossible.", "error");
+    setPrintStep("queue");
+    setPrintProgressText(error.message || "Une erreur bloque l'impression.");
+    await wait(900);
+    showPrintModal(false);
     showInfo("Erreur", error.message || "Impression impossible.");
-  } finally {
-    window.setTimeout(() => showPrintModal(false), 1800);
   }
 }
 

@@ -47,7 +47,7 @@ const MAIL_PROCESSED_FILE = path.join(DATA_DIR, "mail-processed.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
-const MAX_FILES_PER_UPLOAD = 5;
+const MAX_UPLOAD_FILES = 60;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_PAGES = 500;
 const allowedExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
@@ -103,7 +103,7 @@ fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const upload = multer({
   dest: TMP_DIR,
-  limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES_PER_UPLOAD },
+  limits: { fileSize: MAX_FILE_SIZE, files: MAX_UPLOAD_FILES },
   fileFilter(request, file, callback) {
     const extension = extensionFromUpload(file);
     if (!isAllowedUploadFile(file)) {
@@ -439,6 +439,115 @@ function listTrackedJobs() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+function emptyPrintTotals() {
+  return { bwPages: 0, colorPages: 0, totalPages: 0, jobs: 0, requests: 0, pending: 0, printing: 0, failed: 0 };
+}
+
+function addPrintTotals(target, source) {
+  target.bwPages += source.bwPages || 0;
+  target.colorPages += source.colorPages || 0;
+  target.totalPages += source.totalPages || 0;
+  target.jobs += source.jobs || 0;
+  target.requests += source.requests || 0;
+  target.pending += source.pending || 0;
+  target.printing += source.printing || 0;
+  target.failed += source.failed || 0;
+}
+
+function completedPrintDashboard() {
+  const jobs = listTrackedJobs();
+  const totals = emptyPrintTotals();
+  const stationsSummary = {
+    "poste-1": emptyPrintTotals(),
+    "poste-2": emptyPrintTotals(),
+  };
+  const rows = [];
+
+  for (const job of jobs) {
+    const station = stationFrom(job.station);
+    const stationTotals = stationsSummary[station] || emptyPrintTotals();
+    const fileById = new Map((job.files || []).map((file) => [file.id, file]));
+    const row = {
+      code: job.code,
+      customerName: job.customerName || "Client",
+      station,
+      stationLabel: stations[station],
+      createdAt: job.createdAt,
+      bwPages: 0,
+      colorPages: 0,
+      totalPages: 0,
+      doneRequests: 0,
+      pendingRequests: 0,
+      printingRequests: 0,
+      failedRequests: 0,
+    };
+
+    for (const printRequest of job.printRequests || []) {
+      const status = printRequest.status || "queued";
+      if (status === "queued") {
+        totals.pending += 1;
+        stationTotals.pending += 1;
+        row.pendingRequests += 1;
+        continue;
+      }
+      if (status === "printing") {
+        totals.printing += 1;
+        stationTotals.printing += 1;
+        row.printingRequests += 1;
+        continue;
+      }
+      if (status === "failed") {
+        totals.failed += 1;
+        stationTotals.failed += 1;
+        row.failedRequests += 1;
+        continue;
+      }
+      if (status !== "done") continue;
+
+      const file = fileById.get(printRequest.fileId);
+      if (!file) continue;
+      const settings = sanitizePrintSettings(printRequest.originalSettings || printRequest.settings || job.printSettings || {});
+      const pages = requestPageCount(file, settings);
+      if (settings.colorMode === "couleur") {
+        row.colorPages += pages;
+      } else {
+        row.bwPages += pages;
+      }
+      row.totalPages += pages;
+      row.doneRequests += 1;
+    }
+
+    if (row.doneRequests > 0) {
+      totals.bwPages += row.bwPages;
+      totals.colorPages += row.colorPages;
+      totals.totalPages += row.totalPages;
+      totals.requests += row.doneRequests;
+      totals.jobs += 1;
+      stationTotals.bwPages += row.bwPages;
+      stationTotals.colorPages += row.colorPages;
+      stationTotals.totalPages += row.totalPages;
+      stationTotals.requests += row.doneRequests;
+      stationTotals.jobs += 1;
+      rows.push(row);
+    } else if (row.pendingRequests || row.printingRequests || row.failedRequests) {
+      rows.push(row);
+    }
+
+    stationsSummary[station] = stationTotals;
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    totals,
+    stations: Object.entries(stationsSummary).map(([station, values]) => ({
+      station,
+      stationLabel: stations[station],
+      ...values,
+    })),
+    rows: rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 20),
+  };
+}
+
 function selectedPageIndexes(totalPages, pageRange = "") {
   const total = Math.max(1, Number(totalPages) || 1);
   const indexes = [];
@@ -599,7 +708,7 @@ function mailTextForCode(job) {
     "Saisissez ce code sur le Poste Espace Services pour verifier vos documents et lancer l'impression.",
     "Le code fonctionne sur le Poste 1 et le Poste 2.",
     "",
-    "Rappel : 5 fichiers maximum par envoi. Les fichiers Word/DOC/DOCX ne sont pas acceptes sur les postes.",
+    "Rappel : les gros fichiers peuvent prendre plus de temps. Les fichiers Word/DOC/DOCX ne sont pas acceptes sur les postes.",
   ].join("\n");
 }
 
@@ -612,7 +721,7 @@ function mailTextForReject(reason) {
     reason,
     "",
     "Formats acceptes : PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG.",
-    "Limite : 5 fichiers maximum par envoi.",
+    "Si votre envoi est trop lourd, utilisez une cle USB ou rapprochez-vous d'un vendeur ou d'une vendeuse.",
   ].join("\n");
 }
 
@@ -642,8 +751,9 @@ async function createMailJob(parsedMail) {
   if (!attachments.length) {
     return { error: "Aucune piece jointe n'a ete trouvee dans votre mail." };
   }
-  if (attachments.length > MAX_FILES_PER_UPLOAD) {
-    return { error: "Votre mail contient " + attachments.length + " pieces jointes. Merci de renvoyer " + MAX_FILES_PER_UPLOAD + " fichiers maximum a la fois." };
+  const totalAttachmentSize = attachments.reduce((total, attachment) => total + (attachment.size || attachment.content.length || 0), 0);
+  if (totalAttachmentSize > MAX_FILE_SIZE) {
+    return { error: "Votre mail est trop lourd. Limite conseillee : " + MAX_FILE_SIZE_MB + " Mo par envoi. Pour un gros dossier, utilisez une cle USB." };
   }
 
   const now = new Date();
@@ -864,16 +974,24 @@ function startMailWatcher() {
               await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Aucune piece jointe trouvee dans votre mail.'));
             } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
             mailRuntimeStatus.lastIgnoredReason = 'no_attachment';
-          } else if (attachments.length > 5) {
-            try {
-              await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Votre mail contient ' + attachments.length + ' pieces jointes. Merci de renvoyer 5 fichiers maximum a la fois.'));
-            } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
-            mailRuntimeStatus.lastIgnoredReason = 'invalid_attachment';
           } else {
+            const totalAttachmentSize = attachments.reduce((total, att) => total + Number(att.size || att.attachmentSize || 0), 0);
+            if (totalAttachmentSize > MAX_FILE_SIZE) {
+              try {
+                await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Votre mail est trop lourd. Limite conseillee : ' + MAX_FILE_SIZE_MB + ' Mo par envoi. Pour un gros dossier, utilisez une cle USB.'));
+              } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+              mailRuntimeStatus.lastIgnoredReason = 'oversized_attachment';
+              try { await zohoFetch(`/accounts/${accountId}/updatemessage`, { method: 'PUT', body: { mode: 'markAsRead', messageId: [mid] } }); } catch (e) {}
+              processedSet.add(mid);
+              processedIds.push(mid);
+              changed = true;
+              continue;
+            }
             // Télécharger chaque pièce jointe
             const https = require('https');
             const token = await zohoGetToken();
             const mailFiles = [];
+            let downloadedSize = 0;
             let rejected = false;
 
             for (const att of attachments) {
@@ -902,10 +1020,25 @@ function startMailWatcher() {
                 req.end();
               });
               console.log('[mail] PJ telechargee: ' + originalname + ' ' + fileBuffer.length + ' octets');
+              downloadedSize += fileBuffer.length;
+              if (downloadedSize > MAX_FILE_SIZE) {
+                rejected = true;
+                try {
+                  await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Votre mail est trop lourd. Limite conseillee : ' + MAX_FILE_SIZE_MB + ' Mo par envoi. Pour un gros dossier, utilisez une cle USB.'));
+                } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+                mailRuntimeStatus.lastIgnoredReason = 'oversized_attachment';
+                break;
+              }
 
               const tmpPath = path.join(TMP_DIR, 'mail-' + Date.now() + '-' + attId + ext);
               fs.writeFileSync(tmpPath, fileBuffer);
               mailFiles.push({ path: tmpPath, originalname, mimetype: att.contentType || '', size: fileBuffer.length });
+            }
+
+            if (rejected) {
+              for (const file of mailFiles) {
+                try { if (file.path && fs.existsSync(file.path)) fs.rmSync(file.path, { force: true }); } catch (e) {}
+              }
             }
 
             if (!rejected && mailFiles.length) {
@@ -1384,6 +1517,10 @@ app.post("/api/session", (request, response) => {
   });
 });
 
+app.get("/api/dashboard", (request, response) => {
+  response.json(completedPrintDashboard());
+});
+
 app.get("/api/jobs", (request, response) => {
   response.json({
     jobs: listTrackedJobs(),
@@ -1417,7 +1554,7 @@ app.delete("/api/help/:station", (request, response) => {
   response.json({ ok: true });
 });
 
-app.post("/api/jobs", upload.array("files", MAX_FILES_PER_UPLOAD), async (request, response, next) => {
+app.post("/api/jobs", upload.array("files", MAX_UPLOAD_FILES), async (request, response, next) => {
   try {
     if (!request.files?.length) {
       response.status(400).json({ error: "Ajoutez au moins un fichier." });
@@ -1455,7 +1592,7 @@ app.post("/api/jobs", upload.array("files", MAX_FILES_PER_UPLOAD), async (reques
   }
 });
 
-app.post("/api/jobs/:code/files", upload.array("files", MAX_FILES_PER_UPLOAD), async (request, response, next) => {
+app.post("/api/jobs/:code/files", upload.array("files", MAX_UPLOAD_FILES), async (request, response, next) => {
   try {
     const job = readJob(request.params.code);
     if (!job) {
@@ -1802,7 +1939,7 @@ app.use((error, request, response, next) => {
     return;
   }
   if (error.code === "LIMIT_FILE_COUNT") {
-    response.status(400).json({ error: `Limite atteinte : ${MAX_FILES_PER_UPLOAD} fichiers maximum par envoi.` });
+    response.status(400).json({ error: `Trop de fichiers en une seule fois. Merci de faire un envoi plus léger ou de passer par une clé USB.` });
     return;
   }
   response.status(400).json({ error: error.message || "Operation impossible." });

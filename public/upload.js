@@ -9,6 +9,8 @@ const uploadMessage = document.getElementById("upload-message");
 const uploadBusy = document.getElementById("upload-busy");
 const customerNameInput = document.getElementById("customer-name");
 const mobileGreeting = document.getElementById("mobile-greeting");
+const MAX_TOTAL_UPLOAD_SIZE_MB = 500;
+const MAX_TOTAL_UPLOAD_SIZE = MAX_TOTAL_UPLOAD_SIZE_MB * 1024 * 1024;
 let isUploading = false;
 
 function params() {
@@ -52,9 +54,27 @@ function setupUploadMode() {
   resultHelp.textContent = "Merci. Vos fichiers sont bien envoyes au comptoir.";
 }
 
+function formatSize(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+  return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
+}
+
+function totalFileSize(files) {
+  return [...files].reduce((total, file) => total + (file.size || 0), 0);
+}
+
+function validateUploadWeight() {
+  const totalSize = totalFileSize(filesInput.files);
+  if (totalSize <= MAX_TOTAL_UPLOAD_SIZE) return true;
+  setUploadMessage(`Fichiers trop lourds : ${formatSize(totalSize)}. Limite conseillée : ${MAX_TOTAL_UPLOAD_SIZE_MB} Mo par envoi QR Code.`, "error");
+  return false;
+}
+
 function renderSelectedFiles() {
   const files = [...filesInput.files];
-  selectedFiles.innerHTML = files.map((file) => `<div>${file.name}</div>`).join("");
+  const totalSize = totalFileSize(files);
+  selectedFiles.innerHTML = files.map((file) => `<div>${file.name} <small>${formatSize(file.size)}</small></div>`).join("");
+  if (files.length) selectedFiles.insertAdjacentHTML("beforeend", `<div class="upload-total">Total : ${formatSize(totalSize)}</div>`);
 }
 
 function setUploadMessage(text, tone = "") {
@@ -74,6 +94,8 @@ async function sendUpload() {
     setUploadMessage("Ajoutez au moins un fichier.", "error");
     return;
   }
+
+  if (!validateUploadWeight()) return;
 
   const formData = new FormData(uploadForm);
   formData.set("station", currentStation());

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tableau de bord</title>
-  <link rel="stylesheet" href="/modern.css?v=20260618-upload-admin">
+  <link rel="stylesheet" href="/modern.css?v=20260620-upload-preview-weight">
 </head>
 <body data-page="admin">
   <main class="admin-page">
@@ -12,43 +12,46 @@
       <div>
         <p>Administration</p>
         <h1>Tableau de bord</h1>
+        <small id="dashboard-updated">Compteurs confirmés par les postes</small>
       </div>
       <button id="refresh-admin" type="button">Actualiser</button>
     </header>
 
-    <section class="counter-grid">
-      <article class="counter-card">
-        <span>N&B</span>
+    <section class="counter-grid admin-real-grid">
+      <article class="counter-card real-card">
+        <span>N&B confirmé</span>
         <strong id="metric-bw">0</strong>
-        <p id="metric-bw-rate">0%</p>
+        <p id="metric-bw-rate">0% du total imprimé</p>
       </article>
-      <article class="counter-card color-card">
-        <span>Couleur</span>
+      <article class="counter-card color-card real-card">
+        <span>Couleur confirmé</span>
         <strong id="metric-color">0</strong>
-        <p id="metric-color-rate">0%</p>
+        <p id="metric-color-rate">0% du total imprimé</p>
       </article>
-      <article class="counter-card">
-        <span>Total copies</span>
+      <article class="counter-card real-card">
+        <span>Total imprimé</span>
         <strong id="metric-total">0</strong>
-        <p id="metric-jobs">0 dossier</p>
+        <p id="metric-jobs">0 dossier confirmé</p>
       </article>
-      <article class="counter-card">
-        <span>Postes</span>
-        <strong id="metric-stations">2</strong>
-        <p>Poste 1 / Poste 2</p>
+      <article class="counter-card real-card alert-card">
+        <span>En cours</span>
+        <strong id="metric-pending">0</strong>
+        <p id="metric-failed">0 erreur</p>
       </article>
     </section>
 
     <section class="admin-simple-panel">
       <div class="panel-heading">
         <h2>Postes d'impression</h2>
+        <p>Copies réellement confirmées par les agents de poste.</p>
       </div>
       <div class="simple-stations" id="station-grid"></div>
     </section>
 
     <section class="admin-simple-panel">
       <div class="panel-heading">
-        <h2>Derniers dossiers</h2>
+        <h2>Dernières impressions</h2>
+        <p>Dossiers imprimés, en attente ou en erreur.</p>
       </div>
       <div class="simple-table">
         <table>
@@ -57,9 +60,10 @@
               <th>Code</th>
               <th>Client</th>
               <th>Poste</th>
-              <th>N&B</th>
-              <th>Couleur</th>
-              <th>Total</th>
+              <th>N&B réel</th>
+              <th>Couleur réel</th>
+              <th>Total réel</th>
+              <th>Etat</th>
             </tr>
           </thead>
           <tbody id="client-table"></tbody>
@@ -67,6 +71,6 @@
       </div>
     </section>
   </main>
-  <script src="/modern-admin.js?v=20260618-upload-admin"></script>
+  <script src="/modern-admin.js?v=20260620-upload-preview-weight"></script>
 </body>
 </html>
