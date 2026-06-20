@@ -1579,6 +1579,13 @@ app.post("/api/jobs", upload.array("files", MAX_UPLOAD_FILES), async (request, r
       return;
     }
 
+    const adminUpload = request.body.adminUpload === "1";
+    if (!adminUpload && hasCounterOnlyFiles(request.files)) {
+      cleanupTempUploads(request.files);
+      response.status(400).json({ error: "Les fichiers Word, DOC et DOCX sont acceptes uniquement via le QR code comptoir." });
+      return;
+    }
+
     const code = reserveCode();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + JOB_TTL_MS);
