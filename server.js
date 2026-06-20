@@ -51,6 +51,7 @@ const MAX_UPLOAD_FILES = 60;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_PAGES = 500;
 const allowedExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
+const counterOnlyExtensions = new Set([".doc", ".docx"]);
 const mimeExtensions = {
   "application/pdf": ".pdf",
   "image/png": ".png",
@@ -59,6 +60,8 @@ const mimeExtensions = {
   "image/heic": ".heic",
   "image/heif": ".heif",
   "image/webp": ".webp",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
 };
 const stations = {
   "poste-1": "Poste 1",
@@ -95,7 +98,20 @@ function extensionFromUpload(file) {
 }
 
 function isAllowedUploadFile(file) {
-  return allowedExtensions.has(extensionFromUpload(file));
+  const extension = extensionFromUpload(file);
+  return allowedExtensions.has(extension) || counterOnlyExtensions.has(extension);
+}
+
+function hasCounterOnlyFiles(files = []) {
+  return files.some((file) => counterOnlyExtensions.has(extensionFromUpload(file)));
+}
+
+function cleanupTempUploads(files = []) {
+  for (const file of files) {
+    try {
+      if (file.path && fs.existsSync(file.path)) fs.rmSync(file.path, { force: true });
+    } catch (error) {}
+  }
 }
 
 fs.mkdirSync(JOBS_DIR, { recursive: true });
@@ -107,7 +123,7 @@ const upload = multer({
   fileFilter(request, file, callback) {
     const extension = extensionFromUpload(file);
     if (!isAllowedUploadFile(file)) {
-      callback(new Error("Format non accepte. PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG uniquement. Pour Word, DOC ou DOCX, rapprochez-vous d'un vendeur ou d'une vendeuse."));
+      callback(new Error("Format non accepte. PDF, PNG, JPEG, HEIC, WebP, DOC ou DOCX uniquement."));
       return;
     }
     callback(null, true);
@@ -1412,7 +1428,9 @@ app.get("/api/config", (request, response) => {
   const baseUrl = requestBaseUrl(request);
   response.json({
     uploadUrl: uploadUrl(station, "", request.query, baseUrl),
+    counterUploadUrl: uploadUrl(station, "admin", { source: "comptoir" }, baseUrl),
     qrUrl: `/qr.gif?station=${station}`,
+    counterQrUrl: `/qr.gif?mode=admin&source=comptoir`,
     mailAddress: MAIL_ADDRESS,
     mailAddresses: { "poste-1": MAIL_ADDRESS, "poste-2": MAIL_ADDRESS },
     stationLinks: {
@@ -1577,7 +1595,7 @@ app.post("/api/jobs", upload.array("files", MAX_UPLOAD_FILES), async (request, r
       printCard: request.body.printCard === "1",
       source: String(request.body.source || "").trim().slice(0, 30),
       station: stationFrom(request.body.station),
-      adminUpload: request.body.adminUpload === "1",
+      adminUpload,
       printMode,
       printSettings,
       createdAt: now.toISOString(),
@@ -1601,6 +1619,12 @@ app.post("/api/jobs/:code/files", upload.array("files", MAX_UPLOAD_FILES), async
     }
     if (!request.files?.length) {
       response.status(400).json({ error: "Ajoutez au moins un fichier." });
+      return;
+    }
+
+    if (hasCounterOnlyFiles(request.files)) {
+      cleanupTempUploads(request.files);
+      response.status(400).json({ error: "Les fichiers Word, DOC et DOCX sont acceptes uniquement via le QR code comptoir." });
       return;
     }
 

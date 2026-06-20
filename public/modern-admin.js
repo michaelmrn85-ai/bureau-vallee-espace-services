@@ -9,6 +9,11 @@ const metricJobs = document.getElementById("metric-jobs");
 const clientTable = document.getElementById("client-table");
 const stationGrid = document.getElementById("station-grid");
 const dashboardUpdated = document.getElementById("dashboard-updated");
+const adminActionStatus = document.getElementById("admin-action-status");
+const counterUploadUrl = document.getElementById("counter-upload-url");
+const copyCounterUrl = document.getElementById("copy-counter-url");
+const counterQr = document.getElementById("counter-qr");
+const counterReceptionsList = document.getElementById("counter-receptions-list");
 
 function formatNumber(value) {
   return new Intl.NumberFormat("fr-FR").format(value || 0);
@@ -76,6 +81,28 @@ function renderTable(rows) {
   `).join("") : `<tr><td colspan="7">Aucune impression confirmée pour le moment.</td></tr>`;
 }
 
+function renderCounterReceptions(jobs) {
+  const counterJobs = (jobs || []).filter((job) => job.adminUpload).slice(0, 12);
+  counterReceptionsList.innerHTML = counterJobs.length ? counterJobs.map((job) => `
+    <article class="counter-reception-item">
+      <div>
+        <strong>${job.customerName || "Client comptoir"}</strong>
+        <span>${new Date(job.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+      </div>
+      <p>${(job.files || []).map((file) => file.originalName).join(", ")}</p>
+    </article>
+  `).join("") : `<p class="empty-counter-receptions">Aucun fichier comptoir recu pour le moment.</p>`;
+}
+
+async function refreshCounterReceptions() {
+  try {
+    const response = await fetch("/api/jobs");
+    const payload = await response.json();
+    if (!response.ok) return;
+    renderCounterReceptions(payload.jobs || []);
+  } catch (error) {}
+}
+
 async function refreshDashboard() {
   const response = await fetch("/api/dashboard");
   const payload = await response.json();
@@ -83,8 +110,50 @@ async function refreshDashboard() {
   renderCounters(payload);
   renderStations(payload.stations || []);
   renderTable(payload.rows || []);
+  refreshCounterReceptions();
 }
 
 document.getElementById("refresh-admin").addEventListener("click", refreshDashboard);
 refreshDashboard();
 window.setInterval(refreshDashboard, 5000);
+
+
+async function loadAdminConfig() {
+  try {
+    const response = await fetch("/api/config");
+    const payload = await response.json();
+    if (!response.ok) return;
+    if (counterUploadUrl && payload.counterUploadUrl) counterUploadUrl.value = payload.counterUploadUrl;
+    if (counterQr && payload.counterQrUrl) counterQr.src = `${payload.counterQrUrl}&t=${Date.now()}`;
+  } catch (error) {}
+}
+
+async function shutdownStation(station) {
+  const label = station === "poste-2" ? "Poste 2" : "Poste 1";
+  const confirmed = window.confirm(`Confirmer l'extinction du ${label} ?`);
+  if (!confirmed) return;
+  if (adminActionStatus) adminActionStatus.textContent = `Commande d'extinction envoyee au ${label}...`;
+  try {
+    const response = await fetch(`/api/stations/${station}/commands`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "shutdown-station" }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Commande impossible.");
+    if (adminActionStatus) adminActionStatus.textContent = `Extinction demandee pour ${label}. L'agent du poste va l'executer.`;
+  } catch (error) {
+    if (adminActionStatus) adminActionStatus.textContent = error.message || "Commande impossible.";
+  }
+}
+
+document.querySelectorAll("[data-shutdown-station]").forEach((button) => {
+  button.addEventListener("click", () => shutdownStation(button.dataset.shutdownStation));
+});
+
+copyCounterUrl?.addEventListener("click", async () => {
+  await navigator.clipboard?.writeText(counterUploadUrl.value);
+  if (adminActionStatus) adminActionStatus.textContent = "Lien comptoir copie.";
+});
+
+loadAdminConfig();
