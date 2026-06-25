@@ -873,8 +873,10 @@ function renderUsbExplorer(payload) {
 async function loadUsbExplorer(targetPath = "") {
   showLoading(true, "Lecture de la cle USB", "Le kiosk charge le contenu autorise.");
   try {
-    const query = targetPath ? `?path=${encodeURIComponent(targetPath)}` : "";
-    const response = await fetch(`/api/usb/browse${query}`);
+    const params = new URLSearchParams({ station });
+    if (targetPath) params.set("path", targetPath);
+    if (!targetPath) params.set("refresh", "1");
+    const response = await fetch(`/api/usb/browse?${params.toString()}`);
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Lecture USB impossible.");
     renderUsbExplorer(payload);
@@ -1130,7 +1132,7 @@ languageButtons.forEach((button) => {
 });
 
 closeUsbExplorer.addEventListener("click", () => usbExplorerModal.classList.add("hidden"));
-usbRefresh.addEventListener("click", () => loadUsbExplorer(usbExplorerPath));
+usbRefresh.addEventListener("click", () => loadUsbExplorer(""));
 usbUp.addEventListener("click", () => {
   if (usbExplorerParentPath) loadUsbExplorer(usbExplorerParentPath);
 });

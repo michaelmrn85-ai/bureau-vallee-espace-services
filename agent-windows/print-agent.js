@@ -258,6 +258,178 @@ function runPowerShell(script) {
   });
 }
 
+function extensionFromPath(filePath) {
+  return path.extname(String(filePath || "")).toLowerCase();
+}
+
+function isAllowedUsbFile(filePath) {
+  return [".pdf", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"].includes(extensionFromPath(filePath));
+}
+
+function pathIsInside(parent, child) {
+  const relative = path.relative(parent, child);
+  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function listUsbRoots() {
+  const roots = [];
+  if (process.platform !== "win32") return roots;
+  for (let code = 68; code <= 90; code += 1) {
+    const rootPath = String.fromCharCode(code) + ":\\";
+    try {
+      if (!fs.existsSync(rootPath)) continue;
+      const driveLetter = rootPath.slice(0, 2);
+      roots.push({ name: "Cle USB " + driveLetter, path: rootPath });
+    } catch (error) {}
+  }
+  return roots;
+}
+
+async function getUsbRoots() {
+  if (process.platform !== "win32") return [];
+  const script = `
+    $drives = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2" |
+      Select-Object DeviceID,VolumeName
+    $drives | ConvertTo-Json -Compress
+  `;
+  try {
+    const output = await runPowerShellOutput(script);
+    if (!output.trim()) return listUsbRoots();
+    const parsed = JSON.parse(output);
+    const drives = Array.isArray(parsed) ? parsed : [parsed];
+    const roots = drives
+      .filter((drive) => drive && drive.DeviceID)
+      .map((drive) => {
+        const driveId = String(drive.DeviceID);
+        const rootPath = driveId.endsWith("\\") ? driveId : driveId + "\\";
+        const label = String(drive.VolumeName || "").trim();
+        return { name: label ? label + " (" + rootPath + ")" : "Cle USB " + rootPath, path: rootPath };
+      });
+    return roots.length ? roots : listUsbRoots();
+  } catch (error) {
+    return listUsbRoots();
+  }
+}
+
+function scanDirectory(rootPath, currentPath, rootName, tree, depth, maxDepth, maxEntries) {
+  if (tree.length >= maxEntries || depth > maxDepth) return;
+  let entries = [];
+  try {
+    entries = fs.readdirSync(currentPath, { withFileTypes: true });
+  } catch (error) {
+    return;
+  }
+  for (const entry of entries) {
+    if (tree.length >= maxEntries) return;
+    if (entry.name.startsWith(".")) continue;
+    const entryPath = path.join(currentPath, entry.name);
+    const relativePath = path.relative(rootPath, entryPath);
+    if (!relativePath || relativePath.startsWith("..")) continue;
+    if (entry.isDirectory()) {
+      tree.push({
+        rootPath,
+        rootName,
+        parentPath: currentPath,
+        relativePath,
+        path: entryPath,
+        name: entry.name,
+        type: "directory",
+        extension: "",
+        size: 0,
+      });
+      scanDirectory(rootPath, entryPath, rootName, tree, depth + 1, maxDepth, maxEntries);
+      continue;
+    }
+    if (!entry.isFile() || !isAllowedUsbFile(entryPath)) continue;
+    let size = 0;
+    try {
+      size = fs.statSync(entryPath).size;
+    } catch (error) {}
+    tree.push({
+      rootPath,
+      rootName,
+      parentPath: currentPath,
+      relativePath,
+      path: entryPath,
+      name: entry.name,
+      type: "file",
+      extension: extensionFromPath(entry.name).replace(".", ""),
+      size,
+    });
+  }
+}
+
+async function scanUsbDrives(config) {
+  const roots = await getUsbRoots();
+  const tree = [];
+  const maxDepth = Math.max(2, Number(config.usbScanMaxDepth) || 8);
+  const maxEntries = Math.max(100, Number(config.usbScanMaxEntries) || 2500);
+  for (const root of roots) {
+    scanDirectory(root.path, root.path, root.name, tree, 0, maxDepth, maxEntries);
+  }
+  return { roots, tree };
+}
+
+function resolveUsbEntry(rootPath, relativePath) {
+  const root = path.resolve(rootPath);
+  const target = path.resolve(rootPath, relativePath);
+  if (target !== root && !pathIsInside(root, target)) {
+    throw new Error("Chemin USB non autorise.");
+  }
+  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
+    throw new Error("Fichier USB introuvable.");
+  }
+  if (!isAllowedUsbFile(target)) {
+    throw new Error("Format USB non accepte.");
+  }
+  return target;
+}
+
+async function uploadUsbSelection(config, command) {
+  const formData = new FormData();
+  const fields = command.fields || {};
+  Object.entries(fields).forEach(([key, value]) => formData.set(key, String(value ?? "")));
+  formData.set("station", fields.station || config.station);
+  formData.set("source", "usb");
+
+  for (const entry of command.entries || []) {
+    const filePath = resolveUsbEntry(entry.rootPath, entry.relativePath);
+    const bytes = fs.readFileSync(filePath);
+    formData.append("files", new Blob([bytes]), path.basename(filePath));
+  }
+
+  const route = command.code ? `/api/jobs/${command.code}/files` : "/api/jobs";
+  const response = await fetch(`${config.baseUrl}${route}`, {
+    method: "POST",
+    headers: { "x-print-agent-token": config.token },
+    body: formData,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || `Import USB impossible: ${response.status}`);
+  return payload;
+}
+
+function runPowerShellOutput(script) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], {
+      windowsHide: true,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve(stdout);
+      else reject(new Error(stderr || `PowerShell a retourne le code ${code}`));
+    });
+  });
+}
+
 async function ejectUsbDrives() {
   const script = `
     $shell = New-Object -ComObject Shell.Application
@@ -334,11 +506,11 @@ async function markStatus(config, requestId, status, error = "") {
   });
 }
 
-async function markCommandStatus(config, commandId, status, error = "") {
+async function markCommandStatus(config, commandId, status, error = "", result = undefined) {
   await api(config, `/api/print-agent/commands/${commandId}/status`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ station: config.station, status, error }),
+    body: JSON.stringify({ station: config.station, status, error, result }),
   });
 }
 
@@ -346,12 +518,15 @@ async function handleCommand(config, command) {
   if (!command) return;
   console.log(`[${new Date().toLocaleTimeString()}] Commande ${command.type}.`);
   try {
+    let result;
     if (command.type === "eject-usb") await ejectUsbDrives();
+    else if (command.type === "usb-scan") result = await scanUsbDrives(config);
+    else if (command.type === "usb-import") result = { job: await uploadUsbSelection(config, command) };
     else if (command.type === "open-webmail") await openWebmail(config, command.url);
     else if (command.type === "cleanup-browser") await cleanupBrowserSession(config);
     else if (command.type === "shutdown-station" || command.type === "restart-station") await runPowerCommand(command.type);
     else return;
-    await markCommandStatus(config, command.id, "done");
+    await markCommandStatus(config, command.id, "done", "", result);
     console.log("Commande terminee.");
   } catch (error) {
     await markCommandStatus(config, command.id, "failed", error.message).catch(() => {});
