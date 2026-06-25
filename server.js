@@ -110,98 +110,117 @@ function extensionFromPath(filePath) {
   return path.extname(String(filePath || "")).toLowerCase();
 }
 
-function isAllowedKioskUsbPath(filePath) {
-  const extension = extensionFromPath(filePath);
-  return allowedExtensions.has(extension);
+// NOTE IMPORTANTE : ce fichier tourne sur Render (Linux, dans le cloud) et n'a aucun
+// acces au port USB physique de la borne. La detection/lecture de cle USB est donc
+// deleguee a l'agent Windows local (print-agent.js), via la meme file de commandes
+// que celle deja utilisee pour "eject-usb". Render se contente de relayer :
+//  1. il pousse une commande "usb-scan" / "usb-import" pour la station concernee
+//  2. l'agent local l'execute (acces reel au materiel) et renvoie un "result"
+//  3. Render met ce result en cache et le sert au kiosque
+
+const USB_SCAN_TIMEOUT_MS = 8000;
+const USB_SCAN_POLL_MS = 250;
+const USB_SCAN_CACHE_MS = 60 * 1000;
+const usbScanCache = new Map(); // station -> { scannedAt, roots, tree }
+
+function queueStationCommand(station, type, extra = {}) {
+  const commands = readCommands();
+  const command = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    station,
+    type,
+    status: "queued",
+    createdAt: new Date().toISOString(),
+    ...extra,
+  };
+  commands.push(command);
+  writeCommands(commands);
+  return command;
 }
 
-function pathIsInside(parent, child) {
-  const relative = path.relative(parent, child);
-  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative);
-}
-
-function fallbackUsbRoots() {
-  const roots = [];
-  if (process.platform !== "win32") return roots;
-  for (let code = 68; code <= 90; code += 1) {
-    const rootPath = String.fromCharCode(code) + ":\\";
-    try {
-      if (fs.existsSync(rootPath)) roots.push({ name: "Lecteur " + rootPath, path: rootPath });
-    } catch (error) {}
+async function waitForCommandResult(commandId, timeoutMs = USB_SCAN_TIMEOUT_MS) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const command = readCommands().find((item) => item.id === commandId);
+    if (command && (command.status === "done" || command.status === "failed")) return command;
+    await new Promise((resolve) => setTimeout(resolve, USB_SCAN_POLL_MS));
   }
-  return roots;
+  return null;
 }
 
-function usbRoots() {
-  if (process.platform !== "win32") return [];
-  try {
-    const { execFileSync } = require("child_process");
-    const output = execFileSync("powershell.exe", [
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-Command",
-      "Get-CimInstance Win32_LogicalDisk -Filter \"DriveType=2\" | Select-Object DeviceID,VolumeName | ConvertTo-Json -Compress"
-    ], { windowsHide: true, timeout: 3500 }).toString("utf8").trim();
-    if (!output) return fallbackUsbRoots();
-    const parsed = JSON.parse(output);
-    const drives = Array.isArray(parsed) ? parsed : [parsed];
-    const roots = drives
-      .filter((drive) => drive && drive.DeviceID)
-      .map((drive) => {
-        const rootPath = String(drive.DeviceID).replace(/\\?$/, "\\");
-        const label = String(drive.VolumeName || "").trim();
-        return { name: label ? label + " (" + rootPath + ")" : "Cle USB " + rootPath, path: rootPath };
-      });
-    return roots.length ? roots : fallbackUsbRoots();
-  } catch (error) {
-    return fallbackUsbRoots();
+async function ensureUsbScan(station, { force = false } = {}) {
+  const cached = usbScanCache.get(station);
+  if (!force && cached && Date.now() - cached.scannedAt < USB_SCAN_CACHE_MS) return cached;
+
+  const command = queueStationCommand(station, "usb-scan");
+  const finished = await waitForCommandResult(command.id);
+  if (!finished || finished.status !== "done") {
+    if (cached) return cached; // on degrade vers le cache plutot que de planter
+    const error = new Error(
+      finished && finished.error
+        ? finished.error
+        : "Agent d'impression hors ligne ou clé USB introuvable sur le poste."
+    );
+    error.usbAgentOffline = true;
+    throw error;
   }
+
+  const result = {
+    scannedAt: Date.now(),
+    roots: finished.result?.roots || [],
+    tree: finished.result?.tree || [],
+  };
+  usbScanCache.set(station, result);
+  return result;
 }
 
-function resolveUsbPath(value = "") {
-  const roots = usbRoots();
-  const rawPath = String(value || "");
-  const resolved = path.resolve(rawPath);
-  const root = roots.find((item) => {
-    const rootPath = path.resolve(item.path);
-    return resolved === rootPath || pathIsInside(rootPath, resolved);
-  });
-  if (!root) return null;
-  return { root, path: resolved };
-}
+function buildUsbBrowseView(scan, requestedPath = "") {
+  const roots = scan.roots;
+  const tree = scan.tree;
+  const currentPath = requestedPath || roots[0]?.path || "";
+  if (!currentPath) return { roots, path: "", parentPath: "", entries: [] };
 
-function safeUsbEntryName(name) {
-  return String(name || "").replace(/[\\/:*?"<>|]/g, "-");
-}
-
-function storeUsbPathFiles(paths, directory, offset = 0) {
-  const selectedPaths = Array.isArray(paths) ? paths : [];
-  const files = [];
-  for (let index = 0; index < selectedPaths.length; index += 1) {
-    const resolved = resolveUsbPath(selectedPaths[index]);
-    if (!resolved) throw new Error("Fichier hors cle USB refuse.");
-    const stats = fs.statSync(resolved.path);
-    if (!stats.isFile()) throw new Error("Selection invalide.");
-    if (stats.size > MAX_FILE_SIZE) throw new Error("Fichier trop lourd. Limite : " + MAX_FILE_SIZE_MB + " Mo par fichier.");
-    const extension = extensionFromPath(resolved.path);
-    if (!allowedExtensions.has(extension)) throw new Error("Format non accepte. PDF, PNG, JPEG, HEIC ou WebP uniquement.");
-    const id = Date.now() + "-" + (offset + index);
-    const storedName = id + extension;
-    const storedPath = path.join(directory, storedName);
-    fs.copyFileSync(resolved.path, storedPath);
-    files.push({
-      id,
-      originalName: safeUsbEntryName(path.basename(resolved.path)),
-      storedName,
-      printableStoredName: "",
-      extension,
-      size: stats.size,
-      pages: 1,
-      pendingPageEstimate: extension === ".pdf",
+  const entries = tree
+    .filter((entry) => entry.parentPath === currentPath)
+    .map((entry) => ({
+      name: entry.name,
+      path: entry.path,
+      type: entry.type,
+      extension: entry.extension || "",
+      selectable: entry.type === "file",
+      size: entry.size || 0,
+    }))
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
+      return a.name.localeCompare(b.name, "fr");
     });
+
+  const matchingRoot = roots.find((root) => root.path === currentPath);
+  const parentPath = matchingRoot
+    ? ""
+    : tree.find((entry) => entry.path === currentPath)?.parentPath || "";
+
+  return { roots, path: currentPath, parentPath, entries };
+}
+
+async function importUsbSelection({ station, code, paths, fields }) {
+  const scan = await ensureUsbScan(station);
+  const selected = (Array.isArray(paths) ? paths : [])
+    .map((virtualPath) => scan.tree.find((entry) => entry.type === "file" && entry.path === virtualPath))
+    .filter(Boolean);
+  if (!selected.length) throw new Error("Selectionnez au moins un fichier present sur la cle USB.");
+
+  const command = queueStationCommand(station, "usb-import", {
+    code: code || null,
+    entries: selected.map((entry) => ({ rootPath: entry.rootPath, relativePath: entry.relativePath })),
+    fields,
+  });
+  const finished = await waitForCommandResult(command.id, USB_SCAN_TIMEOUT_MS + 4000);
+  if (!finished || finished.status !== "done") {
+    throw new Error(finished?.error || "Echec de la recuperation des fichiers depuis la cle USB.");
   }
-  return files;
+  if (!finished.result?.job) throw new Error("Reponse de l'agent invalide.");
+  return finished.result.job;
 }
 
 function cleanupTempUploads(files = []) {
@@ -505,20 +524,6 @@ async function estimatePdfPages(filePath) {
 async function estimatePages(filePath, extension) {
   if (extension === ".pdf") return estimatePdfPages(filePath);
   return 1;
-}
-
-async function finalizeStoredUsbFiles(files, directory) {
-  for (const file of files) {
-    const storedPath = path.join(directory, file.storedName);
-    const printableStoredName = [".png", ".jpg", ".jpeg"].includes(file.extension) ? `${file.id}-print.pdf` : "";
-    if (printableStoredName) {
-      await createImagePrintPdf(storedPath, file.extension, path.join(directory, printableStoredName));
-      file.printableStoredName = printableStoredName;
-    }
-    file.pages = await estimatePages(storedPath, file.extension);
-    delete file.pendingPageEstimate;
-  }
-  return files;
 }
 
 async function storeUploadedFiles(files, directory, offset = 0) {
@@ -1688,50 +1693,34 @@ app.get("/api/jobs", (request, response) => {
   });
 });
 
-app.get("/api/usb/roots", (request, response) => {
-  response.json({ roots: usbRoots() });
+app.get("/api/usb/roots", async (request, response, next) => {
+  try {
+    const station = stationFrom(request.query.station);
+    const scan = await ensureUsbScan(station);
+    response.json({ roots: scan.roots });
+  } catch (error) {
+    if (error.usbAgentOffline) {
+      response.status(503).json({ error: error.message, roots: [] });
+      return;
+    }
+    next(error);
+  }
 });
 
-app.get("/api/usb/browse", (request, response) => {
-  const requestedPath = String(request.query.path || "");
-  const roots = usbRoots();
-  const target = requestedPath ? resolveUsbPath(requestedPath) : null;
-  const currentPath = target ? target.path : roots[0]?.path || "";
-  if (!currentPath) {
-    response.json({ roots, path: "", parentPath: "", entries: [] });
-    return;
+app.get("/api/usb/browse", async (request, response, next) => {
+  try {
+    const station = stationFrom(request.query.station);
+    const requestedPath = String(request.query.path || "");
+    const refresh = request.query.refresh === "1";
+    const scan = await ensureUsbScan(station, { force: refresh });
+    response.json(buildUsbBrowseView(scan, requestedPath));
+  } catch (error) {
+    if (error.usbAgentOffline) {
+      response.status(503).json({ error: error.message, roots: [], path: "", parentPath: "", entries: [] });
+      return;
+    }
+    next(error);
   }
-  const resolved = resolveUsbPath(currentPath);
-  if (!resolved) {
-    response.status(400).json({ error: "Dossier non autorise." });
-    return;
-  }
-  const rootPath = path.resolve(resolved.root.path);
-  const parentPath = path.resolve(resolved.path) === rootPath ? "" : path.dirname(resolved.path);
-  const entries = fs.readdirSync(resolved.path, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith("."))
-    .map((entry) => {
-      const entryPath = path.join(resolved.path, entry.name);
-      const isDirectory = entry.isDirectory();
-      let size = 0;
-      try {
-        if (!isDirectory) size = fs.statSync(entryPath).size;
-      } catch (error) {}
-      return {
-        name: entry.name,
-        path: entryPath,
-        type: isDirectory ? "directory" : "file",
-        extension: isDirectory ? "" : extensionFromPath(entry.name).replace(".", ""),
-        selectable: !isDirectory && isAllowedKioskUsbPath(entryPath),
-        size,
-      };
-    })
-    .filter((entry) => entry.type === "directory" || entry.selectable)
-    .sort((a, b) => {
-      if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
-      return a.name.localeCompare(b.name, "fr");
-    });
-  response.json({ roots, path: resolved.path, parentPath, entries });
 });
 
 app.post("/api/jobs/from-usb-paths", async (request, response, next) => {
@@ -1745,30 +1734,23 @@ app.post("/api/jobs/from-usb-paths", async (request, response, next) => {
       response.status(400).json({ error: "Trop de fichiers selectionnes." });
       return;
     }
-    const code = reserveCode();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + JOB_TTL_MS);
-    const directory = jobDir(code);
+    const station = stationFrom(request.body.station);
     const printMode = request.body.printMode === "couleur" ? "couleur" : "noir-blanc";
-    const printSettings = sanitizePrintSettings({ colorMode: printMode });
-    const files = await finalizeStoredUsbFiles(storeUsbPathFiles(paths, directory), directory);
-    const job = {
-      code,
-      customerName: sanitizeCustomerName(request.body.customerName),
-      clientId: sanitizeClientId(request.body.clientId),
-      civility: ["madame", "monsieur"].includes(request.body.civility) ? request.body.civility : "",
-      printCard: request.body.printCard === "1",
-      source: "usb",
-      station: stationFrom(request.body.station),
-      adminUpload: false,
-      printMode,
-      printSettings,
-      createdAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      files,
-    };
-    writeJob(job);
-    response.status(201).json(publicJob(job));
+    const job = await importUsbSelection({
+      station,
+      code: null,
+      paths,
+      fields: {
+        customerName: sanitizeCustomerName(request.body.customerName),
+        clientId: sanitizeClientId(request.body.clientId),
+        civility: ["madame", "monsieur"].includes(request.body.civility) ? request.body.civility : "",
+        printCard: request.body.printCard === "1" ? "1" : "0",
+        printMode,
+        station,
+        source: "usb",
+      },
+    });
+    response.status(201).json(job);
   } catch (error) {
     next(error);
   }
@@ -1786,11 +1768,14 @@ app.post("/api/jobs/:code/files-from-usb-paths", async (request, response, next)
       response.status(400).json({ error: "Selectionnez au moins un fichier." });
       return;
     }
-    const files = await finalizeStoredUsbFiles(storeUsbPathFiles(paths, jobDir(job.code), job.files.length), jobDir(job.code));
-    job.files.push(...files);
-    job.expiresAt = new Date(Date.now() + JOB_TTL_MS).toISOString();
-    writeJob(job);
-    response.status(201).json(publicJob(job));
+    const station = stationFrom(request.body.station || job.station);
+    const updatedJob = await importUsbSelection({
+      station,
+      code: job.code,
+      paths,
+      fields: {},
+    });
+    response.status(201).json(updatedJob);
   } catch (error) {
     next(error);
   }
@@ -2097,6 +2082,7 @@ app.post("/api/print-agent/commands/:commandId/status", (request, response) => {
 
   command.status = ["done", "failed"].includes(request.body.status) ? request.body.status : "failed";
   command.error = String(request.body.error || "").slice(0, 500);
+  if (request.body.result !== undefined) command.result = request.body.result;
   command.updatedAt = new Date().toISOString();
   writeCommands(commands);
   response.json({ ok: true, command });
