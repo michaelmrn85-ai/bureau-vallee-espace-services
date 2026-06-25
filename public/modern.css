@@ -1491,12 +1491,14 @@ body[data-page="admin"] {
 }
 
 
-.photo-orientation-group {
+.photo-orientation-group,
+.orientation-group {
   border-color: #9fc7ff;
   background: #f5f9ff;
 }
 
-.photo-orientation-group p {
+.photo-orientation-group p,
+.orientation-group p {
   margin: 2px 0 8px;
   color: var(--muted);
   font-size: 13px;
@@ -1620,4 +1622,130 @@ body[data-page="admin"] {
 .upload-result.is-counter-upload span,
 .upload-result.is-counter-upload strong {
   display: none;
+}
+
+
+.admin-subnav {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 22px;
+}
+
+.admin-subnav button {
+  min-height: 42px;
+  border: 1px solid #b9d7ff;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: #fff;
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.admin-subnav button.active {
+  background: var(--blue);
+  color: #fff;
+}
+
+.admin-view {
+  display: none;
+}
+
+.admin-view.active {
+  display: block;
+}
+
+.admin-file-list {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.admin-file-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.admin-file-head,
+.admin-file-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.admin-file-head span,
+.admin-file-meta,
+.admin-file-row span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-file-head strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.admin-file-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-file-meta span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #edf5ff;
+}
+
+.admin-file-items {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-file-row {
+  padding: 12px;
+  border: 1px solid #e2ebf6;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-file-row strong {
+  display: block;
+}
+
+.admin-file-actions a,
+.admin-file-row a,
+.counter-download {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  border: 1px solid #9fc7ff;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #f4f9ff;
+  color: var(--blue);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.admin-empty-files {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+
+.mail-hourglass-box {
+  min-height: 150px;
+}
+
+.mail-hourglass {
+  width: 58px;
+  height: 58px;
+  margin: 8px auto 0;
 }

@@ -34,7 +34,7 @@ const ejectUsbButton = document.getElementById("eject-usb");
 const endSessionButton = document.getElementById("end-session");
 const copiesInput = document.getElementById("copies");
 const pageRangeInput = document.getElementById("page-range");
-const photoOrientationGroup = document.getElementById("photo-orientation-group");
+const orientationGroup = document.getElementById("orientation-group");
 const qrModal = document.getElementById("qr-modal");
 const qrImage = document.getElementById("qr-image");
 const uploadUrl = document.getElementById("upload-url");
@@ -95,12 +95,14 @@ const I18N = {
     bw: "Noir et blanc",
     duplex: "Recto / verso",
     photoOrientation: "Orientation photo",
-    orientationHelp: "Choisissez le sens d'impression de la photo.",
+    orientationHelp: "Choisissez le sens d'impression du document.",
     orientationAuto: "Auto",
     orientationPortrait: "Portrait",
     orientationLandscape: "Paysage",
     simplex: "Recto",
-    duplexLong: "Recto verso",
+    duplexLong: "Recto verso bord long",
+    duplexShort: "Recto verso bord court",
+    orientation: "Orientation",
     copies: "Nombre d'exemplaires",
     pages: "Pages à imprimer",
     allPages: "Toutes les pages",
@@ -164,12 +166,14 @@ const I18N = {
     bw: "Black and white",
     duplex: "Single / double-sided",
     photoOrientation: "Photo orientation",
-    orientationHelp: "Choose the print direction for the photo.",
+    orientationHelp: "Choose the document print direction.",
     orientationAuto: "Auto",
     orientationPortrait: "Portrait",
     orientationLandscape: "Landscape",
     simplex: "Single-sided",
-    duplexLong: "Double-sided",
+    duplexLong: "Double-sided long edge",
+    duplexShort: "Double-sided short edge",
+    orientation: "Orientation",
     copies: "Number of copies",
     pages: "Pages to print",
     allPages: "All pages",
@@ -233,12 +237,14 @@ const I18N = {
     bw: "Blanco y negro",
     duplex: "Una / doble cara",
     photoOrientation: "Orientación de foto",
-    orientationHelp: "Elija el sentido de impresión de la foto.",
+    orientationHelp: "Elija el sentido de impresión del documento.",
     orientationAuto: "Auto",
     orientationPortrait: "Vertical",
     orientationLandscape: "Horizontal",
     simplex: "Una cara",
-    duplexLong: "Doble cara",
+    duplexLong: "Doble cara borde largo",
+    duplexShort: "Doble cara borde corto",
+    orientation: "Orientación",
     copies: "Número de copias",
     pages: "Páginas a imprimir",
     allPages: "Todas las páginas",
@@ -302,12 +308,14 @@ const I18N = {
     bw: "Schwarzweiß",
     duplex: "Einseitig / doppelseitig",
     photoOrientation: "Fotoausrichtung",
-    orientationHelp: "Wählen Sie die Druckrichtung des Fotos.",
+    orientationHelp: "Wählen Sie die Druckrichtung des Dokuments.",
     orientationAuto: "Auto",
     orientationPortrait: "Hochformat",
     orientationLandscape: "Querformat",
     simplex: "Einseitig",
-    duplexLong: "Doppelseitig",
+    duplexLong: "Doppelseitig lange Kante",
+    duplexShort: "Doppelseitig kurze Kante",
+    orientation: "Ausrichtung",
     copies: "Anzahl Kopien",
     pages: "Zu druckende Seiten",
     allPages: "Alle Seiten",
@@ -392,19 +400,20 @@ function applyTranslations() {
   endSessionButton.textContent = t("endSession");
   setText(".doc-panel .panel-title h2", "documents");
   setText(".settings-panel h2", "settings");
-  setAllText(".setting-group > strong", ["paper", "color", "duplex", "photoOrientation"]);
+  setAllText(".setting-group > strong", ["paper", "color", "duplex", "orientation"]);
   setAllText(".setting-group label", ["", "", "", ""]);
   document.querySelectorAll(".setting-group")[1]?.querySelectorAll("label").forEach((label, index) => {
     label.childNodes[label.childNodes.length - 1].textContent = index === 0 ? ` ${t("bw")}` : ` ${t("color")}`;
   });
   document.querySelectorAll(".setting-group")[2]?.querySelectorAll("label").forEach((label, index) => {
-    label.childNodes[label.childNodes.length - 1].textContent = index === 0 ? ` ${t("simplex")}` : ` ${t("duplexLong")}`;
+    const keys = ["simplex", "duplexLong", "duplexShort"];
+    label.childNodes[label.childNodes.length - 1].textContent = ` ${t(keys[index])}`;
   });
-  const orientationGroup = document.getElementById("photo-orientation-group");
-  if (orientationGroup) {
-    const help = orientationGroup.querySelector("p");
+  const translationOrientationGroup = document.getElementById("orientation-group");
+  if (translationOrientationGroup) {
+    const help = translationOrientationGroup.querySelector("p");
     if (help) help.textContent = t("orientationHelp");
-    orientationGroup.querySelectorAll("label").forEach((label, index) => {
+    translationOrientationGroup.querySelectorAll("label").forEach((label, index) => {
       const keys = ["orientationAuto", "orientationPortrait", "orientationLandscape"];
       label.childNodes[label.childNodes.length - 1].textContent = ` ${t(keys[index])}`;
     });
@@ -457,26 +466,16 @@ function formatElapsed(ms) {
 function startDigitalClock() {
   if (!digitalClock || clockInterval) return;
   digitalClock.textContent = formatClock();
+  checkClosingNotice();
   clockInterval = setInterval(() => {
     digitalClock.textContent = formatClock();
+    checkClosingNotice();
   }, 1000);
 }
 
 function startMailWaitTimer() {
   if (!mailWaitTimer) return;
-  clearInterval(mailWaitInterval);
-
-  const deadline = Date.now() + MAIL_WAIT_DURATION_MS;
-  const updateCountdown = () => {
-    const remaining = Math.max(0, deadline - Date.now());
-    mailWaitTimer.textContent = formatElapsed(remaining);
-    mailWaitTimer.classList.toggle("is-done", remaining === 0);
-    if (remaining === 0) clearInterval(mailWaitInterval);
-  };
-
   mailWaitTimer.classList.remove("is-done");
-  updateCountdown();
-  mailWaitInterval = setInterval(updateCountdown, 1000);
 }
 
 function stopMailWaitTimer() {
@@ -582,6 +581,24 @@ function showInfo(title, text) {
   infoModal.classList.remove("hidden");
 }
 
+function closingWindowKey(date) {
+  const day = date.getDay();
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  const stamp = date.toISOString().slice(0, 10);
+
+  if (minutes >= 12 * 60 + 20 && minutes < 12 * 60 + 30) return stamp + "-1220";
+  if (day === 6 && minutes >= 17 * 60 + 50 && minutes < 18 * 60) return stamp + "-1750-samedi";
+  if (day >= 1 && day <= 5 && minutes >= 18 * 60 + 50 && minutes < 19 * 60) return stamp + "-1850";
+  return "";
+}
+
+function checkClosingNotice() {
+  const key = closingWindowKey(new Date());
+  if (!key || closingNoticeKey === key) return;
+  closingNoticeKey = key;
+  showInfo("Information magasin", "Votre magasin va bientôt fermer ses portes. Merci de vous rapprocher des caisses.");
+}
+
 function hideInfo() {
   infoModal.classList.add("hidden");
 }
@@ -681,11 +698,7 @@ function updateSessionControls() {
 
 function updatePhotoOrientationControls(file) {
   const isPhoto = isPhotoFile(file);
-  photoOrientationGroup?.classList.toggle("hidden", !isPhoto);
-  if (!isPhoto) {
-    const autoOrientation = document.querySelector("input[name='orientation'][value='auto']");
-    if (autoOrientation) autoOrientation.checked = true;
-  }
+  orientationGroup?.classList.toggle("is-photo-selected", isPhoto);
 }
 
 function renderPreview(file) {

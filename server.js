@@ -862,11 +862,7 @@ async function processIncomingMail(message, tools) {
     if (result.job.adminUpload || result.job.counterOnly) {
       await sendMailReply(tools.nodemailer, to, "Espace Services - fichiers a traiter au comptoir", mailTextForCounter(result.job));
     } else {
-      if (result.job.adminUpload || result.job.counterOnly) {
-      await sendMailReply(tools.nodemailer, to, "Espace Services - fichiers a traiter au comptoir", mailTextForCounter(result.job));
-    } else {
       await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
-    }
     }
   } catch (error) {
     mailRuntimeStatus.lastReplyError = error.message;
@@ -1119,11 +1115,7 @@ function startMailWatcher() {
                 if (job.adminUpload || job.counterOnly) {
                   await sendMailReply(nodemailer, fromAddress, 'Espace Services - fichiers a traiter au comptoir', mailTextForCounter(job));
                 } else {
-                  if (job.adminUpload || job.counterOnly) {
-                  await sendMailReply(nodemailer, fromAddress, 'Espace Services - fichiers a traiter au comptoir', mailTextForCounter(job));
-                } else {
                   await sendMailReply(nodemailer, fromAddress, 'Espace Services - code dossier ' + code, mailTextForCode(job));
-                }
                 }
               } catch (e) {
                 mailRuntimeStatus.lastReplyError = e.message;

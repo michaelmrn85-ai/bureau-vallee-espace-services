@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tableau de bord</title>
-  <link rel="stylesheet" href="/modern.css?v=20260620-admin-shutdown-counter-qr-word">
+  <link rel="stylesheet" href="/modern.css?v=20260625-admin-files-tabs">
 </head>
 <body data-page="admin">
   <main class="admin-page">
@@ -12,104 +12,132 @@
       <div>
         <p>Administration</p>
         <h1>Tableau de bord</h1>
-        <small id="dashboard-updated">Compteurs confirmés par les postes</small>
+        <small id="dashboard-updated">Compteurs confirmes par les postes</small>
       </div>
       <button id="refresh-admin" type="button">Actualiser</button>
     </header>
 
-    <section class="counter-grid admin-real-grid">
-      <article class="counter-card real-card">
-        <span>N&B confirmé</span>
-        <strong id="metric-bw">0</strong>
-        <p id="metric-bw-rate">0% du total imprimé</p>
-      </article>
-      <article class="counter-card color-card real-card">
-        <span>Couleur confirmé</span>
-        <strong id="metric-color">0</strong>
-        <p id="metric-color-rate">0% du total imprimé</p>
-      </article>
-      <article class="counter-card real-card">
-        <span>Total imprimé</span>
-        <strong id="metric-total">0</strong>
-        <p id="metric-jobs">0 dossier confirmé</p>
-      </article>
-      <article class="counter-card real-card alert-card">
-        <span>En cours</span>
-        <strong id="metric-pending">0</strong>
-        <p id="metric-failed">0 erreur</p>
-      </article>
-    </section>
+    <nav class="admin-subnav" aria-label="Sous menus tableau de bord">
+      <button class="active" type="button" data-admin-tab="compteur">Compteur</button>
+      <button type="button" data-admin-tab="mail">Fichiers mail</button>
+      <button type="button" data-admin-tab="qr">Fichiers QR code</button>
+    </nav>
 
-    <section class="admin-tools-grid">
-      <article class="admin-simple-panel admin-actions-panel">
-        <div class="panel-heading">
-          <h2>Commandes postes</h2>
-          <p>Extinction a distance des PC Espace Services.</p>
-        </div>
-        <div class="remote-actions">
-          <button class="danger-action" type="button" data-shutdown-station="poste-1">Extinction du Poste 1</button>
-          <button class="danger-action" type="button" data-shutdown-station="poste-2">Extinction du Poste 2</button>
-        </div>
-        <p class="admin-action-status" id="admin-action-status"></p>
-      </article>
+    <div class="admin-view active" data-admin-view="compteur">
+      <section class="counter-grid admin-real-grid">
+        <article class="counter-card real-card">
+          <span>N&B confirme</span>
+          <strong id="metric-bw">0</strong>
+          <p id="metric-bw-rate">0% du total imprime</p>
+        </article>
+        <article class="counter-card color-card real-card">
+          <span>Couleur confirme</span>
+          <strong id="metric-color">0</strong>
+          <p id="metric-color-rate">0% du total imprime</p>
+        </article>
+        <article class="counter-card real-card">
+          <span>Total imprime</span>
+          <strong id="metric-total">0</strong>
+          <p id="metric-jobs">0 dossier confirme</p>
+        </article>
+        <article class="counter-card real-card alert-card">
+          <span>En cours</span>
+          <strong id="metric-pending">0</strong>
+          <p id="metric-failed">0 erreur</p>
+        </article>
+      </section>
 
-      <article class="admin-simple-panel counter-qr-panel">
-        <div class="panel-heading">
-          <h2>QR code comptoir</h2>
-          <p>Reception directe pour le comptoir, sans rattachement au Poste 1 ou Poste 2. Word, DOC et DOCX acceptes.</p>
-        </div>
-        <div class="counter-qr-layout">
-          <img id="counter-qr" src="/qr.gif?mode=admin&source=comptoir" alt="QR code comptoir">
-          <div>
-            <label for="counter-upload-url">Lien comptoir</label>
-            <div class="admin-url-copy">
-              <input id="counter-upload-url" readonly value="/upload?mode=admin&source=comptoir">
-              <button id="copy-counter-url" type="button">Copier</button>
+      <section class="admin-tools-grid">
+        <article class="admin-simple-panel admin-actions-panel">
+          <div class="panel-heading">
+            <h2>Commandes postes</h2>
+            <p>Extinction a distance des PC Espace Services.</p>
+          </div>
+          <div class="remote-actions">
+            <button class="danger-action" type="button" data-shutdown-station="poste-1">Extinction du Poste 1</button>
+            <button class="danger-action" type="button" data-shutdown-station="poste-2">Extinction du Poste 2</button>
+          </div>
+          <p class="admin-action-status" id="admin-action-status"></p>
+        </article>
+
+        <article class="admin-simple-panel counter-qr-panel">
+          <div class="panel-heading">
+            <h2>QR code comptoir</h2>
+            <p>Reception directe pour le comptoir, sans rattachement au Poste 1 ou Poste 2. Word, DOC et DOCX acceptes.</p>
+          </div>
+          <div class="counter-qr-layout">
+            <img id="counter-qr" src="/qr.gif?mode=admin&source=comptoir" alt="QR code comptoir">
+            <div>
+              <label for="counter-upload-url">Lien comptoir</label>
+              <div class="admin-url-copy">
+                <input id="counter-upload-url" readonly value="/upload?mode=admin&source=comptoir">
+                <button id="copy-counter-url" type="button">Copier</button>
+              </div>
             </div>
           </div>
+        </article>
+      </section>
+
+      <section class="admin-simple-panel">
+        <div class="panel-heading">
+          <h2>Postes d'impression</h2>
+          <p>Copies reellement confirmees par les agents de poste.</p>
         </div>
-      </article>
-    </section>
+        <div class="simple-stations" id="station-grid"></div>
+      </section>
 
-    <section class="admin-simple-panel">
-      <div class="panel-heading">
-        <h2>Postes d'impression</h2>
-        <p>Copies réellement confirmées par les agents de poste.</p>
-      </div>
-      <div class="simple-stations" id="station-grid"></div>
-    </section>
+      <section class="admin-simple-panel counter-receptions-panel">
+        <div class="panel-heading">
+          <h2>Receptions comptoir</h2>
+          <p>Fichiers recus via le QR comptoir ou par mail Word, sans passage par les postes clients.</p>
+        </div>
+        <div class="counter-receptions-list" id="counter-receptions-list"></div>
+      </section>
 
-    <section class="admin-simple-panel counter-receptions-panel">
-      <div class="panel-heading">
-        <h2>Réceptions comptoir</h2>
-        <p>Fichiers reçus via le QR comptoir, sans passage par les postes clients.</p>
-      </div>
-      <div class="counter-receptions-list" id="counter-receptions-list"></div>
-    </section>
+      <section class="admin-simple-panel">
+        <div class="panel-heading">
+          <h2>Dernieres impressions</h2>
+          <p>Dossiers imprimes, en attente ou en erreur.</p>
+        </div>
+        <div class="simple-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Client</th>
+                <th>Poste</th>
+                <th>N&B reel</th>
+                <th>Couleur reel</th>
+                <th>Total reel</th>
+                <th>Etat</th>
+              </tr>
+            </thead>
+            <tbody id="client-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
-    <section class="admin-simple-panel">
-      <div class="panel-heading">
-        <h2>Dernières impressions</h2>
-        <p>Dossiers imprimés, en attente ou en erreur.</p>
-      </div>
-      <div class="simple-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Client</th>
-              <th>Poste</th>
-              <th>N&B réel</th>
-              <th>Couleur réel</th>
-              <th>Total réel</th>
-              <th>Etat</th>
-            </tr>
-          </thead>
-          <tbody id="client-table"></tbody>
-        </table>
-      </div>
-    </section>
+    <div class="admin-view" data-admin-view="mail">
+      <section class="admin-simple-panel">
+        <div class="panel-heading">
+          <h2>Fichiers mail</h2>
+          <p>Pieces jointes recues par mail. Les fichiers Word/DOC/DOCX sont traites au comptoir.</p>
+        </div>
+        <div class="admin-file-list" id="mail-files-list"></div>
+      </section>
+    </div>
+
+    <div class="admin-view" data-admin-view="qr">
+      <section class="admin-simple-panel">
+        <div class="panel-heading">
+          <h2>Fichiers QR code</h2>
+          <p>Fichiers envoyes via QR code client ou QR code comptoir, avec telechargement depuis l'administration.</p>
+        </div>
+        <div class="admin-file-list" id="qr-files-list"></div>
+      </section>
+    </div>
   </main>
-  <script src="/modern-admin.js?v=20260620-admin-shutdown-counter-qr-word"></script>
+  <script src="/modern-admin.js?v=20260625-admin-files-tabs"></script>
 </body>
 </html>

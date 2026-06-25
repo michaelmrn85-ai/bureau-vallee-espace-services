@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260620-photo-orientation-usb-eject">
+  <link rel="stylesheet" href="/modern.css?v=20260625-options-mail-hourglass-closing">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -120,12 +120,13 @@
         <div class="setting-group">
           <strong>Recto / verso</strong>
           <label><input name="duplex" type="radio" value="recto" checked> Recto</label>
-          <label><input name="duplex" type="radio" value="recto-verso-long"> Recto verso</label>
+          <label><input name="duplex" type="radio" value="recto-verso-long"> Recto verso bord long</label>
+          <label><input name="duplex" type="radio" value="recto-verso-court"> Recto verso bord court</label>
         </div>
 
-        <div class="setting-group photo-orientation-group hidden" id="photo-orientation-group">
-          <strong>Orientation photo</strong>
-          <p>Choisissez le sens d'impression de la photo.</p>
+        <div class="setting-group orientation-group" id="orientation-group">
+          <strong>Orientation</strong>
+          <p>Auto garde le sens du fichier. Portrait et paysage forcent le sens d'impression.</p>
           <label><input name="orientation" type="radio" value="auto" checked> Auto</label>
           <label><input name="orientation" type="radio" value="portrait"> Portrait</label>
           <label><input name="orientation" type="radio" value="paysage"> Paysage</label>
@@ -197,11 +198,11 @@
           <span class="step-number">2</span>
           <h3>Patientez</h3>
           <p>Le serveur récupère le mail et prépare le dossier d'impression.</p>
-          <div class="mail-countdown">
-            <span>Temps conseillé</span>
-            <strong id="mail-wait-timer">02:00</strong>
+          <div class="mail-countdown mail-hourglass-box">
+            <span>Recherche du mail en cours</span>
+            <div class="hourglass mail-hourglass" id="mail-wait-timer" aria-hidden="true"></div>
           </div>
-          <small>Vous pouvez saisir le code dès que vous le recevez.</small>
+          <small>Patientez pendant la reception. Vous pouvez saisir le code des que vous le recevez.</small>
         </section>
 
         <section class="mail-step-card">
@@ -255,7 +256,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260620-photo-orientation-usb-eject"></script>
+  <script src="/modern-app.js?v=20260625-options-mail-hourglass-closing"></script>
 </body>
 </html>
 
