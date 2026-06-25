@@ -106,6 +106,104 @@ function hasCounterOnlyFiles(files = []) {
   return files.some((file) => counterOnlyExtensions.has(extensionFromUpload(file)));
 }
 
+function extensionFromPath(filePath) {
+  return path.extname(String(filePath || "")).toLowerCase();
+}
+
+function isAllowedKioskUsbPath(filePath) {
+  const extension = extensionFromPath(filePath);
+  return allowedExtensions.has(extension);
+}
+
+function pathIsInside(parent, child) {
+  const relative = path.relative(parent, child);
+  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function fallbackUsbRoots() {
+  const roots = [];
+  if (process.platform !== "win32") return roots;
+  for (let code = 68; code <= 90; code += 1) {
+    const rootPath = String.fromCharCode(code) + ":\\";
+    try {
+      if (fs.existsSync(rootPath)) roots.push({ name: "Lecteur " + rootPath, path: rootPath });
+    } catch (error) {}
+  }
+  return roots;
+}
+
+function usbRoots() {
+  if (process.platform !== "win32") return [];
+  try {
+    const { execFileSync } = require("child_process");
+    const output = execFileSync("powershell.exe", [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "Get-CimInstance Win32_LogicalDisk -Filter \"DriveType=2\" | Select-Object DeviceID,VolumeName | ConvertTo-Json -Compress"
+    ], { windowsHide: true, timeout: 3500 }).toString("utf8").trim();
+    if (!output) return fallbackUsbRoots();
+    const parsed = JSON.parse(output);
+    const drives = Array.isArray(parsed) ? parsed : [parsed];
+    const roots = drives
+      .filter((drive) => drive && drive.DeviceID)
+      .map((drive) => {
+        const rootPath = String(drive.DeviceID).replace(/\\?$/, "\\");
+        const label = String(drive.VolumeName || "").trim();
+        return { name: label ? label + " (" + rootPath + ")" : "Cle USB " + rootPath, path: rootPath };
+      });
+    return roots.length ? roots : fallbackUsbRoots();
+  } catch (error) {
+    return fallbackUsbRoots();
+  }
+}
+
+function resolveUsbPath(value = "") {
+  const roots = usbRoots();
+  const rawPath = String(value || "");
+  const resolved = path.resolve(rawPath);
+  const root = roots.find((item) => {
+    const rootPath = path.resolve(item.path);
+    return resolved === rootPath || pathIsInside(rootPath, resolved);
+  });
+  if (!root) return null;
+  return { root, path: resolved };
+}
+
+function safeUsbEntryName(name) {
+  return String(name || "").replace(/[\\/:*?"<>|]/g, "-");
+}
+
+function storeUsbPathFiles(paths, directory, offset = 0) {
+  const selectedPaths = Array.isArray(paths) ? paths : [];
+  const files = [];
+  for (let index = 0; index < selectedPaths.length; index += 1) {
+    const resolved = resolveUsbPath(selectedPaths[index]);
+    if (!resolved) throw new Error("Fichier hors cle USB refuse.");
+    const stats = fs.statSync(resolved.path);
+    if (!stats.isFile()) throw new Error("Selection invalide.");
+    if (stats.size > MAX_FILE_SIZE) throw new Error("Fichier trop lourd. Limite : " + MAX_FILE_SIZE_MB + " Mo par fichier.");
+    const extension = extensionFromPath(resolved.path);
+    if (!allowedExtensions.has(extension)) throw new Error("Format non accepte. PDF, PNG, JPEG, HEIC ou WebP uniquement.");
+    const id = Date.now() + "-" + (offset + index);
+    const storedName = id + extension;
+    const storedPath = path.join(directory, storedName);
+    fs.copyFileSync(resolved.path, storedPath);
+    files.push({
+      id,
+      originalName: safeUsbEntryName(path.basename(resolved.path)),
+      storedName,
+      printableStoredName: "",
+      extension,
+      size: stats.size,
+      pages: 1,
+      pendingPageEstimate: extension === ".pdf",
+    });
+  }
+  return files;
+}
+
 function cleanupTempUploads(files = []) {
   for (const file of files) {
     try {
@@ -407,6 +505,20 @@ async function estimatePdfPages(filePath) {
 async function estimatePages(filePath, extension) {
   if (extension === ".pdf") return estimatePdfPages(filePath);
   return 1;
+}
+
+async function finalizeStoredUsbFiles(files, directory) {
+  for (const file of files) {
+    const storedPath = path.join(directory, file.storedName);
+    const printableStoredName = [".png", ".jpg", ".jpeg"].includes(file.extension) ? `${file.id}-print.pdf` : "";
+    if (printableStoredName) {
+      await createImagePrintPdf(storedPath, file.extension, path.join(directory, printableStoredName));
+      file.printableStoredName = printableStoredName;
+    }
+    file.pages = await estimatePages(storedPath, file.extension);
+    delete file.pendingPageEstimate;
+  }
+  return files;
 }
 
 async function storeUploadedFiles(files, directory, offset = 0) {
@@ -1574,6 +1686,114 @@ app.get("/api/jobs", (request, response) => {
   response.json({
     jobs: listTrackedJobs(),
   });
+});
+
+app.get("/api/usb/roots", (request, response) => {
+  response.json({ roots: usbRoots() });
+});
+
+app.get("/api/usb/browse", (request, response) => {
+  const requestedPath = String(request.query.path || "");
+  const roots = usbRoots();
+  const target = requestedPath ? resolveUsbPath(requestedPath) : null;
+  const currentPath = target ? target.path : roots[0]?.path || "";
+  if (!currentPath) {
+    response.json({ roots, path: "", parentPath: "", entries: [] });
+    return;
+  }
+  const resolved = resolveUsbPath(currentPath);
+  if (!resolved) {
+    response.status(400).json({ error: "Dossier non autorise." });
+    return;
+  }
+  const rootPath = path.resolve(resolved.root.path);
+  const parentPath = path.resolve(resolved.path) === rootPath ? "" : path.dirname(resolved.path);
+  const entries = fs.readdirSync(resolved.path, { withFileTypes: true })
+    .filter((entry) => !entry.name.startsWith("."))
+    .map((entry) => {
+      const entryPath = path.join(resolved.path, entry.name);
+      const isDirectory = entry.isDirectory();
+      let size = 0;
+      try {
+        if (!isDirectory) size = fs.statSync(entryPath).size;
+      } catch (error) {}
+      return {
+        name: entry.name,
+        path: entryPath,
+        type: isDirectory ? "directory" : "file",
+        extension: isDirectory ? "" : extensionFromPath(entry.name).replace(".", ""),
+        selectable: !isDirectory && isAllowedKioskUsbPath(entryPath),
+        size,
+      };
+    })
+    .filter((entry) => entry.type === "directory" || entry.selectable)
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
+      return a.name.localeCompare(b.name, "fr");
+    });
+  response.json({ roots, path: resolved.path, parentPath, entries });
+});
+
+app.post("/api/jobs/from-usb-paths", async (request, response, next) => {
+  try {
+    const paths = Array.isArray(request.body.paths) ? request.body.paths : [];
+    if (!paths.length) {
+      response.status(400).json({ error: "Selectionnez au moins un fichier." });
+      return;
+    }
+    if (paths.length > MAX_UPLOAD_FILES) {
+      response.status(400).json({ error: "Trop de fichiers selectionnes." });
+      return;
+    }
+    const code = reserveCode();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + JOB_TTL_MS);
+    const directory = jobDir(code);
+    const printMode = request.body.printMode === "couleur" ? "couleur" : "noir-blanc";
+    const printSettings = sanitizePrintSettings({ colorMode: printMode });
+    const files = await finalizeStoredUsbFiles(storeUsbPathFiles(paths, directory), directory);
+    const job = {
+      code,
+      customerName: sanitizeCustomerName(request.body.customerName),
+      clientId: sanitizeClientId(request.body.clientId),
+      civility: ["madame", "monsieur"].includes(request.body.civility) ? request.body.civility : "",
+      printCard: request.body.printCard === "1",
+      source: "usb",
+      station: stationFrom(request.body.station),
+      adminUpload: false,
+      printMode,
+      printSettings,
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      files,
+    };
+    writeJob(job);
+    response.status(201).json(publicJob(job));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/jobs/:code/files-from-usb-paths", async (request, response, next) => {
+  try {
+    const job = readJob(request.params.code);
+    if (!job) {
+      response.status(404).json({ error: "Session introuvable." });
+      return;
+    }
+    const paths = Array.isArray(request.body.paths) ? request.body.paths : [];
+    if (!paths.length) {
+      response.status(400).json({ error: "Selectionnez au moins un fichier." });
+      return;
+    }
+    const files = await finalizeStoredUsbFiles(storeUsbPathFiles(paths, jobDir(job.code), job.files.length), jobDir(job.code));
+    job.files.push(...files);
+    job.expiresAt = new Date(Date.now() + JOB_TTL_MS).toISOString();
+    writeJob(job);
+    response.status(201).json(publicJob(job));
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/help", (request, response) => {

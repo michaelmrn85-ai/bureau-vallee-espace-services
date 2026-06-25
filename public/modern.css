@@ -1879,3 +1879,130 @@ body[data-page="admin"] {
     display: grid;
   }
 }
+
+
+/* kiosk usb explorer 20260625 */
+.usb-explorer-card {
+  width: min(980px, calc(100vw - 44px));
+  text-align: left;
+}
+
+.usb-explorer-card h2,
+.usb-explorer-card > p {
+  text-align: center;
+}
+
+.usb-explorer-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: 10px;
+  margin: 22px 0 12px;
+}
+
+.usb-explorer-toolbar select,
+.usb-explorer-toolbar button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.usb-explorer-toolbar button {
+  border-color: #9fc7ff;
+  color: var(--blue);
+}
+
+.usb-current-path {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #f7fbff;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.usb-entry-list {
+  height: min(460px, 48vh);
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.usb-entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  border: 1px solid #e2ebf6;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+  text-align: left;
+}
+
+.usb-entry.directory {
+  grid-template-columns: 1fr auto;
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.usb-entry.file input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--blue);
+}
+
+.usb-entry strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usb-entry span,
+.usb-empty {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.usb-explorer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.usb-explorer-footer span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.usb-explorer-footer button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 22px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .usb-explorer-toolbar,
+  .usb-explorer-footer {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260625-options-mail-hourglass-closing">
+  <link rel="stylesheet" href="/modern.css?v=20260625-usb-explorer">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -156,6 +156,25 @@
     </section>
   </main>
 
+  <div class="modal hidden" id="usb-explorer-modal" role="dialog" aria-modal="true">
+    <div class="modal-card usb-explorer-card">
+      <button class="close-button" id="close-usb-explorer" type="button" aria-label="Fermer">x</button>
+      <h2>Choisir les fichiers de la cle USB</h2>
+      <p>Selectionnez uniquement les fichiers a imprimer. Formats acceptes : PDF, PNG, JPEG, HEIC et WebP.</p>
+      <div class="usb-explorer-toolbar">
+        <select id="usb-root-select" aria-label="Lecteur USB"></select>
+        <button id="usb-up" type="button">Dossier parent</button>
+        <button id="usb-refresh" type="button">Actualiser</button>
+      </div>
+      <div class="usb-current-path" id="usb-current-path"></div>
+      <div class="usb-entry-list" id="usb-entry-list"></div>
+      <div class="usb-explorer-footer">
+        <span id="usb-selected-count">0 fichier selectionne</span>
+        <button id="usb-confirm-selection" type="button">Ajouter les fichiers</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal hidden" id="qr-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="close-button" id="close-qr" type="button" aria-label="Fermer">x</button>
@@ -256,7 +275,7 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260625-options-mail-hourglass-closing"></script>
+  <script src="/modern-app.js?v=20260625-usb-explorer"></script>
 </body>
 </html>
 

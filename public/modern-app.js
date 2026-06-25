@@ -9,6 +9,15 @@ const usbButton = document.getElementById("usb-button");
 const qrButton = document.getElementById("qr-button");
 const mailButton = document.getElementById("mail-button");
 const usbFiles = document.getElementById("usb-files");
+const usbExplorerModal = document.getElementById("usb-explorer-modal");
+const closeUsbExplorer = document.getElementById("close-usb-explorer");
+const usbRootSelect = document.getElementById("usb-root-select");
+const usbUp = document.getElementById("usb-up");
+const usbRefresh = document.getElementById("usb-refresh");
+const usbCurrentPath = document.getElementById("usb-current-path");
+const usbEntryList = document.getElementById("usb-entry-list");
+const usbSelectedCount = document.getElementById("usb-selected-count");
+const usbConfirmSelection = document.getElementById("usb-confirm-selection");
 const statusMessage = document.getElementById("status-message");
 const jobCode = document.getElementById("job-code");
 const documentCount = document.getElementById("document-count");
@@ -64,6 +73,9 @@ let inactivityVisible = false;
 let clockInterval = null;
 let mailWaitInterval = null;
 let mailWaitStartedAt = 0;
+let usbExplorerPath = "";
+let usbExplorerParentPath = "";
+let usbSelectedPaths = new Set();
 
 const LANGUAGE_STORAGE_KEY = "bv-espace-services-language";
 let currentLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || "fr";
@@ -827,6 +839,94 @@ async function loadJobFromCode(inputElement = qrCodeInput) {
   }
 }
 
+function formatUsbSize(bytes) {
+  const value = Number(bytes) || 0;
+  if (value < 1024 * 1024) return Math.max(1, Math.round(value / 1024)) + " Ko";
+  return (value / 1024 / 1024).toFixed(1).replace(".", ",") + " Mo";
+}
+
+function renderUsbExplorer(payload) {
+  const roots = payload.roots || [];
+  usbExplorerPath = payload.path || "";
+  usbExplorerParentPath = payload.parentPath || "";
+  usbRootSelect.innerHTML = roots.length
+    ? roots.map((root) => `<option value="${root.path}" ${root.path === usbExplorerPath ? "selected" : ""}>${root.name}</option>`).join("")
+    : `<option value="">Aucune cle USB detectee</option>`;
+  usbCurrentPath.textContent = usbExplorerPath || "Inserez une cle USB puis actualisez.";
+  usbUp.disabled = !usbExplorerParentPath;
+  usbEntryList.innerHTML = (payload.entries || []).length ? payload.entries.map((entry) => {
+    if (entry.type === "directory") {
+      return `<button class="usb-entry directory" type="button" data-usb-open="${entry.path}"><strong>${entry.name}</strong><span>Dossier</span></button>`;
+    }
+    const checked = usbSelectedPaths.has(entry.path) ? "checked" : "";
+    return `
+      <label class="usb-entry file">
+        <input type="checkbox" data-usb-file="${entry.path}" ${checked}>
+        <strong>${entry.name}</strong>
+        <span>${String(entry.extension || "").toUpperCase()} - ${formatUsbSize(entry.size)}</span>
+      </label>
+    `;
+  }).join("") : `<p class="usb-empty">Aucun fichier compatible dans ce dossier.</p>`;
+  usbSelectedCount.textContent = `${usbSelectedPaths.size} fichier${usbSelectedPaths.size > 1 ? "s" : ""} selectionne${usbSelectedPaths.size > 1 ? "s" : ""}`;
+}
+
+async function loadUsbExplorer(targetPath = "") {
+  showLoading(true, "Lecture de la cle USB", "Le kiosk charge le contenu autorise.");
+  try {
+    const query = targetPath ? `?path=${encodeURIComponent(targetPath)}` : "";
+    const response = await fetch(`/api/usb/browse${query}`);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Lecture USB impossible.");
+    renderUsbExplorer(payload);
+  } catch (error) {
+    showInfo("Cle USB", error.message || "Impossible de lire la cle USB.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function openUsbExplorer() {
+  usbSelectedPaths = new Set();
+  usbExplorerModal.classList.remove("hidden");
+  await loadUsbExplorer();
+}
+
+async function submitUsbExplorerSelection() {
+  const paths = [...usbSelectedPaths];
+  if (!paths.length) {
+    showInfo("Aucun fichier", "Selectionnez au moins un fichier sur la cle USB.");
+    return;
+  }
+  const body = {
+    station,
+    customerName: `Client ${stationName()}`,
+    printMode: "noir-blanc",
+    paths,
+  };
+  const isAdding = Boolean(currentJob?.code && !printScreen.classList.contains("hidden"));
+  const url = isAdding ? `/api/jobs/${currentJob.code}/files-from-usb-paths` : "/api/jobs/from-usb-paths";
+  showLoading(true, "Chargement en cours", "Le kiosk copie les fichiers selectionnes.");
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Chargement impossible.");
+    const previousFileIds = new Set(currentJob?.files?.map((file) => file.id) || []);
+    selectedFileId = payload.files.find((file) => !previousFileIds.has(file.id))?.id || payload.files[0]?.id || "";
+    payload.files.forEach((file) => selectedFileIds.add(file.id));
+    usbExplorerModal.classList.add("hidden");
+    renderJob(payload);
+    showInfo("Fichiers recus", "Vos documents sont prets. Verifiez l'apercu et les options avant d'imprimer.");
+  } catch (error) {
+    showInfo("Erreur", error.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
 async function uploadUsbFiles(files) {
   if (!files.length) return;
   const formData = new FormData();
@@ -1018,7 +1118,7 @@ async function endSession(isAutomatic = false) {
 applyTranslations();
 startDigitalClock();
 
-usbButton.addEventListener("click", () => usbFiles.click());
+usbButton.addEventListener("click", openUsbExplorer);
 qrButton.addEventListener("click", openQrModal);
 mailButton.addEventListener("click", openMailModal);
 languageButtons.forEach((button) => {
@@ -1028,6 +1128,28 @@ languageButtons.forEach((button) => {
     applyTranslations();
   });
 });
+
+closeUsbExplorer.addEventListener("click", () => usbExplorerModal.classList.add("hidden"));
+usbRefresh.addEventListener("click", () => loadUsbExplorer(usbExplorerPath));
+usbUp.addEventListener("click", () => {
+  if (usbExplorerParentPath) loadUsbExplorer(usbExplorerParentPath);
+});
+usbRootSelect.addEventListener("change", () => {
+  if (usbRootSelect.value) loadUsbExplorer(usbRootSelect.value);
+});
+usbEntryList.addEventListener("click", (event) => {
+  const openButton = event.target.closest("[data-usb-open]");
+  if (openButton) {
+    loadUsbExplorer(openButton.dataset.usbOpen);
+    return;
+  }
+  const checkbox = event.target.closest("[data-usb-file]");
+  if (!checkbox) return;
+  if (checkbox.checked) usbSelectedPaths.add(checkbox.dataset.usbFile);
+  else usbSelectedPaths.delete(checkbox.dataset.usbFile);
+  usbSelectedCount.textContent = `${usbSelectedPaths.size} fichier${usbSelectedPaths.size > 1 ? "s" : ""} selectionne${usbSelectedPaths.size > 1 ? "s" : ""}`;
+});
+usbConfirmSelection.addEventListener("click", submitUsbExplorerSelection);
 
 usbFiles.addEventListener("change", () => {
   if (currentJob?.code && !printScreen.classList.contains("hidden")) addFilesToCurrentJob([...usbFiles.files]);
@@ -1057,7 +1179,10 @@ documentList.addEventListener("click", (event) => {
 
 printButton.addEventListener("click", printSelectedFiles);
 backHome.addEventListener("click", showHomeScreen);
-addMoreFiles.addEventListener("click", () => usbFiles.click());
+addMoreFiles.addEventListener("click", () => {
+  if (String(currentJob?.source || "").toLowerCase() === "usb") openUsbExplorer();
+  else usbFiles.click();
+});
 ejectUsbButton.addEventListener("click", ejectUsb);
 closeQr.addEventListener("click", () => qrModal.classList.add("hidden"));
 loadCode.addEventListener("click", () => loadJobFromCode(qrCodeInput));
