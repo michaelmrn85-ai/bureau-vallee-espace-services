@@ -736,8 +736,28 @@ function mailTextForReject(reason) {
     "",
     reason,
     "",
-    "Formats acceptes : PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG.",
+    "Formats acceptes sur les postes : PDF, PNG, JPEG, HEIC, WebP ou export Canva en PDF/PNG/JPEG.",
+    "Les fichiers Word, DOC et DOCX sont traites au comptoir de l'Espace Services.",
     "Si votre envoi est trop lourd, utilisez une cle USB ou rapprochez-vous d'un vendeur ou d'une vendeuse.",
+  ].join("\n");
+}
+
+function mailTextForCounter(job) {
+  const names = (job.files || []).map((file) => "- " + file.originalName).join("\n");
+  return [
+    "Bonjour,",
+    "",
+    "Vos fichiers ont bien ete recus par l'Espace Services Bureau Vallee.",
+    "",
+    "Votre envoi contient au moins un fichier Word/DOC/DOCX.",
+    "Ces fichiers ne sont pas imprimables directement sur les postes clients.",
+    "",
+    "Merci de vous deplacer au comptoir de l'Espace Services : un vendeur ou une vendeuse prendra la main sur votre dossier.",
+    "",
+    "Fichiers recus :",
+    names || "- Pieces jointes recues",
+    "",
+    "A tout de suite au comptoir.",
   ].join("\n");
 }
 
@@ -796,6 +816,7 @@ async function createMailJob(parsedMail) {
 
   const files = await storeUploadedFiles(mailFiles, directory);
   const printSettings = sanitizePrintSettings({ colorMode: "noir-blanc" });
+  const needsCounter = hasCounterOnlyFiles(mailFiles);
   const job = {
     code,
     customerName: senderDisplayName(parsedMail),
@@ -804,7 +825,8 @@ async function createMailJob(parsedMail) {
     printCard: false,
     source: "mail",
     station: "poste-1",
-    adminUpload: false,
+    adminUpload: needsCounter,
+    counterOnly: needsCounter,
     printMode: "noir-blanc",
     printSettings,
     createdAt: now.toISOString(),
@@ -837,7 +859,15 @@ async function processIncomingMail(message, tools) {
   mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
   mailRuntimeStatus.processedCount += 1;
   try {
-    await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
+    if (result.job.adminUpload || result.job.counterOnly) {
+      await sendMailReply(tools.nodemailer, to, "Espace Services - fichiers a traiter au comptoir", mailTextForCounter(result.job));
+    } else {
+      if (result.job.adminUpload || result.job.counterOnly) {
+      await sendMailReply(tools.nodemailer, to, "Espace Services - fichiers a traiter au comptoir", mailTextForCounter(result.job));
+    } else {
+      await sendMailReply(tools.nodemailer, to, "Espace Services - code dossier " + result.job.code, mailTextForCode(result.job));
+    }
+    }
   } catch (error) {
     mailRuntimeStatus.lastReplyError = error.message;
     console.log("[mail] Code cree mais reponse impossible: " + error.message);
@@ -1014,7 +1044,8 @@ function startMailWatcher() {
               const attId = String(att.attachmentId || att.id || '');
               const originalname = att.attachmentName || att.name || 'piece-jointe';
               const ext = path.extname(originalname).toLowerCase();
-              if (!allowedExtensions.has(ext)) {
+              const uploadProbe = { originalname, mimetype: att.contentType || '' };
+              if (!isAllowedUploadFile(uploadProbe)) {
                 rejected = true;
                 try {
                   await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Le fichier "' + originalname + '" nest pas dans un format accepte.'));
@@ -1063,6 +1094,7 @@ function startMailWatcher() {
               const directory = jobDir(code);
               const files = await storeUploadedFiles(mailFiles, directory);
               const printSettings = sanitizePrintSettings({ colorMode: 'noir-blanc' });
+              const needsCounter = hasCounterOnlyFiles(mailFiles);
               const job = {
                 code,
                 customerName: sanitizeCustomerName(fromAddress || 'Client mail'),
@@ -1071,7 +1103,8 @@ function startMailWatcher() {
                 printCard: false,
                 source: 'mail',
                 station: 'poste-1',
-                adminUpload: false,
+                adminUpload: needsCounter,
+                counterOnly: needsCounter,
                 printMode: 'noir-blanc',
                 printSettings,
                 createdAt: now.toISOString(),
@@ -1083,7 +1116,15 @@ function startMailWatcher() {
               mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
               mailRuntimeStatus.processedCount += 1;
               try {
-                await sendMailReply(nodemailer, fromAddress, 'Espace Services - code dossier ' + code, mailTextForCode(job));
+                if (job.adminUpload || job.counterOnly) {
+                  await sendMailReply(nodemailer, fromAddress, 'Espace Services - fichiers a traiter au comptoir', mailTextForCounter(job));
+                } else {
+                  if (job.adminUpload || job.counterOnly) {
+                  await sendMailReply(nodemailer, fromAddress, 'Espace Services - fichiers a traiter au comptoir', mailTextForCounter(job));
+                } else {
+                  await sendMailReply(nodemailer, fromAddress, 'Espace Services - code dossier ' + code, mailTextForCode(job));
+                }
+                }
               } catch (e) {
                 mailRuntimeStatus.lastReplyError = e.message;
                 console.log('[mail] Code cree mais reponse impossible: ' + e.message);
@@ -1160,6 +1201,7 @@ function publicJob(job, status = "actif") {
     printCard: Boolean(job.printCard),
     source: job.source || "",
     adminUpload: Boolean(job.adminUpload),
+    counterOnly: Boolean(job.counterOnly),
     station,
     stationLabel: stations[station],
     printMode,
