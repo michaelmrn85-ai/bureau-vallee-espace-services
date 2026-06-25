@@ -1,4 +1,4 @@
-const stationGrid = document.getElementById("station-grid");
+﻿const stationGrid = document.getElementById("station-grid");
 const printerIpGrid = document.getElementById("printer-ip-grid");
 const dashboardUpdated = document.getElementById("dashboard-updated");
 const adminActionStatus = document.getElementById("admin-action-status");
@@ -74,20 +74,38 @@ function renderStations(stations) {
   `).join("");
 }
 
-function renderPrinterIpCounters() {
+function renderPrinterIpCounters(printers = []) {
   if (!printerIpGrid) return;
-  printerIpGrid.innerHTML = `
+  const list = Array.isArray(printers) && printers.length ? printers : [
+    { label: "Copieur 1", ip: "10.0.0.221" },
+    { label: "Copieur 2", ip: "10.0.0.222" },
+  ];
+  printerIpGrid.innerHTML = list.map((printer) => `
     <article class="printer-ip-card">
-      <strong>A configurer</strong>
-      <span>Lecture directe des compteurs copieurs des que les IP et le protocole compteur sont renseignes.</span>
+      <strong>${escapeHtml(printer.label || printer.name || "Copieur")}</strong>
+      <span>IP : ${escapeHtml(printer.ip || "Non renseignee")}</span>
+      <small>Compteur direct IP a connecter via SNMP/copieur.</small>
     </article>
-  `;
+  `).join("");
+}
+
+function fileDownloadUrl(job, file) {
+  if (file && file.downloadUrl && file.downloadUrl !== "undefined") return file.downloadUrl;
+  if (job?.code && file?.id) return `/api/jobs/${encodeURIComponent(job.code)}/files/${encodeURIComponent(file.id)}?download=1`;
+  return "";
+}
+
+function jobDownloadAllUrl(job, files) {
+  if (job && job.downloadAllUrl && job.downloadAllUrl !== "undefined") return job.downloadAllUrl;
+  if (job?.code && files?.length) return `/api/jobs/${encodeURIComponent(job.code)}/download-all`;
+  return "";
 }
 
 function renderAdminFiles(target, jobs, emptyText) {
   if (!target) return;
   target.innerHTML = jobs.length ? jobs.map((job) => {
     const files = job.files || [];
+    const folderUrl = jobDownloadAllUrl(job, files);
     return `
       <article class="admin-file-card">
         <div class="admin-file-head">
@@ -96,7 +114,7 @@ function renderAdminFiles(target, jobs, emptyText) {
             <strong>${escapeHtml(job.customerName || "Client")}</strong>
           </div>
           <div class="admin-file-actions">
-            ${job.downloadAllUrl ? `<a href="${job.downloadAllUrl}">Telecharger le dossier</a>` : ""}
+            ${folderUrl ? `<a href="${folderUrl}">Telecharger le dossier</a>` : ""}
           </div>
         </div>
         <div class="admin-file-meta">
@@ -111,7 +129,7 @@ function renderAdminFiles(target, jobs, emptyText) {
                 <strong>${escapeHtml(file.originalName)}</strong>
                 <span>${String(file.extension || "").toUpperCase()} - ${formatSize(file.size)} - ${file.pages || 1} page(s)</span>
               </div>
-              <a href="${file.downloadUrl}">Telecharger</a>
+              ${fileDownloadUrl(job, file) ? `<a href="${fileDownloadUrl(job, file)}">Telecharger</a>` : `<span class="admin-file-unavailable">Lien indisponible</span>`}
             </div>
           `).join("")}
         </div>
@@ -143,7 +161,7 @@ async function refreshDashboard() {
     const payload = await response.json();
     if (!response.ok) return;
     renderStations(payload.stations || []);
-    renderPrinterIpCounters();
+    renderPrinterIpCounters(payload.printerCounters || payload.printers || []);
     if (dashboardUpdated) {
       dashboardUpdated.textContent = `Derniere mise a jour : ${new Date(payload.generatedAt || Date.now()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
     }
@@ -203,3 +221,4 @@ copyCounterUrl?.addEventListener("click", async () => {
 refreshDashboard();
 window.setInterval(refreshDashboard, 5000);
 loadAdminConfig();
+

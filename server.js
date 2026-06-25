@@ -67,6 +67,10 @@ const stations = {
   "poste-1": "Poste 1",
   "poste-2": "Poste 2",
 };
+const printerIps = {
+  "copieur-1": { label: "Copieur 1", ip: "10.0.0.221", station: "poste-1" },
+  "copieur-2": { label: "Copieur 2", ip: "10.0.0.222", station: "poste-2" },
+};
 const defaultPrintSettings = {
   colorMode: "noir-blanc",
   duplex: "recto",
@@ -1581,6 +1585,7 @@ app.get("/api/config", (request, response) => {
     counterQrUrl: `/qr.gif?mode=admin&source=comptoir`,
     mailAddress: MAIL_ADDRESS,
     mailAddresses: { "poste-1": MAIL_ADDRESS, "poste-2": MAIL_ADDRESS },
+    printerIps: Object.values(printerIps),
     stationLinks: {
       "poste-1": `${baseUrl}/poste-1`,
       "poste-2": `${baseUrl}/poste-2`,
@@ -1684,7 +1689,7 @@ app.post("/api/session", (request, response) => {
 });
 
 app.get("/api/dashboard", (request, response) => {
-  response.json(completedPrintDashboard());
+  response.json({ ...completedPrintDashboard(), printerCounters: Object.values(printerIps) });
 });
 
 app.get("/api/jobs", (request, response) => {
@@ -2222,4 +2227,6 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
+
 
