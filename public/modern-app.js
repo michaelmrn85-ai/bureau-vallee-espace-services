@@ -731,8 +731,16 @@ function applySettingsToControls(settings = defaultSettingsForFile()) {
 }
 
 function saveActiveSettings() {
-  if (!selectedFileId) return;
-  filePrintSettings.set(selectedFileId, printSettings());
+  const settings = printSettings();
+  const targets = selectedFileIds.size ? [...selectedFileIds] : (selectedFileId ? [selectedFileId] : []);
+  targets.forEach((fileId) => filePrintSettings.set(fileId, { ...settings }));
+}
+
+function settingsForPrint(fileId) {
+  const file = currentJob?.files?.find((item) => item.id === fileId) || null;
+  const settings = { ...settingsForFile(fileId) };
+  if (!isPhotoFile(file)) settings.orientation = "auto";
+  return settings;
 }
 
 function syncSettingsForJob(job) {
@@ -752,8 +760,10 @@ function settingsSummary(settings = {}) {
 
 function updateSettingsPanelTitle() {
   const title = document.querySelector(".settings-panel h2");
-  const file = selectedPreviewFile();
-  if (title) title.textContent = file ? `Configuration - ${file.originalName}` : t("settings");
+  if (!title) return;
+  if (selectedFileIds.size > 1) title.textContent = `Configuration - ${selectedFileIds.size} fichiers cochés`;
+  else if (selectedFileIds.size === 1) title.textContent = "Configuration du fichier coché";
+  else title.textContent = t("settings");
 }
 function selectedPreviewFile() {
   return currentJob?.files?.find((file) => file.id === selectedFileId) || null;
@@ -767,6 +777,10 @@ function updateSessionControls() {
 function updatePhotoOrientationControls(file) {
   const isPhoto = isPhotoFile(file);
   orientationGroup?.classList.toggle("is-photo-selected", isPhoto);
+  if (!isPhoto) {
+    const autoInput = document.querySelector("input[name='orientation'][value='auto']");
+    if (autoInput) autoInput.checked = true;
+  }
 }
 
 function renderPreview(file) {
@@ -813,7 +827,7 @@ function renderJob(job) {
   documentList.innerHTML = job.files.length ? job.files.map((file) => {
     const isActive = file.id === selectedFileId;
     const isSelected = selectedFileIds.has(file.id);
-    const summary = settingsSummary(settingsForFile(file.id));
+    const summary = settingsSummary(settingsForPrint(file.id));
     return `
     <article class="document-item ${isActive ? "active" : ""} ${isSelected ? "selected" : "not-selected"}" data-file-id="${file.id}">
       <input class="select-file" type="checkbox" data-select-file="${file.id}" ${isSelected ? "checked" : ""} aria-label="Selectionner ${file.originalName}">
@@ -1134,7 +1148,7 @@ async function printSelectedFiles() {
       const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId, settings: settingsForFile(fileId) }),
+        body: JSON.stringify({ fileId, settings: settingsForPrint(fileId) }),
       });
       payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Impression impossible.");
@@ -1247,6 +1261,16 @@ documentList.addEventListener("click", (event) => {
   renderJob(currentJob);
 });
 
+
+document.querySelectorAll("input[name='paperSize'], input[name='colorMode'], input[name='duplex'], input[name='orientation'], #copies, #page-range").forEach((input) => {
+  input.addEventListener("change", () => {
+    saveActiveSettings();
+    renderJob(currentJob);
+  });
+  input.addEventListener("input", () => {
+    if (input.id === "copies" || input.id === "page-range") saveActiveSettings();
+  });
+});
 printButton.addEventListener("click", printSelectedFiles);
 backHome.addEventListener("click", showHomeScreen);
 addMoreFiles.addEventListener("click", () => {
@@ -1295,6 +1319,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 

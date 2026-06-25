@@ -651,16 +651,15 @@ function counterDelta(before, after, settings = {}) {
   const totalDelta = Math.max(0, Number(after.total || 0) - Number(before.total || 0));
   const bwDelta = before.bw != null && after.bw != null ? Math.max(0, Number(after.bw) - Number(before.bw)) : null;
   const colorDelta = before.color != null && after.color != null ? Math.max(0, Number(after.color) - Number(before.color)) : null;
-  const inferredBw = bwDelta != null ? bwDelta : (isBlackAndWhite(settings) ? totalDelta : 0);
-  const inferredColor = colorDelta != null ? colorDelta : (isBlackAndWhite(settings) ? 0 : totalDelta);
+    const hasSplit = bwDelta != null || colorDelta != null;
   return {
     host: after.host || before.host,
     before,
     after,
     totalPages: totalDelta,
-    bwPages: inferredBw,
-    colorPages: inferredColor,
-    mode: bwDelta != null || colorDelta != null ? "snmp-color-split" : "snmp-total-inferred-mode",
+    bwPages: hasSplit ? (bwDelta || 0) : 0,
+    colorPages: hasSplit ? (colorDelta || 0) : 0,
+    mode: hasSplit ? "snmp-color-split" : "snmp-total-only",
   };
 }
 
@@ -788,5 +787,6 @@ loop().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
+
 
 

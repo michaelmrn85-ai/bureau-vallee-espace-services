@@ -60,23 +60,25 @@ function normalizeStations(stations) {
 
 function renderStations(stations) {
   if (!stationGrid) return;
-  stationGrid.innerHTML = normalizeStations(stations).map((station) => `
+  stationGrid.innerHTML = normalizeStations(stations).map((station) => {
+    const hasRealSplit = (station.realBwPages || station.realColorPages) > 0;
+    return `
     <article class="counter-station-card">
       <h3>${escapeHtml(station.stationLabel)}</h3>
       <div class="counter-values">
         <div>
-          <span>N&amp;B reel</span>
-          <strong>${formatNumber(station.realBwPages || station.bwPages)}</strong>
-          <small>Estime : ${formatNumber(station.bwPages)}</small>
+          <span>Total reel copieur</span>
+          <strong>${formatNumber(station.realTotalPages || 0)}</strong>
+          <small>Lu directement sur le Canon</small>
         </div>
         <div>
-          <span>Couleur reel</span>
-          <strong>${formatNumber(station.realColorPages || station.colorPages)}</strong>
-          <small>Estime : ${formatNumber(station.colorPages)}</small>
+          <span>N&amp;B / Couleur</span>
+          <strong>${hasRealSplit ? `${formatNumber(station.realBwPages)} / ${formatNumber(station.realColorPages)}` : `${formatNumber(station.bwPages)} / ${formatNumber(station.colorPages)}`}</strong>
+          <small>${hasRealSplit ? "Réel copieur" : "Estimation kiosk"}</small>
         </div>
       </div>
-    </article>
-  `).join("");
+    </article>`;
+  }).join("");
 }
 
 function renderPrinterIpCounters(printers = []) {
@@ -226,6 +228,7 @@ copyCounterUrl?.addEventListener("click", async () => {
 refreshDashboard();
 window.setInterval(refreshDashboard, 5000);
 loadAdminConfig();
+
 
 
 

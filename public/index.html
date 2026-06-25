@@ -1,10 +1,10 @@
-<!doctype html>
+�<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260625-usb-explorer">
+  <link rel="stylesheet" href="/modern.css?v=20260625-home-icons">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -32,44 +32,19 @@
 
       <div class="choice-grid">
         <button class="choice-card usb" id="usb-button" type="button">
-          <span class="choice-icon" aria-hidden="true">
-            <svg viewBox="0 0 64 64" role="img">
-              <rect class="icon-fill" x="18" y="24" width="28" height="30" rx="6"/>
-              <path d="M25 24V12h14v12"/>
-              <path d="M28 12V6h8v6"/>
-              <path d="M32 34v12"/>
-              <path d="M24 40h16"/>
-              <path d="M40 40l5-5"/>
-              <circle cx="47" cy="33" r="3"/>
-            </svg>
-          </span>
+          <span class="choice-icon image-icon usb-image" aria-hidden="true"><img src="/assets/icon-usb.png" alt=""></span>
           <strong>Impression via clé USB</strong>
           <small>Insérez votre clé USB puis sélectionnez vos fichiers.</small>
         </button>
 
         <button class="choice-card qr" id="qr-button" type="button">
-          <span class="choice-icon" aria-hidden="true">
-            <svg viewBox="0 0 64 64" role="img">
-              <path d="M16 10h12M10 16V28M48 10H36M54 16v12M16 54h12M10 48V36M48 54H36M54 48V36"/>
-              <rect class="solid" x="18" y="18" width="9" height="9" rx="1"/>
-              <rect class="solid" x="37" y="18" width="9" height="9" rx="1"/>
-              <rect class="solid" x="18" y="37" width="9" height="9" rx="1"/>
-              <path d="M36 36h5v5h5v6h-9v-5h-5v-6h4Z"/>
-            </svg>
-          </span>
+          <span class="choice-icon image-icon qr-image" aria-hidden="true"><img src="/assets/icon-qr.png" alt=""></span>
           <strong>Impression via QR Code</strong>
           <small>Scannez le QR code avec votre téléphone pour envoyer vos fichiers.</small>
         </button>
 
         <button class="choice-card mail" id="mail-button" type="button">
-          <span class="choice-icon" aria-hidden="true">
-            <svg viewBox="0 0 64 64" role="img">
-              <rect class="icon-fill" x="10" y="18" width="44" height="30" rx="6"/>
-              <path d="M12 22l20 16 20-16"/>
-              <path d="M42 38l6 6 6-6"/>
-              <path d="M48 26v18"/>
-            </svg>
-          </span>
+          <span class="choice-icon image-icon mail-image" aria-hidden="true"><img src="/assets/icon-mail.png" alt=""></span>
           <strong>Envoi de fichiers par mail</strong>
           <small>Envoyez vos pièces jointes à l'adresse du poste, puis ouvrez le dossier reçu.</small>
         </button>
@@ -89,7 +64,7 @@
       </div>
       <div class="print-header-actions">
         <button class="add-button" id="add-more-files" type="button">+ Ajouter des fichiers</button>
-        <button class="eject-button" id="eject-usb" type="button">Éjecter clé USB</button>
+        <button class="eject-button" id="eject-usb" type="button">�0jecter clé USB</button>
         <button class="end-button" id="end-session" type="button">Fin de session</button>
       </div>
     </header>
@@ -275,8 +250,10 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260625-usb-explorer"></script>
+  <script src="/modern-app.js?v=20260625-simple-multi-settings"></script>
 </body>
 </html>
+
+
 
 

@@ -2040,3 +2040,33 @@ body[data-page="admin"] {
 .document-settings-summary {
   color: var(--muted);
 }
+
+.orientation-group:not(.is-photo-selected) {
+  display: none;
+}
+
+.choice-icon.image-icon {
+  width: 96px;
+  height: 96px;
+  padding: 0;
+  background: transparent !important;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.choice-icon.image-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.choice-icon.image-icon.usb-image {
+  width: 116px;
+  height: 116px;
+}
+
+.choice-icon.image-icon.mail-image {
+  width: 104px;
+  height: 104px;
+}
