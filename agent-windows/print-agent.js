@@ -1,4 +1,4 @@
-const fs = require("fs");
+﻿const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -498,11 +498,196 @@ async function applyPrinterConfiguration(config, settings = {}) {
   await runPowerShell(script);
 }
 
-async function markStatus(config, requestId, status, error = "") {
+
+function encodeSnmpLength(length) {
+  if (length < 128) return Buffer.from([length]);
+  const bytes = [];
+  let value = length;
+  while (value > 0) {
+    bytes.unshift(value & 0xff);
+    value >>= 8;
+  }
+  return Buffer.from([0x80 | bytes.length, ...bytes]);
+}
+
+function encodeSnmpTlv(type, value) {
+  const body = Buffer.isBuffer(value) ? value : Buffer.from(value);
+  return Buffer.concat([Buffer.from([type]), encodeSnmpLength(body.length), body]);
+}
+
+function encodeSnmpInteger(value) {
+  let number = Math.max(0, Number(value) || 0);
+  const bytes = [];
+  do {
+    bytes.unshift(number & 0xff);
+    number >>= 8;
+  } while (number > 0);
+  if (bytes[0] & 0x80) bytes.unshift(0);
+  return encodeSnmpTlv(0x02, Buffer.from(bytes));
+}
+
+function encodeSnmpOid(oid) {
+  const parts = String(oid || "").split(".").filter(Boolean).map((part) => Number(part));
+  if (parts.length < 2) throw new Error(`OID invalide: ${oid}`);
+  const bytes = [parts[0] * 40 + parts[1]];
+  for (const part of parts.slice(2)) {
+    const stack = [part & 0x7f];
+    let value = part >> 7;
+    while (value > 0) {
+      stack.unshift((value & 0x7f) | 0x80);
+      value >>= 7;
+    }
+    bytes.push(...stack);
+  }
+  return encodeSnmpTlv(0x06, Buffer.from(bytes));
+}
+
+function readSnmpLength(buffer, offset) {
+  let length = buffer[offset++];
+  if (length & 0x80) {
+    const count = length & 0x7f;
+    length = 0;
+    for (let index = 0; index < count; index += 1) length = (length << 8) | buffer[offset++];
+  }
+  return { length, offset };
+}
+
+function readSnmpIntegerValue(buffer, offset, length) {
+  let value = 0;
+  for (let index = 0; index < length; index += 1) value = (value << 8) | buffer[offset + index];
+  return value >>> 0;
+}
+
+function decodeSnmpFirstInteger(buffer) {
+  for (let offset = 0; offset < buffer.length - 2; offset += 1) {
+    const type = buffer[offset];
+    if (![0x02, 0x41, 0x42, 0x43, 0x46].includes(type)) continue;
+    const lengthInfo = readSnmpLength(buffer, offset + 1);
+    if (lengthInfo.length <= 0 || lengthInfo.length > 8) continue;
+    if (lengthInfo.offset + lengthInfo.length > buffer.length) continue;
+    const value = readSnmpIntegerValue(buffer, lengthInfo.offset, lengthInfo.length);
+    if (value > 0) return value;
+  }
+  return null;
+}
+
+function snmpGet(host, oid, options = {}) {
+  if (!host || !oid) return Promise.resolve(null);
+  const dgram = require("dgram");
+  const community = options.community || "public";
+  const timeoutMs = Math.max(500, Number(options.timeoutMs) || 2500);
+  const port = Math.max(1, Number(options.port) || 161);
+  const requestId = Math.floor(Math.random() * 0x7fffffff);
+  const varBind = encodeSnmpTlv(0x30, Buffer.concat([encodeSnmpOid(oid), encodeSnmpTlv(0x05, Buffer.alloc(0))]));
+  const varBindList = encodeSnmpTlv(0x30, varBind);
+  const pdu = encodeSnmpTlv(0xa0, Buffer.concat([
+    encodeSnmpInteger(requestId),
+    encodeSnmpInteger(0),
+    encodeSnmpInteger(0),
+    varBindList,
+  ]));
+  const packet = encodeSnmpTlv(0x30, Buffer.concat([
+    encodeSnmpInteger(1),
+    encodeSnmpTlv(0x04, Buffer.from(community)),
+    pdu,
+  ]));
+
+  return new Promise((resolve) => {
+    const socket = dgram.createSocket("udp4");
+    const timer = setTimeout(() => {
+      socket.close();
+      resolve(null);
+    }, timeoutMs);
+    socket.on("message", (message) => {
+      clearTimeout(timer);
+      socket.close();
+      resolve(decodeSnmpFirstInteger(message));
+    });
+    socket.on("error", () => {
+      clearTimeout(timer);
+      socket.close();
+      resolve(null);
+    });
+    socket.send(packet, port, host, (error) => {
+      if (error) {
+        clearTimeout(timer);
+        socket.close();
+        resolve(null);
+      }
+    });
+  });
+}
+
+function printerCounterHost(config, settings = {}) {
+  if (settings.paperSize === "A3" && config.a3PrinterCounterHost) return config.a3PrinterCounterHost;
+  return config.printerCounterHost || config.printerIp || "";
+}
+
+async function readPrinterCounters(config, settings = {}) {
+  const counterConfig = config.printerCounters || {};
+  if (counterConfig.enabled === false) return null;
+  const host = printerCounterHost(config, settings);
+  if (!host) return null;
+  const options = {
+    community: counterConfig.community || config.snmpCommunity || "public",
+    timeoutMs: counterConfig.timeoutMs || 2500,
+    port: counterConfig.port || 161,
+  };
+  const oids = {
+    total: counterConfig.totalOid || "1.3.6.1.2.1.43.10.2.1.4.1.1",
+    bw: counterConfig.bwOid || "",
+    color: counterConfig.colorOid || "",
+  };
+  const [total, bw, color] = await Promise.all([
+    snmpGet(host, oids.total, options),
+    oids.bw ? snmpGet(host, oids.bw, options) : Promise.resolve(null),
+    oids.color ? snmpGet(host, oids.color, options) : Promise.resolve(null),
+  ]);
+  return { host, total, bw, color, capturedAt: new Date().toISOString() };
+}
+
+function counterDelta(before, after, settings = {}) {
+  if (!before || !after) return null;
+  const totalDelta = Math.max(0, Number(after.total || 0) - Number(before.total || 0));
+  const bwDelta = before.bw != null && after.bw != null ? Math.max(0, Number(after.bw) - Number(before.bw)) : null;
+  const colorDelta = before.color != null && after.color != null ? Math.max(0, Number(after.color) - Number(before.color)) : null;
+  const inferredBw = bwDelta != null ? bwDelta : (isBlackAndWhite(settings) ? totalDelta : 0);
+  const inferredColor = colorDelta != null ? colorDelta : (isBlackAndWhite(settings) ? 0 : totalDelta);
+  return {
+    host: after.host || before.host,
+    before,
+    after,
+    totalPages: totalDelta,
+    bwPages: inferredBw,
+    colorPages: inferredColor,
+    mode: bwDelta != null || colorDelta != null ? "snmp-color-split" : "snmp-total-inferred-mode",
+  };
+}
+
+async function capturePrinterCounterDelta(config, settings, before) {
+  if (!before) return null;
+  const waitMs = Math.max(0, Number(config.printerCounterSettleMs ?? config.printerCounters?.settleMs ?? 15000));
+  const maxWaitMs = Math.max(waitMs, Number(config.printerCounterMaxWaitMs ?? config.printerCounters?.maxWaitMs ?? 120000));
+  const pollMs = Math.max(1000, Number(config.printerCounterPollMs ?? config.printerCounters?.pollMs ?? 5000));
+  if (waitMs) await wait(waitMs);
+  const deadline = Date.now() + maxWaitMs;
+  let best = null;
+  while (Date.now() <= deadline) {
+    const after = await readPrinterCounters(config, settings);
+    const delta = counterDelta(before, after, settings);
+    if (delta) {
+      best = delta;
+      if (delta.totalPages > 0 || delta.bwPages > 0 || delta.colorPages > 0) return delta;
+    }
+    await wait(pollMs);
+  }
+  return best;
+}
+async function markStatus(config, requestId, status, error = "", actualCounters = null) {
   await api(config, `/api/print-agent/requests/${requestId}/status`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ station: config.station, status, error }),
+    body: JSON.stringify({ station: config.station, status, error, actualCounters }),
   });
 }
 
@@ -541,6 +726,14 @@ async function handleRequest(config, request) {
   console.log(`[${new Date().toLocaleTimeString()}] Impression ${request.code} - ${request.fileName}`);
   console.log(`Reglages: ${request.settingsLabel}`);
   console.log(`Copieur cible: ${printerNameForRequest(config, request.settings)}`);
+  let printerCounterBefore = null;
+  let actualCounters = null;
+  try {
+    printerCounterBefore = await readPrinterCounters(config, request.settings);
+    if (printerCounterBefore?.total != null) console.log(`Compteur copieur avant: ${printerCounterBefore.total}`);
+  } catch (error) {
+    console.warn(`Compteur copieur indisponible avant impression: ${error.message}`);
+  }
   try {
     await downloadFile(request.fileUrl, filePath);
     try {
@@ -563,7 +756,9 @@ async function handleRequest(config, request) {
         await wait(Math.max(1000, Number(config.largeJobDelayMs) || 8000));
       }
     }
-    await markStatus(config, request.requestId, "done");
+    actualCounters = await capturePrinterCounterDelta(config, request.settings, printerCounterBefore);
+    if (actualCounters?.totalPages != null) console.log(`Sortie reelle copieur: ${actualCounters.totalPages} page(s).`);
+    await markStatus(config, request.requestId, "done", "", actualCounters);
     if (!config.keepPrintedFiles) fs.rmSync(filePath, { force: true });
     console.log("Impression envoyee au copieur.");
   } catch (error) {
@@ -593,3 +788,5 @@ loop().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
+
+

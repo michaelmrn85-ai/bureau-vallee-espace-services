@@ -577,13 +577,28 @@ function listTrackedJobs() {
 }
 
 function emptyPrintTotals() {
-  return { bwPages: 0, colorPages: 0, totalPages: 0, jobs: 0, requests: 0, pending: 0, printing: 0, failed: 0 };
+  return {
+    bwPages: 0,
+    colorPages: 0,
+    totalPages: 0,
+    realBwPages: 0,
+    realColorPages: 0,
+    realTotalPages: 0,
+    jobs: 0,
+    requests: 0,
+    pending: 0,
+    printing: 0,
+    failed: 0,
+  };
 }
 
 function addPrintTotals(target, source) {
   target.bwPages += source.bwPages || 0;
   target.colorPages += source.colorPages || 0;
   target.totalPages += source.totalPages || 0;
+  target.realBwPages += source.realBwPages || 0;
+  target.realColorPages += source.realColorPages || 0;
+  target.realTotalPages += source.realTotalPages || 0;
   target.jobs += source.jobs || 0;
   target.requests += source.requests || 0;
   target.pending += source.pending || 0;
@@ -613,6 +628,9 @@ function completedPrintDashboard() {
       bwPages: 0,
       colorPages: 0,
       totalPages: 0,
+      realBwPages: 0,
+      realColorPages: 0,
+      realTotalPages: 0,
       doneRequests: 0,
       pendingRequests: 0,
       printingRequests: 0,
@@ -651,6 +669,12 @@ function completedPrintDashboard() {
         row.bwPages += pages;
       }
       row.totalPages += pages;
+      const actual = printRequest.actualCounters || null;
+      if (actual) {
+        row.realBwPages += Number(actual.bwPages || 0);
+        row.realColorPages += Number(actual.colorPages || 0);
+        row.realTotalPages += Number(actual.totalPages || 0);
+      }
       row.doneRequests += 1;
     }
 
@@ -658,11 +682,17 @@ function completedPrintDashboard() {
       totals.bwPages += row.bwPages;
       totals.colorPages += row.colorPages;
       totals.totalPages += row.totalPages;
+      totals.realBwPages += row.realBwPages;
+      totals.realColorPages += row.realColorPages;
+      totals.realTotalPages += row.realTotalPages;
       totals.requests += row.doneRequests;
       totals.jobs += 1;
       stationTotals.bwPages += row.bwPages;
       stationTotals.colorPages += row.colorPages;
       stationTotals.totalPages += row.totalPages;
+      stationTotals.realBwPages += row.realBwPages;
+      stationTotals.realColorPages += row.realColorPages;
+      stationTotals.realTotalPages += row.realTotalPages;
       stationTotals.requests += row.doneRequests;
       stationTotals.jobs += 1;
       rows.push(row);
@@ -2104,6 +2134,18 @@ app.post("/api/print-agent/requests/:requestId/status", (request, response) => {
     printRequest.status = status;
     printRequest.updatedAt = new Date().toISOString();
     printRequest.error = String(request.body.error || "").slice(0, 500);
+    if (request.body.actualCounters && typeof request.body.actualCounters === "object") {
+      printRequest.actualCounters = {
+        host: String(request.body.actualCounters.host || "").slice(0, 80),
+        totalPages: Math.max(0, Number(request.body.actualCounters.totalPages) || 0),
+        bwPages: Math.max(0, Number(request.body.actualCounters.bwPages) || 0),
+        colorPages: Math.max(0, Number(request.body.actualCounters.colorPages) || 0),
+        mode: String(request.body.actualCounters.mode || "").slice(0, 60),
+        before: request.body.actualCounters.before || null,
+        after: request.body.actualCounters.after || null,
+        capturedAt: new Date().toISOString(),
+      };
+    }
     writeJob(job);
     response.json({ ok: true, printRequest });
     return;
@@ -2227,6 +2269,10 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
+
+
+
 
 
 

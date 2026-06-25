@@ -51,6 +51,9 @@ function normalizeStations(stations) {
       stationLabel: found?.stationLabel || stationName(stationId),
       bwPages: found?.bwPages || 0,
       colorPages: found?.colorPages || 0,
+      realBwPages: found?.realBwPages || 0,
+      realColorPages: found?.realColorPages || 0,
+      realTotalPages: found?.realTotalPages || 0,
     };
   });
 }
@@ -62,12 +65,14 @@ function renderStations(stations) {
       <h3>${escapeHtml(station.stationLabel)}</h3>
       <div class="counter-values">
         <div>
-          <span>N&amp;B</span>
-          <strong>${formatNumber(station.bwPages)}</strong>
+          <span>N&amp;B reel</span>
+          <strong>${formatNumber(station.realBwPages || station.bwPages)}</strong>
+          <small>Estime : ${formatNumber(station.bwPages)}</small>
         </div>
         <div>
-          <span>Couleur</span>
-          <strong>${formatNumber(station.colorPages)}</strong>
+          <span>Couleur reel</span>
+          <strong>${formatNumber(station.realColorPages || station.colorPages)}</strong>
+          <small>Estime : ${formatNumber(station.colorPages)}</small>
         </div>
       </div>
     </article>
@@ -221,4 +226,6 @@ copyCounterUrl?.addEventListener("click", async () => {
 refreshDashboard();
 window.setInterval(refreshDashboard, 5000);
 loadAdminConfig();
+
+
 
