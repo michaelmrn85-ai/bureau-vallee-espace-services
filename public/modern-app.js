@@ -66,6 +66,7 @@ const MAIL_WAIT_DURATION_MS = 2 * 60 * 1000;
 let currentJob = null;
 let selectedFileId = "";
 let selectedFileIds = new Set();
+let filePrintSettings = new Map();
 let inactivityTimer = null;
 let sessionCloseTimer = null;
 let jobRefreshTimer = null;
@@ -699,8 +700,63 @@ function isPhotoFile(file) {
   return [".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"].includes(extension(file));
 }
 
+function defaultSettingsForFile(file = null) {
+  const base = currentJob?.printSettings || {};
+  return {
+    colorMode: base.colorMode || "noir-blanc",
+    duplex: base.duplex || "recto",
+    paperSize: base.paperSize || "A4",
+    scaling: base.scaling || "ajuster",
+    orientation: base.orientation || "auto",
+    pageRange: base.pageRange || "",
+    pagesPerSheet: Number(base.pagesPerSheet || 1),
+    copies: Math.max(1, Number.parseInt(base.copies, 10) || 1),
+  };
+}
+
+function settingsForFile(fileId) {
+  const file = currentJob?.files?.find((item) => item.id === fileId) || null;
+  if (!fileId) return defaultSettingsForFile(file);
+  if (!filePrintSettings.has(fileId)) filePrintSettings.set(fileId, defaultSettingsForFile(file));
+  return filePrintSettings.get(fileId);
+}
+
+function applySettingsToControls(settings = defaultSettingsForFile()) {
+  ["colorMode", "duplex", "paperSize", "orientation"].forEach((name) => {
+    const input = document.querySelector(`input[name='${name}'][value='${settings[name]}']`);
+    if (input) input.checked = true;
+  });
+  pageRangeInput.value = settings.pageRange || "";
+  copiesInput.value = Math.max(1, Number.parseInt(settings.copies, 10) || 1);
+}
+
+function saveActiveSettings() {
+  if (!selectedFileId) return;
+  filePrintSettings.set(selectedFileId, printSettings());
+}
+
+function syncSettingsForJob(job) {
+  const validFileIds = new Set((job?.files || []).map((file) => file.id));
+  filePrintSettings = new Map([...filePrintSettings].filter(([fileId]) => validFileIds.has(fileId)));
+  (job?.files || []).forEach((file) => settingsForFile(file.id));
+}
+
+function settingsSummary(settings = {}) {
+  const duplexLabels = { recto: "Recto", "recto-verso-long": "R/V long", "recto-verso-court": "R/V court" };
+  const parts = [settings.paperSize || "A4", settings.colorMode === "couleur" ? "Couleur" : "N&B", duplexLabels[settings.duplex] || "Recto"];
+  if (settings.orientation && settings.orientation !== "auto") parts.push(settings.orientation === "paysage" ? "Paysage" : "Portrait");
+  if (settings.copies && Number(settings.copies) > 1) parts.push(`${settings.copies} ex.`);
+  if (settings.pageRange) parts.push(`p. ${settings.pageRange}`);
+  return parts.join(" - ");
+}
+
+function updateSettingsPanelTitle() {
+  const title = document.querySelector(".settings-panel h2");
+  const file = selectedPreviewFile();
+  if (title) title.textContent = file ? `Configuration - ${file.originalName}` : t("settings");
+}
 function selectedPreviewFile() {
-  return currentJob?.files?.find((file) => file.id === selectedFileId) || currentJob?.files?.[0] || null;
+  return currentJob?.files?.find((file) => file.id === selectedFileId) || null;
 }
 
 function updateSessionControls() {
@@ -714,6 +770,7 @@ function updatePhotoOrientationControls(file) {
 }
 
 function renderPreview(file) {
+  updateSettingsPanelTitle();
   updatePhotoOrientationControls(file);
   previewBox.classList.remove("is-photo", "is-pdf", "is-portrait", "is-landscape");
   if (!file) {
@@ -747,20 +804,28 @@ function renderPreview(file) {
 
 function renderJob(job) {
   currentJob = job;
+  syncSettingsForJob(job);
   selectedFileId = job.files.some((file) => file.id === selectedFileId) ? selectedFileId : job.files[0]?.id || "";
   const validFileIds = new Set(job.files.map((file) => file.id));
   selectedFileIds = new Set([...selectedFileIds].filter((fileId) => validFileIds.has(fileId)));
   jobCode.textContent = `Code dossier ${job.code}`;
-  documentCount.textContent = `${selectedFileIds.size}/${job.files.length}`;
-  documentList.innerHTML = job.files.length ? job.files.map((file) => `
-    <article class="document-item ${file.id === selectedFileId ? "active" : ""} ${selectedFileIds.has(file.id) ? "selected" : ""}" data-file-id="${file.id}">
-      <input class="select-file" type="checkbox" data-select-file="${file.id}" ${selectedFileIds.has(file.id) ? "checked" : ""} aria-label="Selectionner ${file.originalName}">
+  documentCount.textContent = `${selectedFileIds.size}/${job.files.length} à imprimer`;
+  documentList.innerHTML = job.files.length ? job.files.map((file) => {
+    const isActive = file.id === selectedFileId;
+    const isSelected = selectedFileIds.has(file.id);
+    const summary = settingsSummary(settingsForFile(file.id));
+    return `
+    <article class="document-item ${isActive ? "active" : ""} ${isSelected ? "selected" : "not-selected"}" data-file-id="${file.id}">
+      <input class="select-file" type="checkbox" data-select-file="${file.id}" ${isSelected ? "checked" : ""} aria-label="Selectionner ${file.originalName}">
       <span>${fileLabel(file)}</span>
       <strong>${file.originalName}</strong>
       <small>${(file.size / 1024 / 1024).toFixed(1)} Mo - ${file.pages || 1} page(s)</small>
+      <em class="document-print-state">${isSelected ? "À imprimer" : "Non imprimé"}${isActive ? " - réglages affichés" : ""}</em>
+      <em class="document-settings-summary">${summary}</em>
       <button class="delete-file" type="button" data-delete-file="${file.id}" aria-label="Supprimer ${file.originalName}">x</button>
-    </article>
-  `).join("") : `<p class="empty-documents">Aucun document dans cette session.</p>`;
+    </article>`;
+  }).join("") : `<p class="empty-documents">Aucun document dans cette session.</p>`;
+  applySettingsToControls(settingsForFile(selectedFileId));
   renderPreview(selectedPreviewFile());
   updateSessionControls();
   showPrintScreen();
@@ -1052,7 +1117,7 @@ async function printSelectedFiles() {
     return;
   }
 
-  const settings = printSettings();
+  saveActiveSettings();
   const requestIds = [];
   setPrintStatus("Préparation de l'impression...");
   showPrintModal(true);
@@ -1069,7 +1134,7 @@ async function printSelectedFiles() {
       const response = await fetch(`/api/jobs/${currentJob.code}/print`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId, settings }),
+        body: JSON.stringify({ fileId, settings: settingsForFile(fileId) }),
       });
       payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Impression impossible.");
@@ -1166,6 +1231,7 @@ documentList.addEventListener("click", (event) => {
   }
   const selectInput = event.target.closest("[data-select-file]");
   if (selectInput) {
+    saveActiveSettings();
     const fileId = selectInput.dataset.selectFile;
     if (selectInput.checked) selectedFileIds.add(fileId);
     else selectedFileIds.delete(fileId);
@@ -1175,7 +1241,9 @@ documentList.addEventListener("click", (event) => {
   }
   const item = event.target.closest("[data-file-id]");
   if (!item || !currentJob) return;
+  saveActiveSettings();
   selectedFileId = item.dataset.fileId;
+  selectedFileIds.add(selectedFileId);
   renderJob(currentJob);
 });
 
@@ -1227,5 +1295,6 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
 
 

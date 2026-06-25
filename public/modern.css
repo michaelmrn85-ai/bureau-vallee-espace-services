@@ -2006,3 +2006,37 @@ body[data-page="admin"] {
     display: grid;
   }
 }
+
+.document-item {
+  grid-template-rows: auto auto auto auto;
+}
+
+.document-item.not-selected {
+  border-color: #d9e3ef;
+  background: #fff;
+}
+
+.document-item.not-selected.active {
+  border-color: #f2b84b;
+  background: #fff8e6;
+}
+
+.document-print-state,
+.document-settings-summary {
+  grid-column: 3 / 4;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.document-print-state {
+  color: #0066d6;
+}
+
+.document-item.not-selected .document-print-state {
+  color: #9a5f00;
+}
+
+.document-settings-summary {
+  color: var(--muted);
+}
