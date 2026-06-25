@@ -58,6 +58,66 @@ function printSettings(settings = {}) {
   return parts.join(",");
 }
 
+function selectedPages(totalPages, pageRange = "") {
+  const total = Math.max(1, Number(totalPages) || 1);
+  const cleanedRange = String(pageRange || "").trim();
+  if (!cleanedRange) return Array.from({ length: total }, (_, index) => index + 1);
+
+  const pages = [];
+  const seen = new Set();
+  for (const segment of cleanedRange.split(",")) {
+    const value = segment.trim();
+    if (!value) continue;
+    const match = value.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (!match) continue;
+    const start = Math.min(total, Math.max(1, Number.parseInt(match[1], 10)));
+    const end = Math.min(total, Math.max(start, Number.parseInt(match[2] || match[1], 10)));
+    for (let page = start; page <= end; page += 1) {
+      if (!seen.has(page)) {
+        seen.add(page);
+        pages.push(page);
+      }
+    }
+  }
+  return pages.length ? pages : Array.from({ length: total }, (_, index) => index + 1);
+}
+
+function pagesToRange(pages) {
+  const values = [...new Set((pages || []).map((page) => Number(page)).filter(Boolean))].sort((a, b) => a - b);
+  const ranges = [];
+  for (let index = 0; index < values.length; index += 1) {
+    const start = values[index];
+    let end = start;
+    while (index + 1 < values.length && values[index + 1] === end + 1) {
+      index += 1;
+      end = values[index];
+    }
+    ranges.push(start === end ? String(start) : `${start}-${end}`);
+  }
+  return ranges.join(",");
+}
+
+function splitPrintSettingsForLargeJob(config, request) {
+  const settings = request.settings || {};
+  const pageCount = Number(request.pageCount) || 1;
+  const chunkSize = Math.max(20, Number(config.largeJobChunkPages) || 50);
+  const pages = selectedPages(pageCount, settings.pageRange);
+  if (pages.length <= chunkSize || Number(settings.pagesPerSheet || 1) !== 1) return [settings];
+
+  const chunks = [];
+  for (let index = 0; index < pages.length; index += chunkSize) {
+    chunks.push({
+      ...settings,
+      pageRange: pagesToRange(pages.slice(index, index + chunkSize)),
+    });
+  }
+  return chunks;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function powerShellString(value) {
   return `'${String(value || "").replace(/'/g, "''")}'`;
 }
@@ -314,7 +374,20 @@ async function handleRequest(config, request) {
     } catch (error) {
       console.warn(`Configuration pilote ignoree: ${error.message}`);
     }
-    await runSumatra(config, filePath, request.settings);
+    const chunks = splitPrintSettingsForLargeJob(config, request);
+    if (chunks.length > 1) {
+      console.log(`Grande impression detectee: decoupage en ${chunks.length} lots.`);
+    }
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunkSettings = chunks[index];
+      if (chunks.length > 1) {
+        console.log(`Lot ${index + 1}/${chunks.length}: pages ${chunkSettings.pageRange}`);
+      }
+      await runSumatra(config, filePath, chunkSettings);
+      if (index + 1 < chunks.length) {
+        await wait(Math.max(1000, Number(config.largeJobDelayMs) || 8000));
+      }
+    }
     await markStatus(config, request.requestId, "done");
     if (!config.keepPrintedFiles) fs.rmSync(filePath, { force: true });
     console.log("Impression envoyee au copieur.");

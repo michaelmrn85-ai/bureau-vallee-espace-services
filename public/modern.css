@@ -1749,3 +1749,133 @@ body[data-page="admin"] {
   height: 58px;
   margin: 8px auto 0;
 }
+
+
+/* admin clean counters 20260625 */
+.admin-header-clean {
+  align-items: flex-start;
+}
+
+.admin-header-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.admin-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.simple-admin-header .top-danger-action,
+.simple-admin-header .danger-action {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.panel-heading-compact {
+  padding: 18px 24px;
+}
+
+.counter-focus-grid {
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.counter-station-card {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid #dce6f2;
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.counter-station-card h3 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.counter-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.counter-values div {
+  padding: 18px;
+  border: 1px solid #e2ebf6;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.counter-values span {
+  display: block;
+  color: var(--muted);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.counter-values strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 46px;
+  line-height: 1;
+}
+
+.counter-values div:last-child strong {
+  color: var(--green);
+}
+
+.printer-ip-grid {
+  padding: 22px;
+}
+
+.printer-ip-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border: 1px dashed #9fc7ff;
+  border-radius: 10px;
+  background: #f5f9ff;
+}
+
+.printer-ip-card strong {
+  font-size: 20px;
+}
+
+.printer-ip-card span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.admin-qr-layout {
+  padding: 22px;
+}
+
+@media (max-width: 900px) {
+  .admin-header-clean,
+  .admin-header-actions,
+  .admin-header-buttons,
+  .printer-ip-card {
+    align-items: stretch;
+    justify-items: stretch;
+  }
+
+  .admin-header-buttons,
+  .counter-focus-grid,
+  .counter-values {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-header-buttons {
+    display: grid;
+  }
+}

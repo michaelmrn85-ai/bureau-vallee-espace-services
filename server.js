@@ -49,7 +49,7 @@ const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_UPLOAD_FILES = 60;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
-const MAX_PDF_PAGES = 500;
+const MAX_PDF_PAGES = 1200;
 const allowedExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".heic", ".heif", ".webp"]);
 const counterOnlyExtensions = new Set([".doc", ".docx"]);
 const mimeExtensions = {
@@ -640,22 +640,28 @@ async function createImagePrintPdf(sourcePath, extension, targetPath) {
 
 async function createPreparedPdf(job, file, settings, requestId) {
   const pagesPerSheet = Number(settings.pagesPerSheet || 1);
-  const pageRange = String(settings.pageRange || "").trim();
-  const shouldPreparePdf =
-    [2, 4].includes(pagesPerSheet) ||
-    ["A3", "A5"].includes(settings.paperSize) ||
-    ["portrait", "paysage"].includes(settings.orientation) ||
-    Boolean(pageRange);
-  if (!shouldPreparePdf) return { storedName: file.printableStoredName || file.storedName, settings };
+  const sourceName = file.printableStoredName || file.storedName;
 
-  const sourcePath = path.join(jobDir(job.code), file.printableStoredName || file.storedName);
-  const sourcePdf = await PDFDocument.load(fs.readFileSync(sourcePath));
-  const outputPdf = await PDFDocument.create();
+  // Les gros PDF ne doivent pas etre recréés juste pour une plage de pages,
+  // un format papier ou une orientation : SumatraPDF et le pilote savent le faire.
+  // Recomposer un PDF de 500/900 pages ici provoque des erreurs mémoire ou JSON.
+  if (![2, 4].includes(pagesPerSheet)) {
+    return { storedName: sourceName, settings };
+  }
+
+  const sourcePath = path.join(jobDir(job.code), sourceName);
+  const sourceBytes = fs.readFileSync(sourcePath);
+  const sourcePdf = await PDFDocument.load(sourceBytes, { ignoreEncryption: true });
   const selectedIndexes = selectedPageIndexes(sourcePdf.getPageCount(), settings.pageRange);
-  const embeddedPages = await outputPdf.embedPdf(fs.readFileSync(sourcePath), selectedIndexes);
+  if (selectedIndexes.length > 240) {
+    throw new Error("Document trop volumineux pour l'option 2 ou 4 pages par feuille. Merci d'imprimer en 1 page par feuille ou de reduire la plage.");
+  }
+
+  const outputPdf = await PDFDocument.create();
+  const embeddedPages = await outputPdf.embedPdf(sourceBytes, selectedIndexes);
   const sheetOrientation = resolvedSheetOrientation(settings, embeddedPages);
   const [sheetWidth, sheetHeight] = paperSizePoints(settings.paperSize, sheetOrientation, pagesPerSheet);
-  const columns = pagesPerSheet === 1 ? 1 : 2;
+  const columns = 2;
   const rows = pagesPerSheet === 4 ? 2 : 1;
   const margin = 18;
   const gutter = 10;
@@ -669,21 +675,12 @@ async function createPreparedPdf(job, file, settings, requestId) {
       if (!embeddedPage) continue;
       const column = offset % columns;
       const row = Math.floor(offset / columns);
-      const forcedOrientation = settings.orientation === "portrait" || settings.orientation === "paysage";
-      const sheetIsLandscape = sheetWidth > sheetHeight;
-      const sourceIsLandscape = embeddedPage.width > embeddedPage.height;
-      const rotateToFit = pagesPerSheet === 1 && forcedOrientation && sheetIsLandscape !== sourceIsLandscape;
-      const sourceWidth = rotateToFit ? embeddedPage.height : embeddedPage.width;
-      const sourceHeight = rotateToFit ? embeddedPage.width : embeddedPage.height;
-      const scale = Math.min(slotWidth / sourceWidth, slotHeight / sourceHeight);
+      const scale = Math.min(slotWidth / embeddedPage.width, slotHeight / embeddedPage.height);
       const width = embeddedPage.width * scale;
       const height = embeddedPage.height * scale;
-      const effectiveWidth = rotateToFit ? height : width;
-      const effectiveHeight = rotateToFit ? width : height;
-      const x = margin + column * (slotWidth + gutter) + (slotWidth - effectiveWidth) / 2;
-      const y = sheetHeight - margin - (row + 1) * slotHeight - row * gutter + (slotHeight - effectiveHeight) / 2;
-      if (rotateToFit) page.drawPage(embeddedPage, { x: x + height, y, width, height, rotate: degrees(90) });
-      else page.drawPage(embeddedPage, { x, y, width, height });
+      const x = margin + column * (slotWidth + gutter) + (slotWidth - width) / 2;
+      const y = sheetHeight - margin - (row + 1) * slotHeight - row * gutter + (slotHeight - height) / 2;
+      page.drawPage(embeddedPage, { x, y, width, height });
     }
   }
 
@@ -1786,6 +1783,8 @@ app.get("/api/print-agent/next", (request, response) => {
       fileId: file.id,
       fileName: file.originalName,
       printFileName: printRequest.printFileName || file.originalName,
+      pageCount: file.pages || 1,
+      fileExtension: file.extension || "",
       fileUrl: `${PUBLIC_BASE_URL}/api/jobs/${job.code}/print-files/${printRequest.id}`,
       settings: printRequest.settings || sanitizePrintSettings(job.printSettings),
       settingsLabel: printRequest.settingsLabel || printSettingsLabel(job.printSettings),
