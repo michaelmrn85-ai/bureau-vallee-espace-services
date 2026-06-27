@@ -288,13 +288,27 @@ function listUsbRoots() {
 async function getUsbRoots() {
   if (process.platform !== "win32") return [];
   const script = `
-    $drives = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2" |
-      Select-Object DeviceID,VolumeName
-    $drives | ConvertTo-Json -Compress
+    $logicalById = @{}
+    Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -eq 2 } | ForEach-Object {
+      $logicalById[$_.DeviceID] = $_
+    }
+    Get-CimInstance Win32_DiskDrive | Where-Object { $_.InterfaceType -eq "USB" -or $_.PNPDeviceID -like "USBSTOR*" } | ForEach-Object {
+      $disk = $_
+      Get-CimAssociatedInstance -InputObject $disk -Association Win32_DiskDriveToDiskPartition -ErrorAction SilentlyContinue | ForEach-Object {
+        Get-CimAssociatedInstance -InputObject $_ -Association Win32_LogicalDiskToPartition -ErrorAction SilentlyContinue | ForEach-Object {
+          $logicalById[$_.DeviceID] = $_
+        }
+      }
+    }
+    $logicalById.Values |
+      Where-Object { $_.DeviceID -and (Test-Path ($_.DeviceID + "\\")) } |
+      Sort-Object DeviceID |
+      Select-Object DeviceID,VolumeName,VolumeSerialNumber,FileSystem,Size,FreeSpace,DriveType |
+      ConvertTo-Json -Compress
   `;
   try {
     const output = await runPowerShellOutput(script);
-    if (!output.trim()) return listUsbRoots();
+    if (!output.trim() || output.trim() === "null") return [];
     const parsed = JSON.parse(output);
     const drives = Array.isArray(parsed) ? parsed : [parsed];
     const roots = drives
@@ -303,14 +317,18 @@ async function getUsbRoots() {
         const driveId = String(drive.DeviceID);
         const rootPath = driveId.endsWith("\\") ? driveId : driveId + "\\";
         const label = String(drive.VolumeName || "").trim();
-        return { name: label ? label + " (" + rootPath + ")" : "Cle USB " + rootPath, path: rootPath };
+        const identity = [drive.VolumeSerialNumber, drive.FileSystem, drive.Size].filter(Boolean).join("|");
+        return {
+          name: label ? label + " (" + rootPath + ")" : "Cle USB " + rootPath,
+          path: rootPath,
+          identity,
+        };
       });
-    return roots.length ? roots : listUsbRoots();
+    return roots;
   } catch (error) {
     return listUsbRoots();
   }
 }
-
 function scanDirectory(rootPath, currentPath, rootName, tree, depth, maxDepth, maxEntries) {
   if (tree.length >= maxEntries || depth > maxDepth) return;
   let entries = [];
@@ -787,6 +805,7 @@ loop().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
+
 
 
 

@@ -159,7 +159,8 @@ async function ensureUsbScan(station, { force = false } = {}) {
   const command = queueStationCommand(station, "usb-scan");
   const finished = await waitForCommandResult(command.id);
   if (!finished || finished.status !== "done") {
-    if (cached) return cached; // on degrade vers le cache plutot que de planter
+    if (force) usbScanCache.delete(station);
+    if (!force && cached) return cached; // navigation interne: on garde le scan courant uniquement si on ne force pas
     const error = new Error(
       finished && finished.error
         ? finished.error
@@ -208,7 +209,7 @@ function buildUsbBrowseView(scan, requestedPath = "") {
 }
 
 async function importUsbSelection({ station, code, paths, fields }) {
-  const scan = await ensureUsbScan(station);
+  const scan = await ensureUsbScan(station, { force: true });
   const selected = (Array.isArray(paths) ? paths : [])
     .map((virtualPath) => scan.tree.find((entry) => entry.type === "file" && entry.path === virtualPath))
     .filter(Boolean);
@@ -2269,6 +2270,7 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
 
 
 

@@ -950,6 +950,7 @@ function renderUsbExplorer(payload) {
 }
 
 async function loadUsbExplorer(targetPath = "") {
+  if (!targetPath) usbSelectedPaths = new Set();
   showLoading(true, "Lecture de la cle USB", "Le kiosk charge le contenu autorise.");
   try {
     const params = new URLSearchParams({ station });
@@ -960,6 +961,8 @@ async function loadUsbExplorer(targetPath = "") {
     if (!response.ok) throw new Error(payload.error || "Lecture USB impossible.");
     renderUsbExplorer(payload);
   } catch (error) {
+    usbSelectedPaths = new Set();
+    renderUsbExplorer({ roots: [], path: "", parentPath: "", entries: [] });
     showInfo("Cle USB", error.message || "Impossible de lire la cle USB.");
   } finally {
     showLoading(false);
@@ -1319,6 +1322,7 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
 
 
 
