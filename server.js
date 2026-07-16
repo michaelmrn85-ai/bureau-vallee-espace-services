@@ -969,6 +969,7 @@ async function createMailJob(parsedMail) {
   const job = {
     code,
     customerName: senderDisplayName(parsedMail),
+    senderEmail: senderAddress(parsedMail),
     clientId: "",
     civility: "",
     printCard: false,
@@ -1243,6 +1244,7 @@ function startMailWatcher() {
               const job = {
                 code,
                 customerName: sanitizeCustomerName(fromAddress || 'Client mail'),
+                senderEmail: sanitizeCustomerName(fromAddress || ''),
                 clientId: '',
                 civility: '',
                 printCard: false,
@@ -1337,6 +1339,7 @@ function publicJob(job, status = "actif") {
   return {
     code: job.code,
     customerName: job.customerName,
+    senderEmail: job.senderEmail || (job.source === "mail" ? job.customerName : ""),
     clientId: job.clientId || "",
     civility: job.civility || "",
     printCard: Boolean(job.printCard),
@@ -2270,6 +2273,8 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
+
 
 
 

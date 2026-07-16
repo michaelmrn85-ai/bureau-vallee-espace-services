@@ -31,13 +31,16 @@ function formatSize(bytes) {
 }
 
 function sourceLabel(job) {
-  if (job.source === "mail") return job.counterOnly ? "Mail comptoir" : "Mail";
+  if (job.source === "mail") return job.counterOnly ? "Mail - comptoir" : "Mail client";
   if (job.adminUpload || job.source === "comptoir") return "QR comptoir";
   if (job.source === "qr") return "QR client";
   if (job.source === "usb") return "Cle USB";
   return job.source || "Dossier";
 }
 
+function senderLabel(job) {
+  return job.senderEmail || job.customerName || "Client";
+}
 function stationName(stationId) {
   return stationId === "poste-2" ? "Poste 2" : "Poste 1";
 }
@@ -110,15 +113,17 @@ function jobDownloadAllUrl(job, files) {
 
 function renderAdminFiles(target, jobs, emptyText) {
   if (!target) return;
-  target.innerHTML = jobs.length ? jobs.map((job) => {
+  const sortedJobs = [...jobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  target.innerHTML = sortedJobs.length ? sortedJobs.map((job) => {
     const files = job.files || [];
     const folderUrl = jobDownloadAllUrl(job, files);
+    const sender = senderLabel(job);
     return `
       <article class="admin-file-card">
         <div class="admin-file-head">
           <div>
             <span>${sourceLabel(job)} - Code ${escapeHtml(job.code)}</span>
-            <strong>${escapeHtml(job.customerName || "Client")}</strong>
+            <strong>${escapeHtml(sender)}</strong>
           </div>
           <div class="admin-file-actions">
             ${folderUrl ? `<a href="${folderUrl}">Telecharger le dossier</a>` : ""}
@@ -127,7 +132,7 @@ function renderAdminFiles(target, jobs, emptyText) {
         <div class="admin-file-meta">
           <span>${new Date(job.createdAt).toLocaleString("fr-FR")}</span>
           <span>${files.length} fichier${files.length > 1 ? "s" : ""}</span>
-          ${job.counterOnly ? "<span>Traitement comptoir</span>" : ""}
+          ${job.counterOnly ? "<span>Word/DOC - comptoir</span>" : "<span>Imprimable poste</span>"}
         </div>
         <div class="admin-file-items">
           ${files.map((file) => `
@@ -164,13 +169,8 @@ async function refreshFiles() {
 
 async function refreshDashboard() {
   try {
-    const response = await fetch("/api/dashboard");
-    const payload = await response.json();
-    if (!response.ok) return;
-    renderStations(payload.stations || []);
-    renderPrinterIpCounters(payload.printerCounters || payload.printers || []);
     if (dashboardUpdated) {
-      dashboardUpdated.textContent = `Derniere mise a jour : ${new Date(payload.generatedAt || Date.now()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+      dashboardUpdated.textContent = `Fichiers recus - ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
     }
     refreshFiles();
   } catch (error) {}
@@ -228,6 +228,8 @@ copyCounterUrl?.addEventListener("click", async () => {
 refreshDashboard();
 window.setInterval(refreshDashboard, 5000);
 loadAdminConfig();
+
+
 
 
 

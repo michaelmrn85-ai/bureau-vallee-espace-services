@@ -1,10 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260625-home-icons">
+  <link rel="stylesheet" href="/modern.css?v=20260716-mail-usb-admin">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -16,7 +16,7 @@
   </nav>
 <main class="home-screen" id="home-screen">
     <header class="brand-header">
-      <img src="/logo-bureau-vallee-2021.png" alt="Bureau VallÃ©e">
+      <img src="/logo-bureau-vallee-2021.png" alt="Bureau Vallée">
       <div>
         <p>Espace Services</p>
         <h1 id="brand-title">Poste Espace Services</h1>
@@ -26,27 +26,27 @@
     <section class="welcome-panel">
       <p class="station" id="station-label">Poste d'impression</p>
       <h2>Comment souhaitez-vous envoyer vos documents ?</h2>
-      <p class="lead">Choisissez une option pour commencer. Vos fichiers seront prÃ©parÃ©s avant impression afin d'Ã©viter les erreurs.</p>
+      <p class="lead">Choisissez une option pour commencer. Vos fichiers seront préparés avant impression afin d'éviter les erreurs.</p>
 
-      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptÃ©s sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
+      <p class="home-warning">Les fichiers Word, DOC et DOCX ne sont pas acceptés sur les postes. Merci de vous rapprocher d'un vendeur ou d'une vendeuse.</p>
 
       <div class="choice-grid">
         <button class="choice-card usb" id="usb-button" type="button">
           <span class="choice-icon image-icon usb-image" aria-hidden="true"><img src="/assets/icon-usb.png" alt=""></span>
-          <strong>Impression via clÃ© USB</strong>
-          <small>InsÃ©rez votre clÃ© USB puis sÃ©lectionnez vos fichiers.</small>
+          <strong>Impression via clé USB</strong>
+          <small>Insérez votre clé USB puis sélectionnez vos fichiers.</small>
         </button>
 
         <button class="choice-card qr" id="qr-button" type="button">
           <span class="choice-icon image-icon qr-image" aria-hidden="true"><img src="/assets/icon-qr.png" alt=""></span>
           <strong>Impression via QR Code</strong>
-          <small>Scannez le QR code avec votre tÃ©lÃ©phone pour envoyer vos fichiers.</small>
+          <small>Scannez le QR code avec votre téléphone pour envoyer vos fichiers.</small>
         </button>
 
         <button class="choice-card mail" id="mail-button" type="button">
           <span class="choice-icon image-icon mail-image" aria-hidden="true"><img src="/assets/icon-mail.png" alt=""></span>
           <strong>Envoi de fichiers par mail</strong>
-          <small>Envoyez vos piÃ¨ces jointes Ã  l'adresse du poste, puis ouvrez le dossier reÃ§u.</small>
+          <small>Envoyez vos pièces jointes à l'adresse du poste, puis ouvrez le dossier reçu.</small>
         </button>
       </div>
 
@@ -60,11 +60,11 @@
       <div>
         <button class="back-button" id="back-home" type="button">&lt; Accueil</button>
         <p id="job-code">Code dossier</p>
-        <h1>PrÃ©parer l'impression</h1>
+        <h1>Préparer l'impression</h1>
       </div>
       <div class="print-header-actions">
         <button class="add-button" id="add-more-files" type="button">+ Ajouter des fichiers</button>
-        <button class="eject-button" id="eject-usb" type="button">ï¿½0jecter clÃ© USB</button>
+        <button class="eject-button" id="eject-usb" type="button">Éjecter clé USB</button>
         <button class="end-button" id="end-session" type="button">Fin de session</button>
       </div>
     </header>
@@ -111,21 +111,21 @@
           <input id="copies" type="number" min="1" max="99" value="1">
         </label>
 
-        <label>Pages Ã  imprimer
+        <label>Pages à imprimer
           <input id="page-range" placeholder="Toutes les pages">
         </label>
 
-        <button class="print-button" id="print-button" type="button">Imprimer la sÃ©lection</button>
+        <button class="print-button" id="print-button" type="button">Imprimer la sélection</button>
         <p class="status-message" id="print-status"></p>
       </section>
 
       <section class="preview-panel">
         <div class="panel-title">
-          <h2>AperÃ§u</h2>
+          <h2>Aperçu</h2>
           <span id="preview-pages">1 / 1</span>
         </div>
         <div class="preview-box" id="preview-box">
-          <p>SÃ©lectionnez un document.</p>
+          <p>Sélectionnez un document.</p>
         </div>
       </section>
     </section>
@@ -153,15 +153,15 @@
   <div class="modal hidden" id="qr-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="close-button" id="close-qr" type="button" aria-label="Fermer">x</button>
-      <h2>Envoyer depuis votre tÃ©lÃ©phone</h2>
-      <p>Scannez ce QR code avec votre tÃ©lÃ©phone, puis ajoutez vos fichiers. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptÃ©s.</p>
+      <h2>Envoyer depuis votre téléphone</h2>
+      <p>Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
       <img id="qr-image" alt="QR code pour envoyer des fichiers">
       <div class="url-box">
         <input id="upload-url" readonly>
         <button id="copy-url" type="button">Copier</button>
       </div>
       <div class="code-box">
-        <label for="qr-code-input">Code reÃ§u sur le tÃ©lÃ©phone</label>
+        <label for="qr-code-input">Code reçu sur le téléphone</label>
         <div>
           <input id="qr-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
           <button id="load-code" type="button">Ouvrir</button>
@@ -174,13 +174,13 @@
     <div class="modal-card mail-card">
       <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
       <h2>Envoyer par mail</h2>
-      <p class="mail-intro">Suivez les 3 Ã©tapes. Le code arrive dans votre boÃ®te mail aprÃ¨s rÃ©ception des piÃ¨ces jointes.</p>
+      <p class="mail-intro">Suivez les 3 étapes. Le code arrive dans votre boîte mail après réception des pièces jointes.</p>
 
       <div class="mail-steps">
         <section class="mail-step-card">
           <span class="step-number">1</span>
           <h3>Envoyez vos fichiers</h3>
-          <p>Envoyez ou transfÃ©rez vos fichiers en piÃ¨ce jointe Ã  cette adresse.</p>
+          <p>Envoyez ou transférez vos fichiers en pièce jointe à cette adresse.</p>
           <div class="mail-address-box">
             <span>Adresse du poste</span>
             <strong id="mail-address">kiosk.es@zohomail.eu</strong>
@@ -191,7 +191,7 @@
         <section class="mail-step-card mail-step-wait">
           <span class="step-number">2</span>
           <h3>Patientez</h3>
-          <p>Le serveur rÃ©cupÃ¨re le mail et prÃ©pare le dossier d'impression.</p>
+          <p>Le serveur récupère le mail et prépare le dossier d'impression.</p>
           <div class="mail-countdown mail-hourglass-box">
             <span>Recherche du mail en cours</span>
             <div class="hourglass mail-hourglass" id="mail-wait-timer" aria-hidden="true"></div>
@@ -202,9 +202,16 @@
         <section class="mail-step-card">
           <span class="step-number">3</span>
           <h3>Saisissez le code</h3>
-          <p>Entrez le code reÃ§u dans votre boÃ®te mail pour ouvrir vos fichiers sur ce poste.</p>
+          <p>Entrez le code reçu dans votre boîte mail pour ouvrir vos fichiers sur ce poste.</p>
+          <div class="mail-recent-block">
+            <strong>Mails recus par le serveur</strong>
+            <p>Cliquez sur votre adresse mail si le code n'est pas encore arrive dans votre boite mail.</p>
+            <div class="mail-recent-list" id="mail-recent-list">
+              <p class="mail-recent-empty">Recherche des mails en cours...</p>
+            </div>
+          </div>
           <div class="code-box mail-code-box">
-            <label for="mail-code-input">Code reÃ§u par mail</label>
+            <label for="mail-code-input">Code reçu par mail</label>
             <div>
               <input id="mail-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
               <button id="load-mail-code" type="button">Ouvrir</button>
@@ -213,7 +220,7 @@
         </section>
       </div>
 
-      <p class="mail-limit-note">Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptÃ©s.</p>
+      <p class="mail-limit-note">Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
     </div>
   </div>
 
@@ -221,15 +228,15 @@
     <div class="modal-card print-progress-card">
       <div class="loader" aria-hidden="true"></div>
       <h2>Impression en cours</h2>
-      <p id="print-progress-text">Merci de patienter, vos documents sont envoyÃ©s au copieur.</p>
+      <p id="print-progress-text">Merci de patienter, vos documents sont envoyés au copieur.</p>
       <ol class="print-steps" id="print-steps">
-        <li data-step="prepare">VÃ©rification des options</li>
-        <li data-step="server">PrÃ©paration du fichier</li>
+        <li data-step="prepare">Vérification des options</li>
+        <li data-step="server">Préparation du fichier</li>
         <li data-step="queue">Envoi dans la file du poste</li>
         <li data-step="agent">Prise en charge par le poste</li>
-        <li data-step="printer">Impression lancÃ©e au copieur</li>
+        <li data-step="printer">Impression lancée au copieur</li>
       </ol>
-      <p class="print-safe-note">Vous pouvez patienter devant le poste. Le message se ferme quand le lancement est confirmÃ©.</p>
+      <p class="print-safe-note">Vous pouvez patienter devant le poste. Le message se ferme quand le lancement est confirmé.</p>
     </div>
   </div>
 
@@ -237,7 +244,7 @@
     <div class="modal-card print-progress-card">
       <div class="loader" aria-hidden="true"></div>
       <h2 id="loading-title">Recherche en cours</h2>
-      <p id="loading-text">Le serveur prÃ©pare votre demande.</p>
+      <p id="loading-text">Le serveur prépare votre demande.</p>
     </div>
   </div>
 
@@ -250,9 +257,10 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260627-usb-fresh-scan"></script>
+  <script src="/modern-app.js?v=20260716-mail-usb-admin"></script>
 </body>
 </html>
+
 
 
 

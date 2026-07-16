@@ -58,6 +58,7 @@ const copyMail = document.getElementById("copy-mail");
 const mailCodeInput = document.getElementById("mail-code-input");
 const loadMailCode = document.getElementById("load-mail-code");
 const mailWaitTimer = document.getElementById("mail-wait-timer");
+const mailRecentList = document.getElementById("mail-recent-list");
 
 const MAX_TOTAL_UPLOAD_SIZE_MB = 500;
 const MAX_TOTAL_UPLOAD_SIZE = MAX_TOTAL_UPLOAD_SIZE_MB * 1024 * 1024;
@@ -74,6 +75,7 @@ let inactivityVisible = false;
 let clockInterval = null;
 let mailWaitInterval = null;
 let mailWaitStartedAt = 0;
+let mailRecentInterval = null;
 let usbExplorerPath = "";
 let usbExplorerParentPath = "";
 let usbSelectedPaths = new Set();
@@ -884,6 +886,9 @@ async function openMailModal() {
   mailAddress.textContent = "kiosk.es@zohomail.eu";
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
+  stopMailRecentRefresh();
+  await loadRecentMailJobs();
+  mailRecentInterval = window.setInterval(loadRecentMailJobs, 5000);
   try {
     const params = qrParams("mail");
     const response = await fetch(`/api/config?${params}`);
@@ -893,6 +898,42 @@ async function openMailModal() {
     // L'adresse locale par defaut reste affichee.
   }
 }
+
+function stopMailRecentRefresh() {
+  window.clearInterval(mailRecentInterval);
+  mailRecentInterval = null;
+}
+
+function mailSenderLabel(job) {
+  return job.senderEmail || job.customerName || "Client mail";
+}
+
+async function loadRecentMailJobs() {
+  if (!mailRecentList) return;
+  try {
+    const response = await fetch("/api/jobs");
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Recherche impossible.");
+    const mailJobs = (payload.jobs || [])
+      .filter((job) => job.source === "mail" && job.status !== "termine")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 8);
+    mailRecentList.innerHTML = mailJobs.length ? mailJobs.map((job) => {
+      const sender = mailSenderLabel(job);
+      const fileCount = (job.files || []).length;
+      const disabled = job.counterOnly ? " disabled" : "";
+      const action = job.counterOnly ? "A traiter au comptoir" : "Ouvrir ce dossier";
+      return `<button class="mail-recent-job${disabled}" type="button" data-mail-code="${job.code}"${disabled ? " aria-disabled=\"true\"" : ""}>
+        <strong>${sender}</strong>
+        <span>Code ${job.code} - ${fileCount} fichier${fileCount > 1 ? "s" : ""}</span>
+        <em>${action}</em>
+      </button>`;
+    }).join("") : `<p class="mail-recent-empty">Aucun mail recu pour le moment. La liste se met a jour automatiquement.</p>`;
+  } catch (error) {
+    mailRecentList.innerHTML = `<p class="mail-recent-empty">Recherche des mails en cours...</p>`;
+  }
+}
+
 async function loadJobFromCode(inputElement = qrCodeInput) {
   const code = String(inputElement.value || "").replace(/\D/g, "").slice(0, 4);
   if (code.length !== 4) {
@@ -969,10 +1010,13 @@ async function loadUsbExplorer(targetPath = "") {
   }
 }
 
+function openWindowsUsbPicker() {
+  usbFiles.value = "";
+  usbFiles.click();
+}
+
 async function openUsbExplorer() {
-  usbSelectedPaths = new Set();
-  usbExplorerModal.classList.remove("hidden");
-  await loadUsbExplorer();
+  openWindowsUsbPicker();
 }
 
 async function submitUsbExplorerSelection() {
@@ -1202,7 +1246,7 @@ async function endSession(isAutomatic = false) {
 applyTranslations();
 startDigitalClock();
 
-usbButton.addEventListener("click", openUsbExplorer);
+usbButton.addEventListener("click", openWindowsUsbPicker);
 qrButton.addEventListener("click", openQrModal);
 mailButton.addEventListener("click", openMailModal);
 languageButtons.forEach((button) => {
@@ -1277,7 +1321,7 @@ document.querySelectorAll("input[name='paperSize'], input[name='colorMode'], inp
 printButton.addEventListener("click", printSelectedFiles);
 backHome.addEventListener("click", showHomeScreen);
 addMoreFiles.addEventListener("click", () => {
-  if (String(currentJob?.source || "").toLowerCase() === "usb") openUsbExplorer();
+  if (String(currentJob?.source || "").toLowerCase() === "usb") openWindowsUsbPicker();
   else usbFiles.click();
 });
 ejectUsbButton.addEventListener("click", ejectUsb);
@@ -1292,6 +1336,12 @@ closeMail.addEventListener("click", () => {
   stopMailWaitTimer();
 });
 loadMailCode.addEventListener("click", () => loadJobFromCode(mailCodeInput));
+mailRecentList?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mail-code]");
+  if (!button || button.disabled) return;
+  mailCodeInput.value = button.dataset.mailCode || "";
+  loadJobFromCode(mailCodeInput);
+});
 mailCodeInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadJobFromCode(mailCodeInput);
 });
@@ -1322,6 +1372,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 

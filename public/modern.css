@@ -2070,3 +2070,23 @@ body[data-page="admin"] {
   width: 104px;
   height: 104px;
 }
+
+/* mail fallback and admin files 20260716 */
+.mail-recent-block {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #d8e5f5;
+  border-radius: 10px;
+  background: #f7fbff;
+}
+.mail-recent-block > strong { display: block; color: var(--ink); font-size: 16px; }
+.mail-recent-block > p, .mail-recent-empty { margin: 6px 0 0; color: var(--muted); font-size: 13px; font-weight: 700; }
+.mail-recent-list { display: grid; gap: 8px; margin-top: 10px; max-height: 190px; overflow: auto; }
+.mail-recent-job { display: grid; gap: 4px; width: 100%; min-height: 58px; border: 1px solid #9fc7ff; border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--ink); text-align: left; }
+.mail-recent-job strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-recent-job span { color: var(--muted); font-size: 13px; font-weight: 800; }
+.mail-recent-job em { color: var(--blue); font-size: 13px; font-style: normal; font-weight: 900; }
+.mail-recent-job.disabled { border-color: #ffd78a; background: #fff8e9; cursor: default; }
+.admin-file-card { border-left: 6px solid var(--blue); }
+.admin-file-card:has(.admin-file-unavailable) { border-left-color: #f59e0b; }
+.admin-file-head strong { word-break: break-word; }
