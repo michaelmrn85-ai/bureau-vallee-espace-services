@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260716-mail-usb-admin">
+  <link rel="stylesheet" href="/modern.css?v=20260716-mail-pickup-flow">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -173,15 +173,12 @@
   <div class="modal hidden" id="mail-modal" role="dialog" aria-modal="true">
     <div class="modal-card mail-card">
       <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
-      <h2>Envoyer par mail</h2>
-      <p class="mail-intro">Suivez les 3 étapes. Le code arrive dans votre boîte mail après réception des pièces jointes.</p>
+      <h2>Envoyer vos fichiers par mail</h2>`r`n      <p class="mail-intro">Merci d envoyer votre mail a l adresse suivante. Gardez cette fenetre ouverte et patientez pendant la reception.</p>
 
       <div class="mail-steps">
         <section class="mail-step-card">
           <span class="step-number">1</span>
-          <h3>Envoyez vos fichiers</h3>
-          <p>Envoyez ou transférez vos fichiers en pièce jointe à cette adresse.</p>
-          <div class="mail-address-box">
+          <h3>Merci d envoyer le mail a cette adresse</h3>`r`n          <p>Ajoutez vos fichiers en piece jointe, puis envoyez le mail.</p>`r`n          <div class="mail-address-box mail-address-large">
             <span>Adresse du poste</span>
             <strong id="mail-address">kiosk.es@zohomail.eu</strong>
             <button id="copy-mail" type="button">Copier</button>
@@ -196,7 +193,7 @@
             <span>Recherche du mail en cours</span>
             <div class="hourglass mail-hourglass" id="mail-wait-timer" aria-hidden="true"></div>
           </div>
-          <small>Patientez pendant la reception. Vous pouvez saisir le code des que vous le recevez.</small>
+          <small>Le serveur verifie la boite mail automatiquement. Ne fermez pas cette fenetre.</small>
         </section>
 
         <section class="mail-step-card">
@@ -204,8 +201,7 @@
           <h3>Saisissez le code</h3>
           <p>Entrez le code reçu dans votre boîte mail pour ouvrir vos fichiers sur ce poste.</p>
           <div class="mail-recent-block">
-            <strong>Mails recus par le serveur</strong>
-            <p>Cliquez sur votre adresse mail si le code n'est pas encore arrive dans votre boite mail.</p>
+            <strong>Rception mail</strong>`r`n            <p>La liste s actualise automatiquement.</p>
             <div class="mail-recent-list" id="mail-recent-list">
               <p class="mail-recent-empty">Recherche des mails en cours...</p>
             </div>
@@ -257,9 +253,10 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260716-mail-usb-admin"></script>
+  <script src="/modern-app.js?v=20260716-mail-pickup-flow"></script>
 </body>
 </html>
+
 
 
 

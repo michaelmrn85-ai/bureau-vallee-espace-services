@@ -45,6 +45,7 @@ const HELP_FILE = path.join(DATA_DIR, "help-requests.json");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const MAIL_PROCESSED_FILE = path.join(DATA_DIR, "mail-processed.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
+const MAIL_PICKUP_TTL_MS = 5 * 60 * 1000;
 const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_UPLOAD_FILES = 60;
@@ -980,7 +981,7 @@ async function createMailJob(parsedMail) {
     printMode: "noir-blanc",
     printSettings,
     createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + JOB_TTL_MS).toISOString(),
+    expiresAt: new Date(now.getTime() + MAIL_PICKUP_TTL_MS).toISOString(),
     files,
   };
   writeJob(job);
@@ -1255,7 +1256,7 @@ function startMailWatcher() {
                 printMode: 'noir-blanc',
                 printSettings,
                 createdAt: now.toISOString(),
-                expiresAt: new Date(now.getTime() + JOB_TTL_MS).toISOString(),
+                expiresAt: new Date(now.getTime() + MAIL_PICKUP_TTL_MS).toISOString(),
                 files,
               };
               writeJob(job);
@@ -1939,6 +1940,9 @@ app.get("/api/jobs/:code", (request, response) => {
     if (clientId) job.clientId = clientId;
     if (["madame", "monsieur"].includes(request.query.civility)) job.civility = request.query.civility;
     if (request.query.printCard === "1") job.printCard = true;
+    if (job.source === "mail" && !job.counterOnly) {
+      job.expiresAt = new Date(Date.now() + JOB_TTL_MS).toISOString();
+    }
     writeJob(job);
   }
   response.json(publicJob(job));
@@ -2273,6 +2277,9 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
+
+
 
 
 

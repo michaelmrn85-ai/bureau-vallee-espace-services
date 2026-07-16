@@ -2090,3 +2090,27 @@ body[data-page="admin"] {
 .admin-file-card { border-left: 6px solid var(--blue); }
 .admin-file-card:has(.admin-file-unavailable) { border-left-color: #f59e0b; }
 .admin-file-head strong { word-break: break-word; }
+
+/* mail pickup flow 20260716 */
+.mail-address-large strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--blue);
+}
+.mail-step-select.is-waiting {
+  opacity: .82;
+}
+.mail-step-select.is-ready {
+  border-color: #9fc7ff;
+  background: #f3f8ff;
+}
+.mail-step-select.is-ready .step-number {
+  background: var(--green);
+}
+.mail-step-select.is-ready h3 {
+  color: var(--green);
+}
+.mail-step-select.is-waiting .mail-recent-job {
+  pointer-events: none;
+}

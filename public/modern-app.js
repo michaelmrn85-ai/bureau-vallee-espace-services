@@ -59,6 +59,9 @@ const mailCodeInput = document.getElementById("mail-code-input");
 const loadMailCode = document.getElementById("load-mail-code");
 const mailWaitTimer = document.getElementById("mail-wait-timer");
 const mailRecentList = document.getElementById("mail-recent-list");
+const mailSelectStep = document.getElementById("mail-select-step");
+const mailSelectTitle = document.getElementById("mail-select-title");
+const mailSelectText = document.getElementById("mail-select-text");
 
 const MAX_TOTAL_UPLOAD_SIZE_MB = 500;
 const MAX_TOTAL_UPLOAD_SIZE = MAX_TOTAL_UPLOAD_SIZE_MB * 1024 * 1024;
@@ -914,26 +917,43 @@ async function loadRecentMailJobs() {
     const response = await fetch("/api/jobs");
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Recherche impossible.");
+    const now = Date.now();
     const mailJobs = (payload.jobs || [])
       .filter((job) => job.source === "mail" && job.status !== "termine")
+      .filter((job) => new Date(job.expiresAt || job.createdAt).getTime() > now)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 8);
-    mailRecentList.innerHTML = mailJobs.length ? mailJobs.map((job) => {
+
+    if (!mailJobs.length) {
+      mailSelectStep?.classList.remove("is-ready");
+      mailSelectStep?.classList.add("is-waiting");
+      if (mailSelectTitle) mailSelectTitle.textContent = "Patientez";
+      if (mailSelectText) mailSelectText.textContent = "Dès que le serveur reçoit votre mail, votre adresse apparaîtra ici.";
+      mailRecentList.innerHTML = `<p class="mail-recent-empty">Aucun mail reçu pour le moment. Gardez cette fenêtre ouverte.</p>`;
+      return;
+    }
+
+    mailSelectStep?.classList.add("is-ready");
+    mailSelectStep?.classList.remove("is-waiting");
+    if (mailSelectTitle) mailSelectTitle.textContent = "Sélectionnez votre adresse mail";
+    if (mailSelectText) mailSelectText.textContent = "Cliquez sur votre adresse pour découvrir vos fichiers sur ce poste.";
+    mailRecentList.innerHTML = mailJobs.map((job) => {
       const sender = mailSenderLabel(job);
       const fileCount = (job.files || []).length;
       const disabled = job.counterOnly ? " disabled" : "";
-      const action = job.counterOnly ? "A traiter au comptoir" : "Ouvrir ce dossier";
+      const action = job.counterOnly ? "A traiter au comptoir" : "Voir mes fichiers";
       return `<button class="mail-recent-job${disabled}" type="button" data-mail-code="${job.code}"${disabled ? " aria-disabled=\"true\"" : ""}>
         <strong>${sender}</strong>
-        <span>Code ${job.code} - ${fileCount} fichier${fileCount > 1 ? "s" : ""}</span>
+        <span>${fileCount} fichier${fileCount > 1 ? "s" : ""} reçu${fileCount > 1 ? "s" : ""}</span>
         <em>${action}</em>
       </button>`;
-    }).join("") : `<p class="mail-recent-empty">Aucun mail recu pour le moment. La liste se met a jour automatiquement.</p>`;
+    }).join("");
   } catch (error) {
+    mailSelectStep?.classList.remove("is-ready");
+    mailSelectStep?.classList.add("is-waiting");
     mailRecentList.innerHTML = `<p class="mail-recent-empty">Recherche des mails en cours...</p>`;
   }
 }
-
 async function loadJobFromCode(inputElement = qrCodeInput) {
   const code = String(inputElement.value || "").replace(/\D/g, "").slice(0, 4);
   if (code.length !== 4) {
@@ -1372,6 +1392,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 
