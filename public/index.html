@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260716-buttons-fix">
+  <link rel="stylesheet" href="/modern.css?v=20260716-qr-session">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -151,32 +151,55 @@
   </div>
 
   <div class="modal hidden" id="qr-modal" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <button class="close-button" id="close-qr" type="button" aria-label="Fermer">x</button>
-      <h2>Envoyer depuis votre téléphone</h2>
-      <p>Scannez ce QR code avec votre téléphone, puis ajoutez vos fichiers. Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
-      <img id="qr-image" alt="QR code pour envoyer des fichiers">
-      <div class="url-box">
-        <input id="upload-url" readonly>
-        <button id="copy-url" type="button">Copier</button>
+    <div class="modal-card mail-card mail-card-simple qr-card-simple">
+      <button class="close-button" id="close-qr" type="button" aria-label="Fermer">×</button>
+      <div class="mail-simple-address qr-simple-title">
+        <span>Envoyer depuis votre téléphone</span>
+        <strong>Scannez le QR Code</strong>
       </div>
-      <div class="code-box">
-        <label for="qr-code-input">Code reçu sur le téléphone</label>
-        <div>
-          <input id="qr-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
-          <button id="load-code" type="button">Ouvrir</button>
+
+      <section class="qr-simple-body">
+        <div class="qr-code-frame">
+          <img id="qr-image" alt="QR code pour envoyer des fichiers">
         </div>
+        <div class="qr-steps">
+          <article>
+            <b>1</b>
+            <span>Scannez le QR Code avec votre téléphone.</span>
+          </article>
+          <article>
+            <b>2</b>
+            <span>Ajoutez vos fichiers, puis attendez la fin de l'envoi.</span>
+          </article>
+          <article>
+            <b>3</b>
+            <span>Saisissez ici le code affiché sur votre téléphone.</span>
+          </article>
+          <div class="code-box qr-code-box">
+            <label for="qr-code-input">Code reçu sur le téléphone</label>
+            <div>
+              <input id="qr-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
+              <button id="load-code" type="button">Ouvrir</button>
+            </div>
+          </div>
+          <input class="qr-technical-url" id="upload-url" readonly aria-label="Lien technique QR Code">
+        </div>
+      </section>
+
+      <div class="mail-wifi-note">
+        <strong>Conseil Wi-Fi</strong>
+        <p>Nous vous conseillons fortement de vous connecter au Wi-Fi public Bureau Vallée.</p>
+        <div class="wifi-credentials"><span>Wi-Fi : <b>bv_public</b></span><span>Mot de passe : <b>bureauvallee</b></span></div>
       </div>
     </div>
   </div>
 
   <div class="modal hidden" id="mail-modal" role="dialog" aria-modal="true">
     <div class="modal-card mail-card mail-card-simple">
-      <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
+      <button class="close-button" id="close-mail" type="button" aria-label="Fermer">×</button>
       <div class="mail-simple-address">
         <span>Envoyez vos fichiers à cette adresse</span>
         <strong id="mail-address">kiosk.es@zohomail.eu</strong>
-        <button id="copy-mail" type="button">Copier l'adresse</button>
       </div>
 
       <section class="mail-simple-status is-waiting" id="mail-select-step">
@@ -190,7 +213,8 @@
 
       <div class="mail-wifi-note">
         <strong>Conseil Wi-Fi</strong>
-        <p>Nous vous conseillons fortement de vous connecter au Wi-Fi public Bureau Vallée : <b>bv_public</b>, mot de passe <b>bureauvallee</b>.</p>
+        <p>Nous vous conseillons fortement de vous connecter au Wi-Fi public Bureau Vallée.</p>
+        <div class="wifi-credentials"><span>Wi-Fi : <b>bv_public</b></span><span>Mot de passe : <b>bureauvallee</b></span></div>
       </div>
     </div>
   </div>
@@ -220,16 +244,20 @@
 
   <div class="modal hidden" id="info-modal" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <button class="close-button" id="close-info" type="button" aria-label="Fermer">x</button>
+      <button class="close-button" id="close-info" type="button" aria-label="Fermer">×</button>
       <h2 id="info-title">Information</h2>
       <p id="info-text">Message</p>
       <button class="modal-action" id="info-ok" type="button">OK</button>
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260716-buttons-fix"></script>
+  <script src="/modern-app.js?v=20260716-qr-session"></script>
 </body>
 </html>
+
+
+
+
 
 
 

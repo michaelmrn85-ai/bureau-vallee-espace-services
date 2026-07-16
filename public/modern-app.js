@@ -1248,18 +1248,24 @@ async function printSelectedFiles() {
 async function endSession(isAutomatic = false) {
   window.clearTimeout(inactivityTimer);
   window.clearTimeout(sessionCloseTimer);
-  showLoading(true, "Fin de session", isAutomatic ? "La session inactive est fermee automatiquement." : "Nettoyage du dossier en cours.");
+  showLoading(true, "Fin de session", isAutomatic ? "La session inactive est fermée automatiquement." : "Retour à l'accueil dans 5 secondes.");
   try {
+    if (!isAutomatic) {
+      for (let seconds = 5; seconds >= 1; seconds -= 1) {
+        if (loadingText) loadingText.textContent = `Retour à l'accueil dans ${seconds} seconde${seconds > 1 ? "s" : ""}.`;
+        await wait(1000);
+      }
+    }
     if (currentJob?.code) await fetch(`/api/jobs/${currentJob.code}`, { method: "DELETE" });
     currentJob = null;
     selectedFileId = "";
     selectedFileIds = new Set();
     renderPreview(null);
     updateSessionControls();
-    documentList.innerHTML = "";
-    documentCount.textContent = "0";
+    if (documentList) documentList.innerHTML = "";
+    if (documentCount) documentCount.textContent = "0";
     showHomeScreen();
-    showInfo("Session terminee", isAutomatic ? "La session a ete fermee apres inactivite." : "Merci. Vous pouvez retirer vos documents et votre cle USB si vous en avez utilise une.");
+    if (isAutomatic) showInfo("Session terminée", "La session a été fermée après inactivité.");
   } catch (error) {
     showInfo("Erreur", "Impossible de terminer la session pour le moment.");
   } finally {
@@ -1368,13 +1374,13 @@ mailRecentList?.addEventListener("click", (event) => {
 mailCodeInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadJobFromCode(mailCodeInput);
 });
-copyMail.addEventListener("click", async () => {
-  await navigator.clipboard?.writeText(mailAddress.textContent);
+copyMail?.addEventListener("click", async () => {
+  await navigator.clipboard?.writeText(mailAddress?.textContent || "");
   showInfo("Adresse copiee", "L adresse mail du poste a ete copiee.");
 });
 
-copyUrl.addEventListener("click", async () => {
-  await navigator.clipboard?.writeText(uploadUrl.value);
+copyUrl?.addEventListener("click", async () => {
+  await navigator.clipboard?.writeText(uploadUrl?.value || "");
   showInfo("Lien copie", "Le lien d'envoi a ete copie.");
 });
 
@@ -1395,6 +1401,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 

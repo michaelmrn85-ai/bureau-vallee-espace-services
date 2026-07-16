@@ -2132,7 +2132,6 @@ body[data-page="admin"] {
 }
 .mail-simple-address span { color: var(--muted); font-weight: 900; text-transform: uppercase; }
 .mail-simple-address strong { color: var(--blue); font-size: 34px; line-height: 1.1; word-break: break-word; }
-.mail-simple-address button { justify-self: center; min-height: 42px; border: 0; border-radius: 8px; padding: 0 18px; background: var(--blue); color: #fff; font-weight: 900; }
 .mail-simple-status { display: grid; justify-items: center; gap: 12px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .mail-simple-status.is-ready { border-color: #a6dfbf; background: #f2fbf5; }
 .mail-simple-status.is-ready .mail-hourglass { display: none; }
@@ -2140,7 +2139,10 @@ body[data-page="admin"] {
 .mail-simple-status.is-ready h2 { color: var(--green); }
 .mail-wifi-note { padding: 16px 18px; border: 1px solid #ffd78a; border-radius: 10px; background: #fff8e9; text-align: left; }
 .mail-wifi-note strong { display: block; margin-bottom: 4px; color: #7a5700; }
-.mail-wifi-note p { margin: 0; color: #6b4d00; font-weight: 800; }
+.mail-wifi-note p { margin: 0 0 10px; color: #6b4d00; font-weight: 800; }
+.wifi-credentials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wifi-credentials span { display: block; padding: 12px 14px; border: 1px solid #ffd78a; border-radius: 8px; background: #fffdf7; color: #07142f; font-weight: 900; }
+.wifi-credentials b { color: var(--blue); font-size: 18px; }
 .mailbox-admin-page { display: grid; grid-template-rows: auto 1fr; }
 .file-mailbox-shell { min-height: 680px; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
 .file-mailbox-sidebar, .file-mailbox-content { border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 16px 44px rgba(7,20,47,.06); }
@@ -2176,3 +2178,129 @@ body[data-page="admin"] {
 .file-detail-row span { color: var(--muted); font-weight: 700; }
 .file-detail-row a { min-height: 36px; display: inline-flex; align-items: center; border: 1px solid #9fc7ff; border-radius: 8px; padding: 0 12px; background: #f4f9ff; color: var(--blue); font-weight: 900; text-decoration: none; }
 @media (max-width: 1000px) { .file-mailbox-shell, .file-mailbox-layout { grid-template-columns: 1fr; } .file-message-list { border-right: 0; border-bottom: 1px solid var(--line); } }
+
+
+/* QR modal + close button polish 20260716 */
+.close-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d7e3f4;
+  border-radius: 999px;
+  background: #fff;
+  color: #07142f;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(7, 20, 47, .12);
+}
+
+.close-button:hover {
+  border-color: #9fc7ff;
+  color: var(--blue);
+}
+
+.qr-card-simple {
+  width: min(1040px, calc(100vw - 44px));
+}
+
+.qr-simple-title strong {
+  color: var(--green);
+}
+
+.qr-simple-body {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 22px;
+  align-items: stretch;
+}
+
+.qr-code-frame {
+  display: grid;
+  place-items: center;
+  min-height: 360px;
+  border: 1px solid #a6dfbf;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #fff, #effbf4);
+}
+
+.qr-code-frame img {
+  width: 300px;
+  height: 300px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #a6dfbf;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.qr-steps {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.qr-steps article {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: #07142f;
+  font-weight: 900;
+}
+
+.qr-steps article b {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+}
+
+.qr-code-box {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.qr-code-box label {
+  color: #07142f;
+  font-weight: 900;
+}
+
+.qr-technical-url {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: #f8fbff;
+}
+
+@media (max-width: 900px) {
+  .qr-simple-body {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-code-frame {
+    min-height: 280px;
+  }
+
+  .qr-code-frame img {
+    width: 240px;
+    height: 240px;
+  }
+
+  .wifi-credentials {
+    grid-template-columns: 1fr;
+  }
+}
