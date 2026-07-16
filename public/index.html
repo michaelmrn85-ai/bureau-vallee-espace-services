@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260716-mail-pickup-flow">
+  <link rel="stylesheet" href="/modern.css?v=20260716-mailbox-flow">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -64,7 +64,7 @@
       </div>
       <div class="print-header-actions">
         <button class="add-button" id="add-more-files" type="button">+ Ajouter des fichiers</button>
-        <button class="eject-button" id="eject-usb" type="button">Éjecter clé USB</button>
+        <button class="eject-button" id="eject-usb" type="button">?jecter clé USB</button>
         <button class="end-button" id="end-session" type="button">Fin de session</button>
       </div>
     </header>
@@ -171,55 +171,29 @@
   </div>
 
   <div class="modal hidden" id="mail-modal" role="dialog" aria-modal="true">
-    <div class="modal-card mail-card">
+    <div class="modal-card mail-card mail-card-simple">
       <button class="close-button" id="close-mail" type="button" aria-label="Fermer">x</button>
-      <h2>Envoyer vos fichiers par mail</h2>`r`n      <p class="mail-intro">Merci d envoyer votre mail a l adresse suivante. Gardez cette fenetre ouverte et patientez pendant la reception.</p>
-
-      <div class="mail-steps">
-        <section class="mail-step-card">
-          <span class="step-number">1</span>
-          <h3>Merci d envoyer le mail a cette adresse</h3>`r`n          <p>Ajoutez vos fichiers en piece jointe, puis envoyez le mail.</p>`r`n          <div class="mail-address-box mail-address-large">
-            <span>Adresse du poste</span>
-            <strong id="mail-address">kiosk.es@zohomail.eu</strong>
-            <button id="copy-mail" type="button">Copier</button>
-          </div>
-        </section>
-
-        <section class="mail-step-card mail-step-wait">
-          <span class="step-number">2</span>
-          <h3>Patientez</h3>
-          <p>Le serveur récupère le mail et prépare le dossier d'impression.</p>
-          <div class="mail-countdown mail-hourglass-box">
-            <span>Recherche du mail en cours</span>
-            <div class="hourglass mail-hourglass" id="mail-wait-timer" aria-hidden="true"></div>
-          </div>
-          <small>Le serveur verifie la boite mail automatiquement. Ne fermez pas cette fenetre.</small>
-        </section>
-
-        <section class="mail-step-card">
-          <span class="step-number">3</span>
-          <h3>Saisissez le code</h3>
-          <p>Entrez le code reçu dans votre boîte mail pour ouvrir vos fichiers sur ce poste.</p>
-          <div class="mail-recent-block">
-            <strong>Rception mail</strong>`r`n            <p>La liste s actualise automatiquement.</p>
-            <div class="mail-recent-list" id="mail-recent-list">
-              <p class="mail-recent-empty">Recherche des mails en cours...</p>
-            </div>
-          </div>
-          <div class="code-box mail-code-box">
-            <label for="mail-code-input">Code reçu par mail</label>
-            <div>
-              <input id="mail-code-input" inputmode="numeric" maxlength="4" placeholder="1234">
-              <button id="load-mail-code" type="button">Ouvrir</button>
-            </div>
-          </div>
-        </section>
+      <div class="mail-simple-address">
+        <span>Envoyez vos fichiers à cette adresse</span>
+        <strong id="mail-address">kiosk.es@zohomail.eu</strong>
+        <button id="copy-mail" type="button">Copier l'adresse</button>
       </div>
 
-      <p class="mail-limit-note">Limite : 5 fichiers par envoi. Les exports Canva en PDF, PNG ou JPEG sont acceptés.</p>
+      <section class="mail-simple-status is-waiting" id="mail-select-step">
+        <div class="hourglass mail-hourglass" id="mail-wait-timer" aria-hidden="true"></div>
+        <h2 id="mail-select-title">Merci de patienter</h2>
+        <p id="mail-select-text">Le serveur recherche votre mail. Dès qu'il le reçoit, votre adresse apparaîtra ici.</p>
+        <div class="mail-recent-list" id="mail-recent-list">
+          <p class="mail-recent-empty">Aucun mail reçu pour le moment. Gardez cette fenêtre ouverte.</p>
+        </div>
+      </section>
+
+      <div class="mail-wifi-note">
+        <strong>Conseil Wi-Fi</strong>
+        <p>Nous vous conseillons fortement de vous connecter au Wi-Fi public Bureau Vallée : <b>bv_public</b>, mot de passe <b>bureauvallee</b>.</p>
+      </div>
     </div>
   </div>
-
   <div class="modal hidden" id="print-modal" role="dialog" aria-modal="true">
     <div class="modal-card print-progress-card">
       <div class="loader" aria-hidden="true"></div>
@@ -253,9 +227,10 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260716-mail-pickup-flow"></script>
+  <script src="/modern-app.js?v=20260716-mailbox-flow"></script>
 </body>
 </html>
+
 
 
 

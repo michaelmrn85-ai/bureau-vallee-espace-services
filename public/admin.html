@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tableau de bord</title>
-  <link rel="stylesheet" href="/modern.css?v=20260716-mail-usb-admin">
+  <link rel="stylesheet" href="/modern.css?v=20260716-mailbox-flow">
 </head>
 <body data-page="admin">
-  <main class="admin-page">
-    <header class="simple-admin-header admin-header-clean">
+  <main class="admin-page mailbox-admin-page">
+    <header class="simple-admin-header admin-header-clean mailbox-admin-header">
       <div>
         <p>Administration</p>
-        <h1>Tableau de bord</h1>
-        <small id="dashboard-updated">Fichiers recus par mail et QR code</small>
+        <h1>Boîte de fichiers</h1>
+        <small id="dashboard-updated">Fichiers reçus par mail et QR code</small>
       </div>
       <div class="admin-header-actions">
         <div class="admin-header-buttons">
@@ -24,50 +24,36 @@
       </div>
     </header>
 
-    <nav class="admin-subnav" aria-label="Sous menus tableau de bord">
-      <button class="active" type="button" data-admin-tab="mail">Fichiers mail</button>
-      <button type="button" data-admin-tab="qr">Fichiers QR code</button>
-    </nav>
-    <div class="admin-view active" data-admin-view="mail">
-      <section class="admin-simple-panel">
-        <div class="panel-heading">
-          <h2>Fichiers mail</h2>
-          <p>Pieces jointes recues par mail. Les fichiers Word, DOC et DOCX sont traites au comptoir.</p>
-        </div>
-        <div class="admin-file-list" id="mail-files-list"></div>
-      </section>
-    </div>
-
-    <div class="admin-view" data-admin-view="qr">
-      <section class="admin-simple-panel counter-qr-panel">
-        <div class="panel-heading">
-          <h2>QR code comptoir</h2>
-          <p>Reception directe pour le comptoir, sans rattachement au Poste 1 ou Poste 2. Word, DOC et DOCX acceptes.</p>
-        </div>
-        <div class="counter-qr-layout admin-qr-layout">
+    <section class="file-mailbox-shell">
+      <aside class="file-mailbox-sidebar">
+        <button class="active" type="button" data-admin-tab="mail">Fichiers mail <span id="mail-count">0</span></button>
+        <button type="button" data-admin-tab="qr">Fichiers QR code <span id="qr-count">0</span></button>
+        <div class="counter-qr-mini">
+          <strong>QR comptoir</strong>
           <img id="counter-qr" src="/qr.gif?mode=admin&source=comptoir" alt="QR code comptoir">
-          <div>
-            <label for="counter-upload-url">Lien comptoir</label>
-            <div class="admin-url-copy">
-              <input id="counter-upload-url" readonly value="/upload?mode=admin&source=comptoir">
-              <button id="copy-counter-url" type="button">Copier</button>
-            </div>
-          </div>
+          <input id="counter-upload-url" readonly value="/upload?mode=admin&source=comptoir">
+          <button id="copy-counter-url" type="button">Copier le lien</button>
         </div>
-      </section>
+      </aside>
 
-      <section class="admin-simple-panel">
-        <div class="panel-heading">
-          <h2>Fichiers QR code</h2>
-          <p>Fichiers envoyes via QR code client ou QR code comptoir.</p>
+      <section class="file-mailbox-content">
+        <div class="mailbox-toolbar">
+          <h2 id="mailbox-title">Fichiers mail</h2>
+          <p id="mailbox-subtitle">Sélectionnez un envoi pour consulter et télécharger les fichiers.</p>
         </div>
-        <div class="admin-file-list" id="qr-files-list"></div>
+        <div class="file-mailbox-layout">
+          <div class="file-message-list" id="file-message-list"></div>
+          <article class="file-message-detail" id="file-message-detail">
+            <p class="admin-empty-files">Aucun envoi sélectionné.</p>
+          </article>
+        </div>
       </section>
-    </div>
+    </section>
   </main>
-  <script src="/modern-admin.js?v=20260716-mail-usb-admin"></script>
+  <script src="/modern-admin.js?v=20260716-mailbox-flow"></script>
 </body>
 </html>
+
 
 
 

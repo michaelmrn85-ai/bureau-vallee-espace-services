@@ -885,7 +885,7 @@ async function openQrModal() {
 }
 
 async function openMailModal() {
-  mailCodeInput.value = "";
+  if (mailCodeInput) mailCodeInput.value = "";
   mailAddress.textContent = "kiosk.es@zohomail.eu";
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
@@ -927,8 +927,8 @@ async function loadRecentMailJobs() {
     if (!mailJobs.length) {
       mailSelectStep?.classList.remove("is-ready");
       mailSelectStep?.classList.add("is-waiting");
-      if (mailSelectTitle) mailSelectTitle.textContent = "Patientez";
-      if (mailSelectText) mailSelectText.textContent = "Dès que le serveur reçoit votre mail, votre adresse apparaîtra ici.";
+      if (mailSelectTitle) mailSelectTitle.textContent = "Merci de patienter";
+      if (mailSelectText) mailSelectText.textContent = "Le serveur recherche votre mail. Dès qu'il le reçoit, votre adresse apparaîtra ici.";
       mailRecentList.innerHTML = `<p class="mail-recent-empty">Aucun mail reçu pour le moment. Gardez cette fenêtre ouverte.</p>`;
       return;
     }
@@ -936,13 +936,13 @@ async function loadRecentMailJobs() {
     mailSelectStep?.classList.add("is-ready");
     mailSelectStep?.classList.remove("is-waiting");
     if (mailSelectTitle) mailSelectTitle.textContent = "Sélectionnez votre adresse mail";
-    if (mailSelectText) mailSelectText.textContent = "Cliquez sur votre adresse pour découvrir vos fichiers sur ce poste.";
+    if (mailSelectText) mailSelectText.textContent = "Cliquez sur votre adresse pour découvrir vos fichiers.";
     mailRecentList.innerHTML = mailJobs.map((job) => {
       const sender = mailSenderLabel(job);
       const fileCount = (job.files || []).length;
       const disabled = job.counterOnly ? " disabled" : "";
-      const action = job.counterOnly ? "A traiter au comptoir" : "Voir mes fichiers";
-      return `<button class="mail-recent-job${disabled}" type="button" data-mail-code="${job.code}"${disabled ? " aria-disabled=\"true\"" : ""}>
+      const action = job.counterOnly ? "À traiter au comptoir" : "Voir mes fichiers";
+      return `<button class="mail-recent-job${disabled}" type="button" data-mail-code="${job.code}"${disabled ? " disabled aria-disabled=\"true\"" : ""}>
         <strong>${sender}</strong>
         <span>${fileCount} fichier${fileCount > 1 ? "s" : ""} reçu${fileCount > 1 ? "s" : ""}</span>
         <em>${action}</em>
@@ -954,31 +954,35 @@ async function loadRecentMailJobs() {
     mailRecentList.innerHTML = `<p class="mail-recent-empty">Recherche des mails en cours...</p>`;
   }
 }
-async function loadJobFromCode(inputElement = qrCodeInput) {
-  const code = String(inputElement.value || "").replace(/\D/g, "").slice(0, 4);
+async function openJobByCode(codeValue) {
+  const code = String(codeValue || "").replace(/\D/g, "").slice(0, 4);
   if (code.length !== 4) {
-    showInfo(t("information"), currentLanguage === "fr" ? "Entrez le code à 4 chiffres." : "Enter the 4-digit code.");
+    showInfo(t("information"), currentLanguage === "fr" ? "Dossier introuvable." : "Folder not found.");
     return;
   }
 
-  showLoading(true, t("loadingTitle"), "Le serveur recherche les fichiers envoyes.");
+  showLoading(true, t("loadingTitle"), "Le serveur ouvre les fichiers reçus.");
   try {
     const response = await fetch(`/api/jobs/${code}?station=${station}`);
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Code introuvable.");
+    if (!response.ok) throw new Error(payload.error || "Dossier introuvable.");
     selectedFileId = payload.files[0]?.id || "";
     selectedFileIds = new Set(payload.files.map((file) => file.id));
     qrModal.classList.add("hidden");
     mailModal.classList.add("hidden");
+    stopMailRecentRefresh();
     renderJob(payload);
     showInfo("Dossier ouvert", "Vos fichiers sont disponibles sur le poste.");
   } catch (error) {
-    showInfo("Code introuvable", error.message);
+    showInfo("Dossier introuvable", error.message);
   } finally {
     showLoading(false);
   }
 }
 
+async function loadJobFromCode(inputElement = qrCodeInput) {
+  await openJobByCode(inputElement?.value || "");
+}
 function formatUsbSize(bytes) {
   const value = Number(bytes) || 0;
   if (value < 1024 * 1024) return Math.max(1, Math.round(value / 1024)) + " Ko";
@@ -1355,14 +1359,13 @@ closeMail.addEventListener("click", () => {
   mailModal.classList.add("hidden");
   stopMailWaitTimer();
 });
-loadMailCode.addEventListener("click", () => loadJobFromCode(mailCodeInput));
+loadMailCode?.addEventListener("click", () => loadJobFromCode(mailCodeInput));
 mailRecentList?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-mail-code]");
   if (!button || button.disabled) return;
-  mailCodeInput.value = button.dataset.mailCode || "";
-  loadJobFromCode(mailCodeInput);
+  openJobByCode(button.dataset.mailCode || "");
 });
-mailCodeInput.addEventListener("keydown", (event) => {
+mailCodeInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadJobFromCode(mailCodeInput);
 });
 copyMail.addEventListener("click", async () => {
@@ -1392,6 +1395,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 
