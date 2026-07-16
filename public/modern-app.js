@@ -398,8 +398,8 @@ function applyTranslations() {
     button.classList.toggle("active", button.dataset.lang === currentLanguage);
   });
   const currentStation = stationName();
-  brandTitle.textContent = t("brandTitle", { station: currentStation });
-  stationLabel.textContent = currentStation;
+  if (brandTitle) brandTitle.textContent = t("brandTitle", { station: currentStation });
+  if (stationLabel) stationLabel.textContent = currentStation;
   setText(".welcome-panel .station", station === "poste-2" ? "station2" : "station1");
   setText(".welcome-panel h2", "welcomeTitle");
   setText(".lead", "welcomeLead");
@@ -410,12 +410,12 @@ function applyTranslations() {
   setText("#qr-button small", "qrSmall");
   setText("#mail-button strong", "mailTitle");
   setText("#mail-button small", "mailSmall");
-  backHome.textContent = t("home");
-  jobCode.textContent = t("jobCode");
+  if (backHome) backHome.textContent = t("home");
+  if (jobCode) jobCode.textContent = t("jobCode");
   setText(".print-header h1", "preparePrint");
-  addMoreFiles.textContent = t("addFiles");
-  ejectUsbButton.textContent = t("ejectUsb");
-  endSessionButton.textContent = t("endSession");
+  if (addMoreFiles) addMoreFiles.textContent = t("addFiles");
+  if (ejectUsbButton) ejectUsbButton.textContent = t("ejectUsb");
+  if (endSessionButton) endSessionButton.textContent = t("endSession");
   setText(".doc-panel .panel-title h2", "documents");
   setText(".settings-panel h2", "settings");
   setAllText(".setting-group > strong", ["paper", "color", "duplex", "orientation"]);
@@ -436,34 +436,34 @@ function applyTranslations() {
       label.childNodes[label.childNodes.length - 1].textContent = ` ${t(keys[index])}`;
     });
   }
-  copiesInput.closest("label").childNodes[0].textContent = t("copies") + " ";
-  pageRangeInput.closest("label").childNodes[0].textContent = t("pages") + " ";
-  pageRangeInput.placeholder = t("allPages");
-  printButton.textContent = t("printSelection");
+  if (copiesInput?.closest("label")) copiesInput.closest("label").childNodes[0].textContent = t("copies") + " ";
+  if (pageRangeInput?.closest("label")) pageRangeInput.closest("label").childNodes[0].textContent = t("pages") + " ";
+  if (pageRangeInput) pageRangeInput.placeholder = t("allPages");
+  if (printButton) printButton.textContent = t("printSelection");
   setText(".preview-panel .panel-title h2", "preview");
   if (!currentJob) renderPreview(null);
   setText("#qr-modal h2", "qrModalTitle");
   setText("#qr-modal .modal-card > p", "qrModalText");
   setText("label[for='qr-code-input']", "codePhone");
-  loadCode.textContent = t("open");
-  copyUrl.textContent = t("copy");
+  if (loadCode) loadCode.textContent = t("open");
+  if (copyUrl) copyUrl.textContent = t("copy");
   setText("#mail-modal h2", "mailModalTitle");
   setText(".mail-intro", "mailIntro");
   setAllText(".mail-step-card h3", ["stepSend", "stepWait", "stepCode"]);
   setAllText(".mail-step-card > p", ["stepSendText", "stepWaitText", "stepCodeText"]);
   setText(".mail-address-box span", "address");
-  copyMail.textContent = t("copy");
+  if (copyMail) copyMail.textContent = t("copy");
   setText(".mail-countdown span", "advisedTime");
   setText(".mail-step-wait small", "stepWaitSmall");
   setText("label[for='mail-code-input']", "codeMail");
-  loadMailCode.textContent = t("open");
+  if (loadMailCode) loadMailCode.textContent = t("open");
   setText(".mail-limit-note", "mailLimit");
   setText("#print-modal h2", "printInProgress");
   setText("#print-modal p", "printWait");
   setAllText("#print-steps li", ["stepPrepare", "stepServer", "stepQueue", "stepAgent", "stepPrinter"]);
-  loadingTitle.textContent = t("loadingTitle");
-  loadingText.textContent = t("loadingText");
-  infoOk.textContent = t("ok");
+  if (loadingTitle) loadingTitle.textContent = t("loadingTitle");
+  if (loadingText) loadingText.textContent = t("loadingText");
+  if (infoOk) infoOk.textContent = t("ok");
 }
 
 function stationName() {
@@ -1395,6 +1395,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 
