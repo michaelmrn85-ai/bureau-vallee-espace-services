@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260716-qr-session">
+  <link rel="stylesheet" href="/modern.css?v=20260718-mail-alert">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -158,6 +158,12 @@
         <strong>Scannez le QR Code</strong>
       </div>
 
+      <div class="transfer-alert transfer-alert-red">
+        <strong>Important avant l'envoi</strong>
+        <p>Connectez votre téléphone au Wi-Fi public Bureau Vallée avant d'envoyer vos fichiers. Sans connexion Wi-Fi, l'envoi peut être plus lent et le délai de réception peut se rallonger.</p>
+        <div class="wifi-credentials"><span>Wi-Fi : <b>bv_public</b></span><span>Mot de passe : <b>bureauvallee</b></span></div>
+      </div>
+
       <section class="qr-simple-body">
         <div class="qr-code-frame">
           <img id="qr-image" alt="QR code pour envoyer des fichiers">
@@ -200,6 +206,11 @@
       <div class="mail-simple-address">
         <span>Envoyez vos fichiers à cette adresse</span>
         <strong id="mail-address">kiosk.es@zohomail.eu</strong>
+      </div>
+
+      <div class="transfer-alert transfer-alert-red">
+        <strong>Important avant l'envoi</strong>
+        <p>Connectez-vous à votre boîte mail avant de préparer votre envoi. Si vous devez vous connecter après coup ou valider une sécurité, la réception peut prendre plus de temps.</p>
       </div>
 
       <section class="mail-simple-status is-waiting" id="mail-select-step">
@@ -251,9 +262,11 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260716-qr-session"></script>
+  <script src="/modern-app.js?v=20260718-mail-alert"></script>
 </body>
 </html>
+
+
 
 
 

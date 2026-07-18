@@ -66,6 +66,7 @@ const mailSelectText = document.getElementById("mail-select-text");
 const MAX_TOTAL_UPLOAD_SIZE_MB = 500;
 const MAX_TOTAL_UPLOAD_SIZE = MAX_TOTAL_UPLOAD_SIZE_MB * 1024 * 1024;
 const MAIL_WAIT_DURATION_MS = 2 * 60 * 1000;
+const MAIL_RECENT_REFRESH_MS = 2500;
 
 let currentJob = null;
 let selectedFileId = "";
@@ -890,8 +891,12 @@ async function openMailModal() {
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
   stopMailRecentRefresh();
+  await requestMailCheck();
   await loadRecentMailJobs();
-  mailRecentInterval = window.setInterval(loadRecentMailJobs, 5000);
+  mailRecentInterval = window.setInterval(async () => {
+    await requestMailCheck();
+    await loadRecentMailJobs();
+  }, MAIL_RECENT_REFRESH_MS);
   try {
     const params = qrParams("mail");
     const response = await fetch(`/api/config?${params}`);
@@ -905,6 +910,14 @@ async function openMailModal() {
 function stopMailRecentRefresh() {
   window.clearInterval(mailRecentInterval);
   mailRecentInterval = null;
+}
+
+async function requestMailCheck() {
+  try {
+    await fetch("/api/mail/check", { method: "POST" });
+  } catch (error) {
+    // Le rafraichissement visuel continue meme si Zoho met du temps a repondre.
+  }
 }
 
 function mailSenderLabel(job) {
@@ -1401,6 +1414,8 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
 
 
 

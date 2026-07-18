@@ -2304,3 +2304,61 @@ body[data-page="admin"] {
     grid-template-columns: 1fr;
   }
 }
+
+/* Transfer warnings 20260718 */
+.transfer-alert {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.transfer-alert strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.transfer-alert p {
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 850;
+}
+
+.transfer-alert-red {
+  border: 1px solid #ff9b9b;
+  background: #fff1f1;
+  color: #8a1010;
+}
+
+.transfer-alert-red strong {
+  color: #c00000;
+}
+
+.transfer-alert-red .wifi-credentials span {
+  border-color: #ffb5b5;
+  background: #fffafa;
+}
+
+.file-detail-preview {
+  margin: 0 22px 16px;
+  padding: 14px 16px;
+  border: 1px solid #ffd78a;
+  border-radius: 10px;
+  background: #fff8e9;
+  color: #07142f;
+}
+
+.file-detail-preview strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #7a5700;
+}
+
+.file-detail-preview p {
+  margin: 0;
+  color: #30415f;
+  line-height: 1.45;
+  word-break: break-word;
+}

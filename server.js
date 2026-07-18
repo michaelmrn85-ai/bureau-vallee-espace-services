@@ -21,7 +21,7 @@ const HISTORY_FILE = path.join(DATA_DIR, "job-history.json");
 const COMMANDS_FILE = path.join(DATA_DIR, "station-commands.json");
 const MAIL_ADDRESS = process.env.MAIL_ADDRESS || "es.bvm@outlook.fr";
 const MAIL_POLLING_ENABLED = process.env.MAIL_POLLING_ENABLED === "1";
-const MAIL_POLL_INTERVAL_MS = Math.max(15000, Number(process.env.MAIL_POLL_INTERVAL_MS) || 30000);
+const MAIL_POLL_INTERVAL_MS = Math.max(5000, Number(process.env.MAIL_POLL_INTERVAL_MS) || 8000);
 const MAIL_IMAP_HOST = process.env.MAIL_IMAP_HOST || "outlook.office365.com";
 const MAIL_IMAP_PORT = Number(process.env.MAIL_IMAP_PORT) || 993;
 const MAIL_SMTP_HOST = process.env.MAIL_SMTP_HOST || "smtp-mail.outlook.com";
@@ -46,6 +46,7 @@ const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const MAIL_PROCESSED_FILE = path.join(DATA_DIR, "mail-processed.json");
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const MAIL_PICKUP_TTL_MS = 5 * 60 * 1000;
+let triggerMailPoll = async () => ({ ok: false, skipped: true, reason: "mail_watcher_not_started" });
 const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_FILE_SIZE_MB = 500;
 const MAX_UPLOAD_FILES = 60;
@@ -863,6 +864,39 @@ function mailSubject(value) {
   return String(value || "Vos fichiers Espace Services").replace(/[\r\n]/g, " ").slice(0, 120);
 }
 
+function textHasExternalLink(value) {
+  return /(https?:\/\/|www\.|drive\.google|docs\.google|wetransfer|dropbox|onedrive|1drv\.ms|icloud|canva\.com|sharepoint|mega\.nz|transfernow|smash\.com)/i.test(String(value || ""));
+}
+
+function createMailCounterJob({ fromAddress = "", displayName = "", preview = "", reason = "link" } = {}) {
+  const now = new Date();
+  const code = reserveCode();
+  const directory = jobDir(code);
+  fs.mkdirSync(directory, { recursive: true });
+  const cleanPreview = String(preview || "").replace(/\s+/g, " ").trim().slice(0, 800);
+  const job = {
+    code,
+    customerName: sanitizeCustomerName(displayName || fromAddress || "Client mail"),
+    senderEmail: sanitizeCustomerName(fromAddress || ""),
+    clientId: "",
+    civility: "",
+    printCard: false,
+    source: "mail",
+    station: "poste-1",
+    adminUpload: true,
+    counterOnly: true,
+    mailLinkOnly: reason === "link",
+    mailPreview: cleanPreview,
+    printMode: "noir-blanc",
+    printSettings: sanitizePrintSettings({ colorMode: "noir-blanc" }),
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + MAIL_PICKUP_TTL_MS).toISOString(),
+    files: [],
+  };
+  writeJob(job);
+  return job;
+}
+
 function mailTextForCode(job) {
   return [
     "Bonjour,",
@@ -894,18 +928,19 @@ function mailTextForReject(reason) {
 
 function mailTextForCounter(job) {
   const names = (job.files || []).map((file) => "- " + file.originalName).join("\n");
+  const isLinkOnly = Boolean(job.mailLinkOnly);
   return [
     "Bonjour,",
     "",
-    "Vos fichiers ont bien ete recus par l'Espace Services Bureau Vallee.",
+    "Votre envoi a bien ete recu par l'Espace Services Bureau Vallee.",
     "",
-    "Votre envoi contient au moins un fichier Word/DOC/DOCX.",
-    "Ces fichiers ne sont pas imprimables directement sur les postes clients.",
+    isLinkOnly ? "Votre mail contient un lien au lieu de pieces jointes." : "Votre envoi contient au moins un fichier Word/DOC/DOCX.",
+    isLinkOnly ? "Pour des raisons de securite et de verification, les liens sont traites au comptoir." : "Ces fichiers ne sont pas imprimables directement sur les postes clients.",
     "",
     "Merci de vous deplacer au comptoir de l'Espace Services : un vendeur ou une vendeuse prendra la main sur votre dossier.",
     "",
-    "Fichiers recus :",
-    names || "- Pieces jointes recues",
+    isLinkOnly ? "Element recu :" : "Fichiers recus :",
+    isLinkOnly ? "- Mail avec lien a verifier au comptoir" : (names || "- Pieces jointes recues"),
     "",
     "A tout de suite au comptoir.",
   ].join("\n");
@@ -935,6 +970,10 @@ async function createMailJob(parsedMail) {
   const attachments = (parsedMail.attachments || []).filter((attachment) => attachment.content?.length);
   mailRuntimeStatus.lastAttachmentCount = attachments.length;
   if (!attachments.length) {
+    const linkPreview = [parsedMail.subject, parsedMail.text, parsedMail.html].filter(Boolean).join(" ");
+    if (textHasExternalLink(linkPreview)) {
+      return { job: createMailCounterJob({ fromAddress: senderAddress(parsedMail), displayName: senderDisplayName(parsedMail), preview: linkPreview, reason: "link" }) };
+    }
     return { error: "Aucune piece jointe n'a ete trouvee dans votre mail." };
   }
   const totalAttachmentSize = attachments.reduce((total, attachment) => total + (attachment.size || attachment.content.length || 0), 0);
@@ -1125,7 +1164,7 @@ function startMailWatcher() {
   let isPolling = false;
 
   async function pollMailbox() {
-    if (isPolling) return;
+    if (isPolling) return { ok: true, skipped: true, reason: "already_polling" };
     isPolling = true;
     mailRuntimeStatus.lastCheckAt = new Date().toISOString();
     mailRuntimeStatus.lastError = "";
@@ -1135,12 +1174,11 @@ function startMailWatcher() {
       const accountId = await zohoGetAccountId();
 
       // Récupérer les mails non lus
-      const result = await zohoFetch(`/accounts/${accountId}/messages/view?limit=20&start=0`);
-      console.log('[mail] Zoho inbox result: ' + JSON.stringify(result).slice(0, 600));
+      const result = await zohoFetch(`/accounts/${accountId}/messages/view?limit=10&start=0`);
       const allMessages = Array.isArray(result.data) ? result.data : [];
       const messages = allMessages.filter((m) => String(m.status) === '0');
       mailRuntimeStatus.mailboxExists = allMessages.length;
-      console.log('[mail] Mails en boite: ' + allMessages.length + ', non lus: ' + messages.length);
+      console.log('[mail] Boite Zoho: ' + allMessages.length + ' message(s), ' + messages.length + ' non lu(s).');
 
       const processedIds = readProcessedMailIds();
       const processedSet = new Set(processedIds);
@@ -1157,16 +1195,29 @@ function startMailWatcher() {
 
           // Récupérer les pièces jointes (inclure inline aussi car Gmail envoie souvent en inline)
           const attResult = await zohoFetch(`/accounts/${accountId}/folders/${folderId}/messages/${mid}/attachmentinfo?includeInline=true`);
-          console.log('[mail] attachments: ' + JSON.stringify(attResult).slice(0, 500));
+          console.log('[mail] Pieces jointes detectees pour ' + mid + '.');
           const attData = attResult.data || {};
           const attachments = [...(Array.isArray(attData.attachments) ? attData.attachments : []), ...(Array.isArray(attData.inline) ? attData.inline : [])];
 
           if (!attachments.length) {
             console.log('[mail] Pas de PJ pour ' + mid);
-            try {
-              await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Aucune piece jointe trouvee dans votre mail.'));
-            } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
-            mailRuntimeStatus.lastIgnoredReason = 'no_attachment';
+            const linkPreview = [msg.subject, msg.summary, msg.content, msg.preview].filter(Boolean).join(' ');
+            if (textHasExternalLink(linkPreview)) {
+              const job = createMailCounterJob({ fromAddress, displayName: fromAddress || 'Client mail', preview: linkPreview, reason: 'link' });
+              mailRuntimeStatus.lastCode = job.code;
+              mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
+              mailRuntimeStatus.processedCount += 1;
+              mailRuntimeStatus.lastIgnoredReason = 'link_counter';
+              try {
+                await sendMailReply(nodemailer, fromAddress, 'Espace Services - lien a traiter au comptoir', mailTextForCounter(job));
+              } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+              console.log('[mail] Lien bascule au comptoir, code ' + job.code + ' pour ' + (fromAddress || 'sans expediteur'));
+            } else {
+              try {
+                await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Aucune piece jointe trouvee dans votre mail.'));
+              } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
+              mailRuntimeStatus.lastIgnoredReason = 'no_attachment';
+            }
           } else {
             const totalAttachmentSize = attachments.reduce((total, att) => total + Number(att.size || att.attachmentSize || 0), 0);
             if (totalAttachmentSize > MAX_FILE_SIZE) {
@@ -1291,14 +1342,16 @@ function startMailWatcher() {
         changed = true;
       }
       if (changed) writeProcessedMailIds(processedIds);
+      return { ok: true, processed: changed, checkedAt: mailRuntimeStatus.lastCheckAt };
     } catch (error) {
       mailRuntimeStatus.lastError = String(error.message || error);
       console.log("[mail] Erreur lecture Zoho: " + mailRuntimeStatus.lastError);
+      return { ok: false, error: mailRuntimeStatus.lastError };
     } finally {
       isPolling = false;
     }
   }
-
+  triggerMailPoll = pollMailbox;
   pollMailbox();
   setInterval(pollMailbox, MAIL_POLL_INTERVAL_MS);
 }
@@ -1347,6 +1400,8 @@ function publicJob(job, status = "actif") {
     source: job.source || "",
     adminUpload: Boolean(job.adminUpload),
     counterOnly: Boolean(job.counterOnly),
+    mailLinkOnly: Boolean(job.mailLinkOnly),
+    mailPreview: job.mailPreview || "",
     station,
     stationLabel: stations[station],
     printMode,
@@ -1577,6 +1632,15 @@ app.get("/qr.gif", (request, response) => {
   const dataUrl = qr.createDataURL(8, 4);
   const base64 = dataUrl.replace(/^data:image\/gif;base64,/, "");
   response.type("image/gif").send(Buffer.from(base64, "base64"));
+});
+
+app.post("/api/mail/check", async (request, response) => {
+  try {
+    const result = await triggerMailPoll();
+    response.json({ ...result, status: mailRuntimeStatus });
+  } catch (error) {
+    response.status(500).json({ ok: false, error: String(error.message || error), status: mailRuntimeStatus });
+  }
 });
 
 app.get("/api/mail/status", (request, response) => {
@@ -2277,6 +2341,11 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
+
+
+
+
 
 
 

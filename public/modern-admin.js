@@ -99,9 +99,10 @@ function renderSelectedDetail() {
       </div>
       ${folderUrl ? `<a class="counter-download" href="${folderUrl}">Télécharger le dossier</a>` : ""}
     </header>
-    ${job.counterOnly ? `<div class="file-detail-alert">Fichier Word/DOC reçu : traitement au comptoir.</div>` : ""}
+    ${job.counterOnly ? `<div class="file-detail-alert">${job.mailLinkOnly ? "Mail avec lien reçu : traitement au comptoir." : "Fichier Word/DOC reçu : traitement au comptoir."}</div>` : ""}
+    ${job.mailLinkOnly && job.mailPreview ? `<div class="file-detail-preview"><strong>Extrait du mail</strong><p>${escapeHtml(job.mailPreview)}</p></div>` : ""}
     <div class="file-detail-list">
-      ${files.map((file) => {
+      ${files.length ? files.map((file) => {
         const url = fileDownloadUrl(job, file);
         return `<div class="file-detail-row">
           <div>
@@ -110,7 +111,7 @@ function renderSelectedDetail() {
           </div>
           ${url ? `<a href="${url}">Télécharger</a>` : `<span>Lien indisponible</span>`}
         </div>`;
-      }).join("")}
+      }).join("") : `<p class="admin-empty-files">Aucune pièce jointe téléchargeable. Ouvrir le lien avec le client au comptoir.</p>`}
     </div>
   `;
 }
@@ -176,3 +177,4 @@ copyCounterUrl?.addEventListener("click", async () => {
 refreshFiles();
 window.setInterval(refreshFiles, 5000);
 loadAdminConfig();
+
