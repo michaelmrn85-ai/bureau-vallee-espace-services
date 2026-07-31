@@ -886,6 +886,7 @@ function createMailCounterJob({ fromAddress = "", displayName = "", preview = ""
     adminUpload: true,
     counterOnly: true,
     mailLinkOnly: reason === "link",
+    mailTextOnly: reason === "text",
     mailPreview: cleanPreview,
     printMode: "noir-blanc",
     printSettings: sanitizePrintSettings({ colorMode: "noir-blanc" }),
@@ -929,18 +930,19 @@ function mailTextForReject(reason) {
 function mailTextForCounter(job) {
   const names = (job.files || []).map((file) => "- " + file.originalName).join("\n");
   const isLinkOnly = Boolean(job.mailLinkOnly);
+  const isTextOnly = Boolean(job.mailTextOnly);
   return [
     "Bonjour,",
     "",
     "Votre envoi a bien ete recu par l'Espace Services Bureau Vallee.",
     "",
-    isLinkOnly ? "Votre mail contient un lien au lieu de pieces jointes." : "Votre envoi contient au moins un fichier Word/DOC/DOCX.",
-    isLinkOnly ? "Pour des raisons de securite et de verification, les liens sont traites au comptoir." : "Ces fichiers ne sont pas imprimables directement sur les postes clients.",
+    isLinkOnly ? "Votre mail contient un lien au lieu de pieces jointes." : (isTextOnly ? "Votre mail contient du texte a imprimer, sans piece jointe." : "Votre envoi contient au moins un fichier Word/DOC/DOCX."),
+    isLinkOnly ? "Pour des raisons de securite et de verification, les liens sont traites au comptoir." : (isTextOnly ? "Les impressions depuis le texte du mail sont traitees au comptoir." : "Ces fichiers ne sont pas imprimables directement sur les postes clients."),
     "",
     "Merci de vous deplacer au comptoir de l'Espace Services : un vendeur ou une vendeuse prendra la main sur votre dossier.",
     "",
-    isLinkOnly ? "Element recu :" : "Fichiers recus :",
-    isLinkOnly ? "- Mail avec lien a verifier au comptoir" : (names || "- Pieces jointes recues"),
+    (isLinkOnly || isTextOnly) ? "Element recu :" : "Fichiers recus :",
+    isLinkOnly ? "- Mail avec lien a verifier au comptoir" : (isTextOnly ? "- Texte du mail a traiter au comptoir" : (names || "- Pieces jointes recues")),
     "",
     "A tout de suite au comptoir.",
   ].join("\n");
@@ -973,6 +975,9 @@ async function createMailJob(parsedMail) {
     const linkPreview = [parsedMail.subject, parsedMail.text, parsedMail.html].filter(Boolean).join(" ");
     if (textHasExternalLink(linkPreview)) {
       return { job: createMailCounterJob({ fromAddress: senderAddress(parsedMail), displayName: senderDisplayName(parsedMail), preview: linkPreview, reason: "link" }) };
+    }
+    if (String(linkPreview || "").replace(/\s+/g, " ").trim().length >= 3) {
+      return { job: createMailCounterJob({ fromAddress: senderAddress(parsedMail), displayName: senderDisplayName(parsedMail), preview: linkPreview, reason: "text" }) };
     }
     return { error: "Aucune piece jointe n'a ete trouvee dans votre mail." };
   }
@@ -1202,16 +1207,19 @@ function startMailWatcher() {
           if (!attachments.length) {
             console.log('[mail] Pas de PJ pour ' + mid);
             const linkPreview = [msg.subject, msg.summary, msg.content, msg.preview].filter(Boolean).join(' ');
-            if (textHasExternalLink(linkPreview)) {
-              const job = createMailCounterJob({ fromAddress, displayName: fromAddress || 'Client mail', preview: linkPreview, reason: 'link' });
+            const hasLink = textHasExternalLink(linkPreview);
+            const hasText = String(linkPreview || '').replace(/\s+/g, ' ').trim().length >= 3;
+            if (hasLink || hasText) {
+              const reason = hasLink ? 'link' : 'text';
+              const job = createMailCounterJob({ fromAddress, displayName: fromAddress || 'Client mail', preview: linkPreview, reason });
               mailRuntimeStatus.lastCode = job.code;
               mailRuntimeStatus.lastSuccessAt = new Date().toISOString();
               mailRuntimeStatus.processedCount += 1;
-              mailRuntimeStatus.lastIgnoredReason = 'link_counter';
+              mailRuntimeStatus.lastIgnoredReason = hasLink ? 'link_counter' : 'text_counter';
               try {
-                await sendMailReply(nodemailer, fromAddress, 'Espace Services - lien a traiter au comptoir', mailTextForCounter(job));
+                await sendMailReply(nodemailer, fromAddress, hasLink ? 'Espace Services - lien a traiter au comptoir' : 'Espace Services - texte a traiter au comptoir', mailTextForCounter(job));
               } catch (e) { mailRuntimeStatus.lastReplyError = e.message; }
-              console.log('[mail] Lien bascule au comptoir, code ' + job.code + ' pour ' + (fromAddress || 'sans expediteur'));
+              console.log('[mail] Mail sans PJ bascule au comptoir, code ' + job.code + ' pour ' + (fromAddress || 'sans expediteur'));
             } else {
               try {
                 await sendMailReply(nodemailer, fromAddress, 'Espace Services - envoi impossible', mailTextForReject('Aucune piece jointe trouvee dans votre mail.'));
@@ -1401,6 +1409,7 @@ function publicJob(job, status = "actif") {
     adminUpload: Boolean(job.adminUpload),
     counterOnly: Boolean(job.counterOnly),
     mailLinkOnly: Boolean(job.mailLinkOnly),
+    mailTextOnly: Boolean(job.mailTextOnly),
     mailPreview: job.mailPreview || "",
     station,
     stationLabel: stations[station],
@@ -2341,6 +2350,10 @@ startMailWatcher();
 app.listen(PORT, () => {
   console.log(`Bureau Vallee Espace Services pret sur le port ${PORT}`);
 });
+
+
+
+
 
 
 

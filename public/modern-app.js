@@ -59,6 +59,7 @@ const mailCodeInput = document.getElementById("mail-code-input");
 const loadMailCode = document.getElementById("load-mail-code");
 const mailWaitTimer = document.getElementById("mail-wait-timer");
 const mailRecentList = document.getElementById("mail-recent-list");
+const mailEmailConfirm = document.getElementById("mail-email-confirm");
 const mailSelectStep = document.getElementById("mail-select-step");
 const mailSelectTitle = document.getElementById("mail-select-title");
 const mailSelectText = document.getElementById("mail-select-text");
@@ -888,6 +889,7 @@ async function openQrModal() {
 async function openMailModal() {
   if (mailCodeInput) mailCodeInput.value = "";
   mailAddress.textContent = "kiosk.es@zohomail.eu";
+  if (mailEmailConfirm) mailEmailConfirm.value = "";
   mailModal.classList.remove("hidden");
   startMailWaitTimer();
   stopMailRecentRefresh();
@@ -924,6 +926,19 @@ function mailSenderLabel(job) {
   return job.senderEmail || job.customerName || "Client mail";
 }
 
+function normalizeEmail(value) {
+  const text = String(value || "").trim().toLowerCase();
+  const angleMatch = text.match(/<([^<>\s]+@[^<>\s]+)>/);
+  if (angleMatch) return angleMatch[1];
+  const emailMatch = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+  return emailMatch ? emailMatch[0].toLowerCase() : text;
+}
+
+function jobMatchesTypedEmail(job, typedEmail) {
+  const expected = normalizeEmail(job.senderEmail || job.customerName);
+  return Boolean(typedEmail && expected && expected === typedEmail);
+}
+
 async function loadRecentMailJobs() {
   if (!mailRecentList) return;
   try {
@@ -931,25 +946,44 @@ async function loadRecentMailJobs() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Recherche impossible.");
     const now = Date.now();
-    const mailJobs = (payload.jobs || [])
+    const allMailJobs = (payload.jobs || [])
       .filter((job) => job.source === "mail" && job.status !== "termine")
       .filter((job) => new Date(job.expiresAt || job.createdAt).getTime() > now)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 8);
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const typedEmail = normalizeEmail(mailEmailConfirm?.value);
 
-    if (!mailJobs.length) {
+    if (!allMailJobs.length) {
       mailSelectStep?.classList.remove("is-ready");
       mailSelectStep?.classList.add("is-waiting");
       if (mailSelectTitle) mailSelectTitle.textContent = "Merci de patienter";
-      if (mailSelectText) mailSelectText.textContent = "Le serveur recherche votre mail. Dès qu'il le reçoit, votre adresse apparaîtra ici.";
+      if (mailSelectText) mailSelectText.textContent = "Le serveur recherche votre mail. Dès qu'il le reçoit, saisissez votre adresse pour ouvrir vos fichiers.";
       mailRecentList.innerHTML = `<p class="mail-recent-empty">Aucun mail reçu pour le moment. Gardez cette fenêtre ouverte.</p>`;
+      return;
+    }
+
+    if (!typedEmail) {
+      mailSelectStep?.classList.add("is-ready");
+      mailSelectStep?.classList.remove("is-waiting");
+      if (mailSelectTitle) mailSelectTitle.textContent = "Mail reçu";
+      if (mailSelectText) mailSelectText.textContent = "Saisissez votre adresse mail pour confirmer que ce dossier est le vôtre.";
+      mailRecentList.innerHTML = `<p class="mail-recent-empty">Un ou plusieurs mails sont arrivés. Entrez votre adresse mail pour afficher uniquement votre dossier.</p>`;
+      return;
+    }
+
+    const mailJobs = allMailJobs.filter((job) => jobMatchesTypedEmail(job, typedEmail)).slice(0, 3);
+    if (!mailJobs.length) {
+      mailSelectStep?.classList.add("is-ready");
+      mailSelectStep?.classList.remove("is-waiting");
+      if (mailSelectTitle) mailSelectTitle.textContent = "Adresse non trouvée";
+      if (mailSelectText) mailSelectText.textContent = "Vérifiez l'adresse utilisée pour envoyer le mail, ou patientez encore quelques secondes.";
+      mailRecentList.innerHTML = `<p class="mail-recent-empty">Aucun dossier ne correspond encore à cette adresse.</p>`;
       return;
     }
 
     mailSelectStep?.classList.add("is-ready");
     mailSelectStep?.classList.remove("is-waiting");
-    if (mailSelectTitle) mailSelectTitle.textContent = "Sélectionnez votre adresse mail";
-    if (mailSelectText) mailSelectText.textContent = "Cliquez sur votre adresse pour découvrir vos fichiers.";
+    if (mailSelectTitle) mailSelectTitle.textContent = "Adresse confirmée";
+    if (mailSelectText) mailSelectText.textContent = "Ouvrez votre dossier pour vérifier vos fichiers.";
     mailRecentList.innerHTML = mailJobs.map((job) => {
       const sender = mailSenderLabel(job);
       const fileCount = (job.files || []).length;
@@ -957,7 +991,7 @@ async function loadRecentMailJobs() {
       const action = job.counterOnly ? "À traiter au comptoir" : "Voir mes fichiers";
       return `<button class="mail-recent-job${disabled}" type="button" data-mail-code="${job.code}"${disabled ? " disabled aria-disabled=\"true\"" : ""}>
         <strong>${sender}</strong>
-        <span>${fileCount} fichier${fileCount > 1 ? "s" : ""} reçu${fileCount > 1 ? "s" : ""}</span>
+        <span>${fileCount ? `${fileCount} fichier${fileCount > 1 ? "s" : ""} reçu${fileCount > 1 ? "s" : ""}` : "Mail reçu sans pièce jointe"}</span>
         <em>${action}</em>
       </button>`;
     }).join("");
@@ -1387,6 +1421,7 @@ mailRecentList?.addEventListener("click", (event) => {
 mailCodeInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadJobFromCode(mailCodeInput);
 });
+mailEmailConfirm?.addEventListener("input", loadRecentMailJobs);
 copyMail?.addEventListener("click", async () => {
   await navigator.clipboard?.writeText(mailAddress?.textContent || "");
   showInfo("Adresse copiee", "L adresse mail du poste a ete copiee.");
@@ -1414,6 +1449,9 @@ endSessionButton.addEventListener("click", endSession);
 ["mousemove", "mousedown", "keydown", "touchstart", "scroll"].forEach((eventName) => {
   window.addEventListener(eventName, wakeSession, { passive: true });
 });
+
+
+
 
 
 

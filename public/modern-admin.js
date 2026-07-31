@@ -40,7 +40,11 @@ function senderLabel(job) {
 }
 
 function sourceLabel(job) {
-  if (job.source === "mail") return job.counterOnly ? "Mail - comptoir" : "Mail client";
+  if (job.source === "mail") {
+    if (job.mailLinkOnly) return "Mail lien - comptoir";
+    if (job.mailTextOnly) return "Mail texte - comptoir";
+    return job.counterOnly ? "Mail - comptoir" : "Mail client";
+  }
   if (job.adminUpload || job.source === "comptoir") return "QR comptoir";
   if (job.source === "qr") return "QR client";
   return job.source || "Dossier";
@@ -97,10 +101,13 @@ function renderSelectedDetail() {
         <h3>${escapeHtml(senderLabel(job))}</h3>
         <p>${new Date(job.createdAt).toLocaleString("fr-FR")} · ${escapeHtml(job.stationLabel || "")}</p>
       </div>
-      ${folderUrl ? `<a class="counter-download" href="${folderUrl}">Télécharger le dossier</a>` : ""}
+      <div class="file-detail-actions">
+        ${folderUrl ? `<a class="counter-download" href="${folderUrl}">Télécharger le dossier</a>` : ""}
+        <button class="counter-delete" type="button" data-delete-job="${escapeHtml(job.code)}">Dossier traité / supprimer</button>
+      </div>
     </header>
-    ${job.counterOnly ? `<div class="file-detail-alert">${job.mailLinkOnly ? "Mail avec lien reçu : traitement au comptoir." : "Fichier Word/DOC reçu : traitement au comptoir."}</div>` : ""}
-    ${job.mailLinkOnly && job.mailPreview ? `<div class="file-detail-preview"><strong>Extrait du mail</strong><p>${escapeHtml(job.mailPreview)}</p></div>` : ""}
+    ${job.counterOnly ? `<div class="file-detail-alert">${job.mailLinkOnly ? "Mail avec lien reçu : traitement au comptoir." : (job.mailTextOnly ? "Mail avec texte reçu : traitement au comptoir." : "Fichier Word/DOC reçu : traitement au comptoir.")}</div>` : ""}
+    ${(job.mailLinkOnly || job.mailTextOnly) && job.mailPreview ? `<div class="file-detail-preview"><strong>Extrait du mail</strong><p>${escapeHtml(job.mailPreview)}</p></div>` : ""}
     <div class="file-detail-list">
       ${files.length ? files.map((file) => {
         const url = fileDownloadUrl(job, file);
@@ -168,6 +175,21 @@ messageList?.addEventListener("click", (event) => {
   selectedJobCode = button.dataset.jobCode || "";
   renderMailboxList();
 });
+messageDetail?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-delete-job]");
+  if (!button) return;
+  const code = button.dataset.deleteJob || "";
+  if (!code || !window.confirm("Supprimer ce dossier traité du serveur ?")) return;
+  try {
+    const response = await fetch(`/api/jobs/${encodeURIComponent(code)}`, { method: "DELETE" });
+    if (!response.ok) throw new Error("Suppression impossible.");
+    selectedJobCode = "";
+    await refreshFiles();
+    if (adminActionStatus) adminActionStatus.textContent = "Dossier supprimé du serveur.";
+  } catch (error) {
+    if (adminActionStatus) adminActionStatus.textContent = error.message || "Suppression impossible.";
+  }
+});
 document.querySelectorAll("[data-shutdown-station]").forEach((button) => button.addEventListener("click", () => shutdownStation(button.dataset.shutdownStation)));
 copyCounterUrl?.addEventListener("click", async () => {
   await navigator.clipboard?.writeText(counterUploadUrl.value);
@@ -177,4 +199,8 @@ copyCounterUrl?.addEventListener("click", async () => {
 refreshFiles();
 window.setInterval(refreshFiles, 5000);
 loadAdminConfig();
+
+
+
+
 

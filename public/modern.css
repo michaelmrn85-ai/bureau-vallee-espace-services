@@ -2362,3 +2362,46 @@ body[data-page="admin"] {
   line-height: 1.45;
   word-break: break-word;
 }
+
+/* Mail identity check + admin cleanup 20260731 */
+.mail-email-check {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.mail-email-check label {
+  color: #07142f;
+  font-weight: 1000;
+}
+
+.mail-email-check input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #9fc7ff;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #07142f;
+  font-weight: 850;
+  font-size: 16px;
+  background: #fff;
+}
+
+.file-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.counter-delete {
+  min-height: 36px;
+  border: 1px solid #ff9b9b;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff1f1;
+  color: #b00000;
+  font-weight: 900;
+  cursor: pointer;
+}

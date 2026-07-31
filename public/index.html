@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Poste Espace Services</title>
-  <link rel="stylesheet" href="/modern.css?v=20260718-mail-alert">
+  <link rel="stylesheet" href="/modern.css?v=20260731-mail-cleanup">
 </head>
 <body>
   <div class="digital-clock" id="digital-clock" aria-label="Heure actuelle">--:--</div>
@@ -217,6 +217,10 @@
         <div class="hourglass mail-hourglass" id="mail-wait-timer" aria-hidden="true"></div>
         <h2 id="mail-select-title">Merci de patienter</h2>
         <p id="mail-select-text">Le serveur recherche votre mail. Dès qu'il le reçoit, votre adresse apparaîtra ici.</p>
+        <div class="mail-email-check">
+          <label for="mail-email-confirm">Votre adresse mail</label>
+          <input id="mail-email-confirm" type="email" inputmode="email" autocomplete="email" placeholder="exemple@email.fr">
+        </div>
         <div class="mail-recent-list" id="mail-recent-list">
           <p class="mail-recent-empty">Aucun mail reçu pour le moment. Gardez cette fenêtre ouverte.</p>
         </div>
@@ -262,9 +266,10 @@
     </div>
   </div>
 
-  <script src="/modern-app.js?v=20260718-mail-alert"></script>
+  <script src="/modern-app.js?v=20260731-mail-cleanup"></script>
 </body>
 </html>
+
 
 
 
