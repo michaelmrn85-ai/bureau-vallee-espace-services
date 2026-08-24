@@ -1075,6 +1075,8 @@ const ZOHO_ACCOUNTS_URL = "https://accounts.zoho.eu/oauth/v2/token";
 let zohoAccessToken = "";
 let zohoAccessTokenExpiry = 0;
 let zohoAccountId = "";
+let zohoSpamFolderId = "";
+let zohoSpamFolderChecked = false;
 
 async function zohoRefreshAccessToken() {
   const https = require("https");
@@ -1154,6 +1156,28 @@ async function zohoGetAccountId() {
   return zohoAccountId;
 }
 
+// Les mails suspects sont automatiquement deposes par Zoho dans le dossier Spam
+// et n'apparaissent jamais dans /messages/view sans folderId (qui ne liste que
+// l'Inbox). Sans ca, un mail client filtre par erreur en spam n'est jamais vu
+// ni par l'agent ni par le comptoir. On recupere donc aussi ce dossier pour le
+// relire a chaque poll.
+async function zohoGetSpamFolderId(accountId) {
+  if (zohoSpamFolderChecked) return zohoSpamFolderId;
+  try {
+    const result = await zohoFetch(`/accounts/${accountId}/folders`);
+    const folders = result.data || [];
+    const spamFolder = folders.find((f) => String(f.folderType || "").toLowerCase() === "spam")
+      || folders.find((f) => String(f.folderName || f.path || "").toLowerCase().includes("spam"));
+    zohoSpamFolderId = spamFolder ? String(spamFolder.folderId || "") : "";
+    console.log("[mail] Zoho dossier Spam: " + (zohoSpamFolderId || "introuvable"));
+  } catch (error) {
+    console.log("[mail] Impossible de recuperer le dossier Spam: " + error.message);
+    zohoSpamFolderId = "";
+  }
+  zohoSpamFolderChecked = true;
+  return zohoSpamFolderId;
+}
+
 function startMailWatcher() {
   mailRuntimeStatus.enabled = MAIL_POLLING_ENABLED;
   mailRuntimeStatus.configured = Boolean(ZOHO_REFRESH_TOKEN);
@@ -1177,13 +1201,29 @@ function startMailWatcher() {
       const nodemailer = require("nodemailer");
       const { simpleParser } = require("mailparser");
       const accountId = await zohoGetAccountId();
+      const spamFolderId = await zohoGetSpamFolderId(accountId);
 
-      // Récupérer les mails non lus
-      const result = await zohoFetch(`/accounts/${accountId}/messages/view?limit=10&start=0`);
-      const allMessages = Array.isArray(result.data) ? result.data : [];
+      // Récupérer les mails non lus de l'Inbox, et aussi du dossier Spam : Zoho
+      // classe automatiquement certains mails clients en spam (selon le SPF/DKIM
+      // de leur propre fournisseur mail) et /messages/view sans folderId ne
+      // renvoie que l'Inbox, donc ces mails passaient inapercus.
+      const inboxResult = await zohoFetch(`/accounts/${accountId}/messages/view?limit=10&start=0`);
+      const inboxMessages = Array.isArray(inboxResult.data) ? inboxResult.data : [];
+
+      let spamMessages = [];
+      if (spamFolderId) {
+        try {
+          const spamResult = await zohoFetch(`/accounts/${accountId}/messages/view?folderId=${spamFolderId}&limit=10&start=0`);
+          spamMessages = Array.isArray(spamResult.data) ? spamResult.data : [];
+        } catch (error) {
+          console.log('[mail] Erreur lecture dossier Spam: ' + error.message);
+        }
+      }
+
+      const allMessages = [...inboxMessages, ...spamMessages];
       const messages = allMessages.filter((m) => String(m.status) === '0');
       mailRuntimeStatus.mailboxExists = allMessages.length;
-      console.log('[mail] Boite Zoho: ' + allMessages.length + ' message(s), ' + messages.length + ' non lu(s).');
+      console.log('[mail] Boite Zoho: ' + inboxMessages.length + ' en Inbox, ' + spamMessages.length + ' en Spam, ' + messages.length + ' non lu(s) au total.');
 
       const processedIds = readProcessedMailIds();
       const processedSet = new Set(processedIds);
